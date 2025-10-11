@@ -1,0 +1,25 @@
+@import "../../Components/Exam/ExamSkillPage.module.css";
+
+.audioSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.audioPlayer {
+  width: 100%;
+  max-width: 700px;
+  border-radius: 8px;
+  outline: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.audioPlayer::-webkit-media-controls-panel {
+  background-color: #004aad;
+  color: white;
+}
+
+.question {
+  margin-top: 1rem;
+}

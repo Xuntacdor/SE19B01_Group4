@@ -9,5 +9,6 @@ namespace WebAPI.Services
         ListeningDto Create(CreateListeningDto dto);
         ListeningDto? Update(int id, UpdateListeningDto dto);
         bool Delete(int id);
+        decimal EvaluateListening(SubmitAttemptDto dto);
     }
 }
