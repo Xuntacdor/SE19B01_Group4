@@ -66,6 +66,8 @@ builder.Services.AddScoped<IWritingService, WritingService>();
 builder.Services.AddScoped<ISignInHistoryService, SignInHistoryService>();
 builder.Services.AddScoped<OpenAIService>();
 builder.Services.AddScoped<IWritingFeedbackRepository, WritingFeedbackRepository>();
+builder.Services.AddScoped<IWritingFeedbackRepository, WritingFeedbackRepository>();
+builder.Services.AddScoped<IWritingFeedbackService, WritingFeedbackService>();
 
 // ====== Authentication ======
 builder.Services.AddAuthentication(options =>

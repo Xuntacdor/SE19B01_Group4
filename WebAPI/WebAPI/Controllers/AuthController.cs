@@ -56,6 +56,8 @@ namespace WebAPI.Controllers
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                                new Claim("UserId", user.UserId.ToString()), 
+
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim(ClaimTypes.Role, user.Role)
@@ -142,6 +144,8 @@ namespace WebAPI.Controllers
             var appClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                    new Claim("UserId", user.UserId.ToString()),
+
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role)
@@ -166,7 +170,7 @@ namespace WebAPI.Controllers
             }
 
 
-            return Redirect($"http://localhost:5173?login=success&email={user.Email}&username={user.Username}&role={user.Role}");
+            return Redirect($"https://localhost:5173?login=success&email={user.Email}&username={user.Username}&role={user.Role}");
         }
 
         [HttpGet("me")]

@@ -11,10 +11,14 @@ namespace WebAPI.Controllers
     public class WritingController : ControllerBase
     {
         private readonly IWritingService _writingService;
+        private readonly IWritingFeedbackService _feedbackService;
 
-        public WritingController(IWritingService writingService)
+        public WritingController(
+            IWritingService writingService,
+            IWritingFeedbackService feedbackService)
         {
             _writingService = writingService;
+            _feedbackService = feedbackService;
         }
 
         [HttpPost]
@@ -58,9 +62,43 @@ namespace WebAPI.Controllers
             return deleted ? NoContent() : NotFound();
         }
 
+        // ======================
+        // === GET FEEDBACK ===
+        // ======================
+        [HttpGet("feedback/{examId}/{userId}")]
+        [Authorize(Roles = "user,admin")]
+        public IActionResult GetFeedbackByExam(int examId, int userId)
+        {
+            var feedbacks = _feedbackService.GetByExamAndUser(examId, userId);
+
+            if (feedbacks == null || feedbacks.Count == 0)
+                return NotFound(new { message = "No feedback found for this exam." });
+
+            var response = new
+            {
+                examId,
+                userId,
+                totalTasks = feedbacks.Count,
+                averageOverall = Math.Round(feedbacks.Average(f => f.Overall ?? 0), 1),
+                feedbacks = feedbacks.Select(f => new
+                {
+                    f.WritingId,
+                    f.TaskAchievement,
+                    f.CoherenceCohesion,
+                    f.LexicalResource,
+                    f.GrammarAccuracy,
+                    f.Overall,
+                    f.FeedbackSections,
+                    f.GrammarVocabJson,
+                    f.CreatedAt
+                })
+            };
+
+            return Ok(response);
+        }
 
         [HttpPost("grade")]
-        [AllowAnonymous]
+        [Authorize(Roles = "user")]
         public IActionResult GradeWriting([FromBody] WritingGradeRequestDTO dto)
         {
             if (dto == null || dto.Answers == null || dto.Answers.Count == 0)
@@ -70,6 +108,7 @@ namespace WebAPI.Controllers
             {
                 var userIdStr = User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
                 if (userIdStr == null) return Unauthorized("User not logged in.");
+
                 int userId = int.Parse(userIdStr);
 
                 var result = _writingService.GradeWriting(dto, userId);
@@ -82,7 +121,5 @@ namespace WebAPI.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
-
-
     }
 }

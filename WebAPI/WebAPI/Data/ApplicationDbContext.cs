@@ -613,6 +613,38 @@ namespace WebAPI.Data
                 entity.HasIndex(e => e.ResetToken, "IX_PasswordResetOtp_ResetToken");
             });
 
+            modelBuilder.Entity<WritingFeedback>(entity =>
+            {
+                entity.HasKey(e => e.FeedbackId).HasName("PK__WritingF__7A6B2B8C940C0650");
+
+                entity.ToTable("WritingFeedback");
+
+                entity.Property(e => e.FeedbackId).HasColumnName("feedback_id");
+                entity.Property(e => e.AttemptId).HasColumnName("attempt_id");
+                entity.Property(e => e.CoherenceCohesion)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("coherence_cohesion");
+                entity.Property(e => e.CreatedAt)
+                    .HasPrecision(0)
+                    .HasDefaultValueSql("(sysdatetime())")
+                    .HasColumnName("created_at");
+                entity.Property(e => e.FeedbackSections).HasColumnName("feedback_sections");
+                entity.Property(e => e.GrammarAccuracy)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("grammar_accuracy");
+                entity.Property(e => e.GrammarVocabJson).HasColumnName("grammar_vocab_json");
+                entity.Property(e => e.LexicalResource)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("lexical_resource");
+                entity.Property(e => e.Overall)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("overall");
+                entity.Property(e => e.TaskAchievement)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("task_achievement");
+                entity.Property(e => e.WritingId).HasColumnName("writing_id");
+            });
+
             OnModelCreatingPartial(modelBuilder);
         }
 
