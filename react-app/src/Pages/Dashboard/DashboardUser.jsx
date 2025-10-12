@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import AppLayout from "../../Components/Layout/AppLayout";
+import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import styles from "./DashboardUser.module.css";
 import {
   Book,
@@ -125,7 +126,7 @@ export default function DashboardUser() {
   }, [attempts]);
 
   return (
-    <AppLayout title="Summary of your hard work">
+    <AppLayout title="Summary of your hard work" sidebar={<GeneralSidebar />}>
       <div className={styles.dashboardContent}>
         {/* ===== Calendar Section ===== */}
         <div className={`${styles.card} ${styles.calendarCard}`}>

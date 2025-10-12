@@ -20,7 +20,7 @@ namespace WebAPI.Data
         public virtual DbSet<VocabGroup> VocabGroup { get; set; }
         public virtual DbSet<Word> Word { get; set; }
         public virtual DbSet<Report> Report { get; set; }
-        public virtual DbSet<Transaction> Transaction { get; set; }
+        public virtual DbSet<Transaction> Transactions { get; set; }
         public virtual DbSet<Notification> Notification { get; set; }
         public virtual DbSet<Post> Post { get; set; }
         public virtual DbSet<Comment> Comment { get; set; }
@@ -369,6 +369,12 @@ namespace WebAPI.Data
                     .HasDefaultValue("PENDING")
                     .HasColumnName("status");
                 entity.Property(e => e.UserId).HasColumnName("user_id");
+
+                // Indexes for performance and idempotency
+                entity.HasIndex(e => new { e.UserId, e.CreatedAt }).HasDatabaseName("IX_Transaction_User_CreatedAt");
+                entity.HasIndex(e => new { e.Status, e.CreatedAt }).HasDatabaseName("IX_Transaction_Status_CreatedAt");
+                entity.HasIndex(e => e.ProviderTxnId).IsUnique();
+                entity.HasIndex(e => e.CreatedAt);
 
                 entity.HasOne(d => d.User).WithMany(p => p.Transactions)
                     .HasForeignKey(d => d.UserId)

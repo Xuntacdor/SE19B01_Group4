@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Forum.css";
 import AppLayout from "../../Components/Layout/AppLayout";
+import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import PostList from "../../Components/Forum/PostList";
 import RightSidebar from "../../Components/Forum/RightSidebar";
 import { getPostsByFilter } from "../../Services/ForumApi";
@@ -62,7 +63,7 @@ export default function Forum() {
   const handlePostUpdated = () => loadPosts();
 
   return (
-    <AppLayout title="Forum">
+    <AppLayout title="Forum" sidebar={<GeneralSidebar />}>
       <div className="forum-content">
         <div className="forum-main">
           <div className="forum-header">

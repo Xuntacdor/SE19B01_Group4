@@ -322,5 +322,11 @@ namespace WebAPI.Services
                 TotalVotes = totalVotes
             };
         }
+        //public bool IsVip(int userId)
+        //{
+        //    var user = _repo.GetById(userId);
+        //    return user?.VipExpireAt != null && user.VipExpireAt > DateTime.UtcNow;
+        //}
+
     }
 }
