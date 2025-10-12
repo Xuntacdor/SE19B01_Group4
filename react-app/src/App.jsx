@@ -22,6 +22,8 @@ import AddWriting from "./Pages/Admin/AddWriting.jsx";
 import ModeratorDashboard from "./Pages/Moderator/ModeratorDashboard.jsx"; // ⚡ import moderator dashboard
 import WritingTestPage from "./Pages/Writing/WritingTestPage.jsx"
 import ReadingExamPage from "./Pages/Reading/ReadingExamPage.jsx";
+import TransactionList from "./Pages/Transactions/TransactionList.jsx";
+import TransactionDetail from "./Pages/Transactions/TransactionDetail.jsx";
 function App() {
   return (
     <BrowserRouter>
@@ -52,6 +54,11 @@ function App() {
           <Route path="/reading/test" element={<ReadingExamPage />} />
 
           <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
+          <Route path="/admin/transactions" element={<TransactionList />} />
+          <Route
+            path="/admin/transactions/:id"
+            element={<TransactionDetail />}
+          />
         </Routes>
     </BrowserRouter>
   );

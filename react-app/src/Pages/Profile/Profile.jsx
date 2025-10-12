@@ -4,6 +4,7 @@ import "./Profile.css";
 import useAuth from "../../Hook/UseAuth";
 import useExamAttempts from "../../Hook/UseExamAttempts";
 import AppLayout from "../../Components/Layout/AppLayout";
+import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 
 import ProfileTab from "./Tabs/ProfileTab";
 import TestHistoryTab from "./Tabs/TestHistoryTab";
@@ -82,7 +83,7 @@ export default function Profile() {
   };
 
   return (
-    <AppLayout title="Profile">
+    <AppLayout title="Profile" sidebar={<GeneralSidebar />}>
       <div className="profile-layout">
         <div className="profile-sidebar">
           <div className="user-info">

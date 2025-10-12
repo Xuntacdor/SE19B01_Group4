@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppLayout from "../../Components/Layout/AppLayout";
+import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import styles from "./WritingTestPage.module.css";
 import * as WritingApi from "../../Services/WritingApi";
 
@@ -17,7 +18,7 @@ export default function WritingTest() {
 
   if (!state)
     return (
-      <AppLayout title="Writing Test">
+      <AppLayout title="Writing Test" sidebar={<GeneralSidebar />}>
         <div className={styles.center}>
           <h2>No exam selected</h2>
           <button onClick={() => navigate(-1)} className={styles.backBtn}>
@@ -50,12 +51,9 @@ export default function WritingTest() {
 
   // ========== TASK ==========
   const currentTask =
-    mode === "full" && Array.isArray(tasks)
-      ? tasks[currentIndex]
-      : task;
+    mode === "full" && Array.isArray(tasks) ? tasks[currentIndex] : task;
 
-  const currentId =
-    mode === "full" ? currentTask?.writingId : task?.writingId;
+  const currentId = mode === "full" ? currentTask?.writingId : task?.writingId;
   const currentAnswer = answers[currentId] || "";
 
   const getWordCount = (text) =>

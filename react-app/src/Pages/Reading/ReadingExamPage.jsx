@@ -19,7 +19,10 @@ export default function ReadingExamPage() {
   // ========== TIMER ==========
   useEffect(() => {
     if (!timeLeft || submitted) return;
-    const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
+    const timer = setInterval(
+      () => setTimeLeft((t) => Math.max(0, t - 1)),
+      1000
+    );
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
 
