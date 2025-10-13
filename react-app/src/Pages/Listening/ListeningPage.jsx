@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AppLayout from "../../Components/Layout/AppLayout";
+import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as examService from "../../Services/ExamApi";
 import * as listeningService from "../../Services/ListeningApi";
 import ExamCard from "../../Components/Exam/ExamCard";
@@ -55,7 +56,7 @@ export default function ListeningPage() {
   };
 
   return (
-    <AppLayout title="Listening">
+    <AppLayout title="Listening Page" sidebar={<GeneralSidebar />}>
       <div className={styles.container}>
         <h2 className={styles.pageTitle}>IELTS Listening</h2>
 

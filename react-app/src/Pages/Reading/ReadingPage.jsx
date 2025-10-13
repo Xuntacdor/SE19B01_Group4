@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../../Components/Layout/AppLayout";
+import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as examService from "../../Services/ExamApi";
 import * as readingService from "../../Services/ReadingApi";
 import ExamCard from "../../Components/Exam/ExamCard";
@@ -82,7 +83,7 @@ export default function ReadingPage() {
 
   // ====== Render ======
   return (
-    <AppLayout title="Reading">
+    <AppLayout title="Reading" sidebar={<GeneralSidebar />}>
       <div className={styles.container}>
         <h2 className={styles.pageTitle}>IELTS Reading</h2>
 

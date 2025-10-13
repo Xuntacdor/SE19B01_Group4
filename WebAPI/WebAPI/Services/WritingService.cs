@@ -14,15 +14,18 @@ namespace WebAPI.Services
         private readonly IWritingRepository _writingRepo;
         private readonly IWritingFeedbackRepository _feedbackRepo;
         private readonly OpenAIService _openAI;
+        private readonly IExamService _examService;
 
         public WritingService(
             IWritingRepository writingRepo,
             IWritingFeedbackRepository feedbackRepo,
-            OpenAIService openAI)
+            OpenAIService openAI,
+            IExamService examService)
         {
             _writingRepo = writingRepo;
             _feedbackRepo = feedbackRepo;
             _openAI = openAI;
+            _examService = examService;
         }
 
         // =====================
@@ -99,7 +102,7 @@ namespace WebAPI.Services
             var question = _writingRepo.GetById(ans.WritingId)?.WritingQuestion ?? "Unknown question";
             var result = _openAI.GradeWriting(question, ans.AnswerText, ans.ImageUrl);
 
-            SaveFeedback(examId, ans.WritingId, result, userId);
+            SaveFeedback(examId, ans.WritingId, result, userId, ans.AnswerText);
             return result;
         }
 
@@ -112,7 +115,7 @@ namespace WebAPI.Services
                 var question = _writingRepo.GetById(ans.WritingId)?.WritingQuestion ?? "Unknown question";
                 var result = _openAI.GradeWriting(question, ans.AnswerText, ans.ImageUrl);
 
-                SaveFeedback(examId, ans.WritingId, result, userId);
+                SaveFeedback(examId, ans.WritingId, result, userId, ans.AnswerText);
 
                 feedbacks.Add(new
                 {
@@ -133,15 +136,42 @@ namespace WebAPI.Services
             return JsonDocument.Parse(JsonSerializer.Serialize(response));
         }
 
-        private void SaveFeedback(int examId, int writingId, JsonDocument feedback, int userId)
+    
+        private void SaveFeedback(int examId, int writingId, JsonDocument feedback, int userId, string answerText)
         {
             try
             {
+                var attemptList = _examService.GetExamAttemptsByUser(userId);
+                var attemptSummary = attemptList.FirstOrDefault(a => a.ExamId == examId);
+
+                ExamAttempt attempt;
+
+                if (attemptSummary == null)
+                {
+                    attempt = _examService.SubmitAttempt(
+                        examId,
+                        userId,
+                        answerText,     
+                        DateTime.UtcNow
+                    );
+                }
+                else
+                {
+                    attempt = _examService.GetAttemptById(attemptSummary.AttemptId)
+                              ?? throw new Exception("ExamAttempt not found in database.");
+
+                    if (string.IsNullOrEmpty(attempt.AnswerText))
+                    {
+                        attempt.AnswerText = answerText;
+                        _examService.Save();
+                    }
+                }
+
                 var band = feedback.RootElement.GetProperty("band_estimate");
 
                 var entity = new WritingFeedback
                 {
-                    AttemptId = 0,
+                    AttemptId = attempt.AttemptId,
                     WritingId = writingId,
                     TaskAchievement = band.GetProperty("task_achievement").GetDecimal(),
                     CoherenceCohesion = band.GetProperty("coherence_cohesion").GetDecimal(),

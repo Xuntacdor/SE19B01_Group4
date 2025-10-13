@@ -83,7 +83,7 @@ namespace WebAPI.Controllers
         {
             var totalUsers = _db.User.Count();
             var totalExams = _db.Exam.Count();
-            var totalTransactions = _db.Transaction.Where(t => t.Status == "PAID").Sum(t => (decimal?)t.Amount) ?? 0;
+            var totalTransactions = _db.Transactions.Where(t => t.Status == "PAID").Sum(t => (decimal?)t.Amount) ?? 0;
             var totalAttempts = _db.ExamAttempt.Count();
 
             return Ok(new
@@ -99,7 +99,7 @@ namespace WebAPI.Controllers
         [Authorize(Roles = "admin")]
         public IActionResult GetSalesTrend()
         {
-            var monthlySales = _db.Transaction
+            var monthlySales = _db.Transactions
                 .Where(t => t.Status == "PAID")
                 .GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
                 .Select(g => new

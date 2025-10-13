@@ -66,6 +66,10 @@ builder.Services.AddScoped<OpenAIService>();
 builder.Services.AddScoped<IWritingFeedbackRepository, WritingFeedbackRepository>();
 builder.Services.AddScoped<IExamRepository, ExamRepository>();
 builder.Services.AddScoped<IExamService, ExamService>();
+builder.Services.AddScoped<IWritingFeedbackRepository, WritingFeedbackRepository>();
+builder.Services.AddScoped<IWritingFeedbackService, WritingFeedbackService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+
 
 // ====== Authentication ======
 builder.Services.AddAuthentication(options =>

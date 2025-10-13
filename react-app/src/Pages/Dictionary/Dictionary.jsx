@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import "./Dictionary.css";
 import AppLayout from "../../Components/Layout/AppLayout";
+import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import {
   Trash2,
   Volume2,
@@ -99,7 +100,7 @@ export default function Dictionary() {
   };
 
   return (
-    <AppLayout title="Dictionary">
+    <AppLayout title="Dictionary" sidebar={<GeneralSidebar />}>
       {!showQuiz ? (
         <div className="dictionary-container">
           <h2>Vocabulary Notebook</h2>

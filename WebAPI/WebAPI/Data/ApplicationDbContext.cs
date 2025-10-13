@@ -20,7 +20,7 @@ namespace WebAPI.Data
         public virtual DbSet<VocabGroup> VocabGroup { get; set; }
         public virtual DbSet<Word> Word { get; set; }
         public virtual DbSet<Report> Report { get; set; }
-        public virtual DbSet<Transaction> Transaction { get; set; }
+        public virtual DbSet<Transaction> Transactions { get; set; }
         public virtual DbSet<Notification> Notification { get; set; }
         public virtual DbSet<Post> Post { get; set; }
         public virtual DbSet<Comment> Comment { get; set; }
@@ -370,6 +370,12 @@ namespace WebAPI.Data
                     .HasColumnName("status");
                 entity.Property(e => e.UserId).HasColumnName("user_id");
 
+                // Indexes for performance and idempotency
+                entity.HasIndex(e => new { e.UserId, e.CreatedAt }).HasDatabaseName("IX_Transaction_User_CreatedAt");
+                entity.HasIndex(e => new { e.Status, e.CreatedAt }).HasDatabaseName("IX_Transaction_Status_CreatedAt");
+                entity.HasIndex(e => e.ProviderTxnId).IsUnique();
+                entity.HasIndex(e => e.CreatedAt);
+
                 entity.HasOne(d => d.User).WithMany(p => p.Transactions)
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
@@ -611,6 +617,38 @@ namespace WebAPI.Data
 
                 entity.HasIndex(e => e.Email, "IX_PasswordResetOtp_Email");
                 entity.HasIndex(e => e.ResetToken, "IX_PasswordResetOtp_ResetToken");
+            });
+
+            modelBuilder.Entity<WritingFeedback>(entity =>
+            {
+                entity.HasKey(e => e.FeedbackId).HasName("PK__WritingF__7A6B2B8C940C0650");
+
+                entity.ToTable("WritingFeedback");
+
+                entity.Property(e => e.FeedbackId).HasColumnName("feedback_id");
+                entity.Property(e => e.AttemptId).HasColumnName("attempt_id");
+                entity.Property(e => e.CoherenceCohesion)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("coherence_cohesion");
+                entity.Property(e => e.CreatedAt)
+                    .HasPrecision(0)
+                    .HasDefaultValueSql("(sysdatetime())")
+                    .HasColumnName("created_at");
+                entity.Property(e => e.FeedbackSections).HasColumnName("feedback_sections");
+                entity.Property(e => e.GrammarAccuracy)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("grammar_accuracy");
+                entity.Property(e => e.GrammarVocabJson).HasColumnName("grammar_vocab_json");
+                entity.Property(e => e.LexicalResource)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("lexical_resource");
+                entity.Property(e => e.Overall)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("overall");
+                entity.Property(e => e.TaskAchievement)
+                    .HasColumnType("decimal(3, 1)")
+                    .HasColumnName("task_achievement");
+                entity.Property(e => e.WritingId).HasColumnName("writing_id");
             });
 
             OnModelCreatingPartial(modelBuilder);

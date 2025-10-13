@@ -155,3 +155,52 @@
   background: #fff;
   font-weight: 100;
 }
+.resultBox {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-top: 24px;
+}
+
+.feedbackBlock {
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.feedbackBlock ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.feedbackBlock summary {
+  cursor: pointer;
+  color: #2563eb;
+  font-weight: 500;
+}
+.detailsBlock {
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #fafafa;
+}
+
+.errorList {
+  margin-top: 8px;
+  list-style: none;
+  padding-left: 0;
+}
+
+.errorItem summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: #1e3a8a;
+}
+
+.errorItem small {
+  display: block;
+  margin-top: 4px;
+  color: #4b5563;
+}

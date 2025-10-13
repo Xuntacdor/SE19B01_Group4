@@ -1,53 +1,56 @@
-﻿using WebAPI.Data;
-using WebAPI.Models;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using WebAPI.Data;
+using WebAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebAPI.Repositories
 {
     public class WritingFeedbackRepository : IWritingFeedbackRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ApplicationDbContext _db;
 
-        public WritingFeedbackRepository(ApplicationDbContext context)
+        public WritingFeedbackRepository(ApplicationDbContext db)
         {
-            _context = context;
-        }
-
-        public void Add(WritingFeedback feedback)
-        {
-            _context.WritingFeedback.Add(feedback);
-        }
-
-        public void AddRange(IEnumerable<WritingFeedback> feedbacks)
-        {
-            _context.WritingFeedback.AddRange(feedbacks);
+            _db = db;
         }
 
         public WritingFeedback? GetById(int id)
         {
-            return _context.WritingFeedback.FirstOrDefault(f => f.FeedbackId == id);
+            return _db.WritingFeedback
+                .Include(f => f.ExamAttempt)
+                .FirstOrDefault(f => f.FeedbackId == id);
         }
 
-        public List<WritingFeedback> GetByWritingId(int writingId)
+        public List<WritingFeedback> GetByExamAndUser(int examId, int userId)
         {
-            return _context.WritingFeedback
-                .Where(f => f.WritingId == writingId)
+            return _db.WritingFeedback
+                .Include(f => f.ExamAttempt)
+                .Where(f => f.ExamAttempt != null &&
+                            f.ExamAttempt.ExamId == examId &&
+                            f.ExamAttempt.UserId == userId)
                 .OrderByDescending(f => f.CreatedAt)
                 .ToList();
         }
 
-        public List<WritingFeedback> GetByAttemptId(long attemptId)
+        public void Add(WritingFeedback entity)
         {
-            return _context.WritingFeedback
-                .Where(f => f.AttemptId == attemptId)
-                .OrderByDescending(f => f.CreatedAt)
-                .ToList();
+            _db.WritingFeedback.Add(entity);
+        }
+
+        public void Update(WritingFeedback entity)
+        {
+            _db.WritingFeedback.Update(entity);
+        }
+
+        public void Delete(WritingFeedback entity)
+        {
+            _db.WritingFeedback.Remove(entity);
         }
 
         public void SaveChanges()
         {
-            _context.SaveChanges();
+            _db.SaveChanges();
         }
     }
 }
