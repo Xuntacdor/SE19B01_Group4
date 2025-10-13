@@ -84,5 +84,50 @@ namespace WebAPI.Services
                 CorrectAnswer = r.CorrectAnswer,
                 QuestionHtml = r.QuestionHtml
             };
+        public decimal EvaluateReading(SubmitAttemptDto dto)
+        {
+            var userGroups = System.Text.Json.JsonSerializer
+                .Deserialize<List<UserAnswerGroup>>(dto.AnswerText)
+                ?? new List<UserAnswerGroup>();
+
+            var readings = GetByExam(dto.ExamId);
+
+            int totalQuestions = 0;
+            int correctCount = 0;
+
+            foreach (var reading in readings)
+            {
+                var userGroup = userGroups.FirstOrDefault(g => g.SkillId == reading.ReadingId);
+                if (userGroup == null) continue;
+
+                List<string> correctAnswers = new();
+                if (!string.IsNullOrEmpty(reading.CorrectAnswer))
+                {
+                    try
+                    {
+                        correctAnswers = System.Text.Json.JsonSerializer
+                            .Deserialize<List<string>>(reading.CorrectAnswer)
+                            ?? new();
+                    }
+                    catch { }
+                }
+
+                totalQuestions += correctAnswers.Count;
+
+                foreach (var ans in userGroup.Answers)
+                {
+                    if (correctAnswers.Any(c =>
+                        string.Equals(ans?.Trim(), c?.Trim(), StringComparison.OrdinalIgnoreCase)))
+                    {
+                        correctCount++;
+                    }
+                }
+            }
+
+            return totalQuestions > 0
+                ? Math.Round((decimal)correctCount / totalQuestions * 9, 2)
+                : 0;
+        }
+
     }
 }

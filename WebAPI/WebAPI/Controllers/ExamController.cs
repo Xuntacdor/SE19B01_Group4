@@ -14,8 +14,10 @@ namespace WebAPI.Controllers
     {
         private readonly IExamService _examService;
         private readonly IReadingService _readingService;
+        private readonly IListeningService _listeningService;
 
-        public ExamController(IExamService service,IReadingService readingService) => (_examService,_readingService) = (service,readingService);
+        public ExamController(IExamService service,IReadingService readingService,IListeningService listeningService) 
+            => (_examService,_readingService,_listeningService) = (service,readingService,listeningService);
 
         // ========= CREATE EXAM =========
         [HttpPost]
@@ -118,57 +120,21 @@ namespace WebAPI.Controllers
 
                 decimal score = 0;
 
-                if (exam.ExamType.Equals("reading", StringComparison.OrdinalIgnoreCase))
+                switch (exam.ExamType.ToLower())
                 {
-                    // ✅ 1. Parse the new JSON structure: [{ skillId, answers: [] }]
-                    var userGroups = System.Text.Json.JsonSerializer
-                        .Deserialize<List<UserAnswerGroup>>(dto.AnswerText)
-                        ?? new List<UserAnswerGroup>();
+                    case "reading":
+                        score = _readingService.EvaluateReading(dto);
+                        break;
 
-                    // ✅ 2. Fetch all reading tasks
-                    var readings = _readingService.GetByExam(dto.ExamId);
+                    case "listening":
+                        score = _listeningService.EvaluateListening(dto);
+                        break;
 
-                    int totalQuestions = 0;
-                    int correctCount = 0;
-
-                    foreach (var reading in readings)
-                    {
-                        // find user’s submitted group
-                        var userGroup = userGroups.FirstOrDefault(g => g.SkillId == reading.ReadingId);
-                        if (userGroup == null) continue;
-
-                        // parse correct answers
-                        List<string> correctAnswers = new();
-                        if (!string.IsNullOrEmpty(reading.CorrectAnswer))
-                        {
-                            try
-                            {
-                                correctAnswers = System.Text.Json.JsonSerializer
-                                    .Deserialize<List<string>>(reading.CorrectAnswer)
-                                    ?? new();
-                            }
-                            catch { }
-                        }
-
-                        // ✅ compare arrays
-                        totalQuestions += correctAnswers.Count;
-                        foreach (var ans in userGroup.Answers)
-                        {
-                            if (correctAnswers.Any(c =>
-                                string.Equals(ans?.Trim(), c?.Trim(), StringComparison.OrdinalIgnoreCase)))
-                            {
-                                correctCount++;
-                            }
-                        }
-                    }
-
-                    // ✅ 3. Compute IELTS-style 0–9 score
-                    score = totalQuestions > 0
-                        ? Math.Round((decimal)correctCount / totalQuestions * 9, 2)
-                        : 0;
+                    default:
+                        score = 0;
+                        break;
                 }
 
-                // attach score and save
                 dto.Score = score;
                 var attempt = _examService.SubmitAttempt(dto, userId.Value);
 
@@ -196,10 +162,6 @@ namespace WebAPI.Controllers
                 });
             }
         }
-
-        // ✅ Local record to parse the nested JSON answer structure
-        private record UserAnswerGroup(int SkillId, List<string> Answers);
-
 
         // ========= PRIVATE HELPER =========
         private static ExamDto ConvertToDto(Exam exam)

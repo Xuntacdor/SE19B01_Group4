@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useRef } from "react";
+import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import ExamSkillPage from "../../Components/Exam/ExamSkillPage";
 import styles from "./ReadingExamPage.module.css";
-import { submitAttempt } from "../../Services/ExamApi";
 
 export default function ReadingExamPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { exam, tasks, duration } = state || {};
 
   const { exam, tasks = [], duration } = state || {};
 
@@ -117,64 +118,27 @@ export default function ReadingExamPage() {
   }
 
   return (
-    <div className={styles.examWrapper}>
-      <div className={styles.topBar}>
-        <button className={styles.backBtn} onClick={() => navigate("/reading")}>
-          ← Back
-        </button>
-        <h2 className={styles.examTitle}>{exam.examName}</h2>
-        <div className={styles.timer}>⏱️ {formatTime(timeLeft)}</div>
-      </div>
-
-      {tasks.map((task, idx) => (
-        <form
-          key={idx}
-          ref={(el) => (formRefs.current[idx] = el)}
-          className={`${styles.examForm} ${
-            idx === page ? styles.activeForm : styles.hiddenForm
-          }`}
-        >
-          <div className={styles.questionPage}>
-            <h3 className={styles.questionTitle}>
-              {task.readingType || "Reading Task"} #{task.displayOrder || idx + 1}
-            </h3>
-
-            <div
-              className={styles.readingContent}
-              dangerouslySetInnerHTML={{ __html: task.readingContent || "" }}
-            />
-
-            <div
-              className={styles.question}
-              dangerouslySetInnerHTML={{
-                __html: task.questionHtml || task.readingQuestion,
-              }}
-            />
-          </div>
-        </form>
-      ))}
-
-      <div className={styles.navigation}>
-        {page > 0 && (
-          <button type="button" className={styles.navBtn} onClick={handlePrev}>
-            ← Previous
-          </button>
-        )}
-        {page < tasks.length - 1 ? (
-          <button type="button" className={styles.navBtn} onClick={handleNext}>
-            Next →
-          </button>
-        ) : (
-          <button
-            type="button"
-            className={styles.submitBtn}
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Submitting..." : "Submit All"}
-          </button>
-        )}
-      </div>
-    </div>
+    <ExamSkillPage
+      exam={exam}
+      tasks={tasks}
+      duration={duration}
+      skillKey="readingId"
+      skillType="Reading"
+      renderContent={(task) => (
+        <div
+          className={styles.readingContent}
+          dangerouslySetInnerHTML={{ __html: task.readingContent || "" }}
+        />
+      )}
+      renderQuestion={(task) => (
+        <div
+          className={styles.question}
+          dangerouslySetInnerHTML={{
+            __html: task.questionHtml || task.readingQuestion,
+          }}
+        />
+      )}
+      onBack={() => navigate("/reading")}
+    />
   );
 }
