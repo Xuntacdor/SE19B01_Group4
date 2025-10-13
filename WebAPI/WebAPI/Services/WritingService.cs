@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
+﻿using System.Text.Json;
 using WebAPI.DTOs;
 using WebAPI.ExternalServices;
 using WebAPI.Models;
@@ -136,7 +133,7 @@ namespace WebAPI.Services
             return JsonDocument.Parse(JsonSerializer.Serialize(response));
         }
 
-    
+
         private void SaveFeedback(int examId, int writingId, JsonDocument feedback, int userId, string answerText)
         {
             try
@@ -148,11 +145,15 @@ namespace WebAPI.Services
 
                 if (attemptSummary == null)
                 {
+                    SubmitAttemptDto dto = new SubmitAttemptDto
+                    {
+                        ExamId = examId,
+                        AnswerText = answerText,
+                        StartedAt = DateTime.UtcNow
+                    };
                     attempt = _examService.SubmitAttempt(
-                        examId,
-                        userId,
-                        answerText,     
-                        DateTime.UtcNow
+                        dto,
+                        userId
                     );
                 }
                 else
