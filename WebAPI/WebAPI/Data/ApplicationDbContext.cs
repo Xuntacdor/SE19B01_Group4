@@ -31,6 +31,7 @@ namespace WebAPI.Data
         public virtual DbSet<PasswordResetOtp> PasswordResetOtp { get; set; }
         public virtual DbSet<UserSignInHistory> UserSignInHistory { get; set; }
         public virtual DbSet<WritingFeedback> WritingFeedback { get; set; }
+        public virtual DbSet<VipPlan> VipPlans { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -380,6 +381,11 @@ namespace WebAPI.Data
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK__Transacti__user___656C112C");
+                entity.HasOne(d => d.Plan)
+                    .WithMany()
+                    .HasForeignKey(d => d.PlanId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .HasConstraintName("FK_Transactions_VipPlans");
             });
 
             modelBuilder.Entity<User>(entity =>
@@ -422,6 +428,8 @@ namespace WebAPI.Data
                 entity.Property(e => e.Username)
                     .HasMaxLength(100)
                     .HasColumnName("username");
+                entity.Property(e => e.VipExpireAt)
+                .HasColumnName("vip_expire_at");
             });
 
             modelBuilder.Entity<UserSignInHistory>(entity =>
@@ -577,7 +585,7 @@ namespace WebAPI.Data
                 entity.Property(e => e.DisplayOrder).HasColumnName("display_order");
                 entity.Property(e => e.ExamId).HasColumnName("exam_id");
                 entity.Property(e => e.WritingQuestion).HasColumnName("writing_question");
-                
+
 
                 entity.HasOne(d => d.Exam).WithMany(p => p.Writings)
                     .HasForeignKey(d => d.ExamId)
@@ -649,6 +657,38 @@ namespace WebAPI.Data
                     .HasColumnType("decimal(3, 1)")
                     .HasColumnName("task_achievement");
                 entity.Property(e => e.WritingId).HasColumnName("writing_id");
+            });
+            modelBuilder.Entity<VipPlan>(entity =>
+            {
+                entity.ToTable("VipPlans");
+
+                entity.HasKey(p => p.VipPlanId)
+                      .HasName("PK_VipPlans");
+
+                entity.Property(p => p.VipPlanId)
+                      .HasColumnName("plan_id");
+
+                entity.Property(p => p.PlanName)
+                      .HasColumnName("plan_name")
+                      .HasMaxLength(100)
+                      .IsRequired();
+
+                entity.Property(p => p.DurationDays)
+                      .HasColumnName("duration_days")
+                      .IsRequired();
+
+                entity.Property(p => p.Price)
+                      .HasColumnName("price")
+                      .HasColumnType("decimal(10,2)")
+                      .IsRequired();
+
+                entity.Property(p => p.Description)
+                      .HasColumnName("description")
+                      .HasMaxLength(255);
+
+                entity.Property(p => p.CreatedAt)
+                      .HasColumnName("created_at")
+                      .HasDefaultValueSql("SYSDATETIME()");
             });
 
             OnModelCreatingPartial(modelBuilder);

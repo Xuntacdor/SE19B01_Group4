@@ -10,6 +10,7 @@ namespace WebAPI.Services
         TransactionDTO Cancel(int id, int currentUserId, bool isAdmin);
         TransactionDTO Refund(int id, int currentUserId, bool isAdmin);
         TransactionDTO Approve(int id, int currentUserId, bool isAdmin);
+        TransactionDTO CreateVipTransaction (TransactionDTO transactionDTO,int currentUserId);
         byte[] ExportCsv(TransactionDTO q, int currentUserId, bool isAdmin);
     }
 }

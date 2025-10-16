@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebAPI.Models;
 
@@ -22,6 +23,8 @@ public partial class Transaction
     public string Status { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
-
+    [Column("plan_id")]
+    public int? PlanId { get; set; }
+    public VipPlan? Plan { get; set; }
     public virtual User User { get; set; } = null!;
 }

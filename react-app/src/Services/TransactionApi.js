@@ -58,3 +58,10 @@ export function exportCsv(query) {
   const params = sanitizeQuery(query || {});
   return API.get("/export", { params, responseType: "blob" });
 }
+export function createVipTransaction(planId, paymentMethod) {
+  return API.post("/create", {
+    planId,
+    paymentMethod,
+    purpose: "VIP",
+  });
+}
