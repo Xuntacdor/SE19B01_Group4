@@ -138,6 +138,7 @@ namespace WebAPI.Services
         {
             try
             {
+                // 1️⃣ Tìm ExamAttempt hiện tại (nếu chưa có thì tạo mới)
                 var attemptList = _examService.GetExamAttemptsByUser(userId);
                 var attemptSummary = attemptList.FirstOrDefault(a => a.ExamId == examId);
 
@@ -145,16 +146,14 @@ namespace WebAPI.Services
 
                 if (attemptSummary == null)
                 {
-                    SubmitAttemptDto dto = new SubmitAttemptDto
+                    var dto = new SubmitAttemptDto
                     {
                         ExamId = examId,
                         AnswerText = answerText,
                         StartedAt = DateTime.UtcNow
                     };
-                    attempt = _examService.SubmitAttempt(
-                        dto,
-                        userId
-                    );
+
+                    attempt = _examService.SubmitAttempt(dto, userId);
                 }
                 else
                 {
@@ -168,23 +167,46 @@ namespace WebAPI.Services
                     }
                 }
 
+                // 2️⃣ Phân tích feedback JSON để lấy band
                 var band = feedback.RootElement.GetProperty("band_estimate");
 
-                var entity = new WritingFeedback
-                {
-                    AttemptId = attempt.AttemptId,
-                    WritingId = writingId,
-                    TaskAchievement = band.GetProperty("task_achievement").GetDecimal(),
-                    CoherenceCohesion = band.GetProperty("coherence_cohesion").GetDecimal(),
-                    LexicalResource = band.GetProperty("lexical_resource").GetDecimal(),
-                    GrammarAccuracy = band.GetProperty("grammar_accuracy").GetDecimal(),
-                    Overall = band.GetProperty("overall").GetDecimal(),
-                    GrammarVocabJson = feedback.RootElement.GetProperty("grammar_vocab").GetRawText(),
-                    FeedbackSections = feedback.RootElement.GetProperty("coherence_logic").GetRawText(),
-                    CreatedAt = DateTime.UtcNow
-                };
+                // 3️⃣ Kiểm tra xem feedback cũ đã tồn tại chưa
+                var existing = _feedbackRepo.GetAll()
+                    .FirstOrDefault(f => f.AttemptId == attempt.AttemptId && f.WritingId == writingId);
 
-                _feedbackRepo.Add(entity);
+                if (existing != null)
+                {
+                    // 4️⃣ Ghi đè (update) bài chấm cũ
+                    existing.TaskAchievement = band.GetProperty("task_achievement").GetDecimal();
+                    existing.CoherenceCohesion = band.GetProperty("coherence_cohesion").GetDecimal();
+                    existing.LexicalResource = band.GetProperty("lexical_resource").GetDecimal();
+                    existing.GrammarAccuracy = band.GetProperty("grammar_accuracy").GetDecimal();
+                    existing.Overall = band.GetProperty("overall").GetDecimal();
+                    existing.GrammarVocabJson = feedback.RootElement.GetProperty("grammar_vocab").GetRawText();
+                    existing.FeedbackSections = feedback.RootElement.GetProperty("coherence_logic").GetRawText();
+                    existing.CreatedAt = DateTime.UtcNow;
+
+                    _feedbackRepo.Update(existing);
+                }
+                else
+                {
+                    var entity = new WritingFeedback
+                    {
+                        AttemptId = attempt.AttemptId,
+                        WritingId = writingId,
+                        TaskAchievement = band.GetProperty("task_achievement").GetDecimal(),
+                        CoherenceCohesion = band.GetProperty("coherence_cohesion").GetDecimal(),
+                        LexicalResource = band.GetProperty("lexical_resource").GetDecimal(),
+                        GrammarAccuracy = band.GetProperty("grammar_accuracy").GetDecimal(),
+                        Overall = band.GetProperty("overall").GetDecimal(),
+                        GrammarVocabJson = feedback.RootElement.GetProperty("grammar_vocab").GetRawText(),
+                        FeedbackSections = feedback.RootElement.GetProperty("coherence_logic").GetRawText(),
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _feedbackRepo.Add(entity);
+                }
+
                 _feedbackRepo.SaveChanges();
             }
             catch (Exception ex)
@@ -192,6 +214,7 @@ namespace WebAPI.Services
                 Console.WriteLine($"[SaveFeedback] Failed: {ex.Message}");
             }
         }
+
 
         private static WritingDTO MapToDto(Writing w) =>
             new WritingDTO

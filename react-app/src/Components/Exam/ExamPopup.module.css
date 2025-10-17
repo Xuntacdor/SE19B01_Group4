@@ -176,6 +176,9 @@
   border-radius: 10px;
   transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
 }
+.taskOption  input{
+width: 30%;
+}
 .taskOption:hover {
   border-color: #cbd5e1;
   background: #f8fafc;
@@ -318,4 +321,8 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+input[type="radio"]:focus {
+  outline: none;
+  box-shadow: none;
 }

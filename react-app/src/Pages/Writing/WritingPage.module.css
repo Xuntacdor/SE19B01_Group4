@@ -11,6 +11,96 @@
   margin: 8px 0 16px;
 }
 
+/* --- Criteria section (visual only) --- */
+.criteriaSection {
+  margin-bottom: 16px;
+}
+
+.criteriaGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 960px) {
+  .criteriaGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.criteriaColumn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.columnHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #f9fafb, #f3f4f6);
+  border-bottom: 1px solid #eef2f7;
+  font-weight: 600;
+}
+
+.headerIcon {
+  width: 22px;
+  height: 22px;
+  color: #2563eb;
+}
+
+.squareGrid {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.criterionCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: box-shadow 140ms ease, border-color 140ms ease,
+    transform 80ms ease, background-color 140ms ease;
+  background: #ffffff;
+}
+.criterionCard:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+  transform: translateY(-1px);
+}
+
+.criterionIconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.criterionIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.criterionTitle {
+  font-weight: 600;
+}
+
+.criterionSub {
+  color: #6b7280;
+  font-size: 20px;
+}
+
 .stateText {
   color: #6b7280;
   font-size: 30px;

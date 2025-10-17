@@ -12,8 +12,6 @@ export default function WritingTest() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [averageBand, setAverageBand] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   if (!state)
@@ -80,10 +78,16 @@ export default function WritingTest() {
     if (currentIndex > 0) setCurrentIndex((i) => i - 1);
   };
 
-  // ========== SUBMIT ==========
+  // ========== SUBMIT HANDLER ==========
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user) {
+        alert("Please log in to submit your test.");
+        return;
+      }
+
       const gradeData = {
         examId: exam.examId,
         mode,
@@ -95,43 +99,32 @@ export default function WritingTest() {
         })),
       };
 
-      await WritingApi.gradeWriting(gradeData);
+      // 🧠 Gửi bài lên để AI chấm, không đợi phản hồi
+      WritingApi.gradeWriting(gradeData)
+        .catch((err) => console.error("Grading failed:", err));
 
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!user) {
-        alert("Please log in to view feedback.");
-        return;
-      }
-
-      const result = await WritingApi.getFeedback(exam.examId, user.userId);
-      if (!result?.feedbacks) return;
-
-      const latest = Object.values(
-        result.feedbacks.reduce((acc, f) => {
-          acc[f.writingId] = acc[f.writingId] || [];
-          acc[f.writingId].push(f);
-          return acc;
-        }, {})
-      ).map((arr) =>
-        arr.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )[0]
-      );
-
-      setFeedbacks(latest.slice(0, mode === "full" ? 2 : 1));
-      setAverageBand(result.averageOverall);
+      // ⚡ Chuyển qua trang result, có trạng thái “đang chờ”
+      navigate("/writing/result", {
+        state: {
+          examId: exam.examId,
+          userId: user.userId,
+          exam,
+          mode,
+          originalAnswers: answers,
+          isWaiting: true,
+        },
+      });
     } catch (err) {
-      console.error("Grading failed:", err);
-      alert("Error while grading the essay!");
+      console.error("Submit failed:", err);
+      alert("Error while submitting the essay.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ========== RENDER ==========
+  // ========== UI ==========
   return (
-    <AppLayout title="Writing Test">
+    <AppLayout title="Writing Test" sidebar={<GeneralSidebar />}>
       <div className={styles.container}>
         <div className={styles.header}>
           <h2>
@@ -148,7 +141,9 @@ export default function WritingTest() {
             <div className={styles.answerHeader}>
               <h4>Your Answer:</h4>
               <div
-                className={`${styles.wordCount} ${isEnough ? styles.wordOK : styles.wordLow}`}
+                className={`${styles.wordCount} ${
+                  isEnough ? styles.wordOK : styles.wordLow
+                }`}
               >
                 Words: {wordCount} / {wordLimit}
               </div>
@@ -173,76 +168,6 @@ export default function WritingTest() {
                 ← Back
               </button>
             </div>
-
-            {/* ===== FEEDBACK ===== */}
-            {feedbacks.length > 0 && (
-              <div className={styles.resultBox}>
-                <h3>💯 Latest Feedback</h3>
-                <p>
-                  <b>Average Band:</b> {averageBand}
-                </p>
-
-                {feedbacks.map((f, i) => {
-                  const feedbackParsed = JSON.parse(f.feedbackSections || "{}");
-                  const grammarParsed = JSON.parse(f.grammarVocabJson || "{}");
-
-                  return (
-                    <div key={i} className={styles.feedbackBlock}>
-                      <h4>Task {i + 1}</h4>
-                      <ul>
-                        <li>Task Achievement: {f.taskAchievement}</li>
-                        <li>Coherence & Cohesion: {f.coherenceCohesion}</li>
-                        <li>Lexical Resource: {f.lexicalResource}</li>
-                        <li>Grammar Accuracy: {f.grammarAccuracy}</li>
-                        <li>
-                          <b>Overall:</b> {f.overall}
-                        </li>
-                      </ul>
-
-                      {/* Grammar & Vocab Accordion */}
-                      <details className={styles.detailsBlock}>
-                        <summary>📘 Grammar & Vocabulary</summary>
-                        <p><b>Overview:</b> {grammarParsed.overview}</p>
-                        {Array.isArray(grammarParsed.errors) && (
-                          <ul className={styles.errorList}>
-                            {grammarParsed.errors.map((err, idx) => (
-                              <li key={idx} className={styles.errorItem}>
-                                <details>
-                                  <summary>
-                                    <b>{err.category}</b>: "{err.incorrect}" → <i>{err.suggestion}</i>
-                                  </summary>
-                                  <small>{err.explanation}</small>
-                                </details>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </details>
-
-                      {/* Task Feedback Accordion */}
-                      <details className={styles.detailsBlock}>
-                        <summary>🗒 Task Feedback Details</summary>
-                        <p><b>Overview:</b> {feedbackParsed.overview}</p>
-                        {Array.isArray(feedbackParsed.paragraph_feedback) && (
-                          <ul>
-                            {feedbackParsed.paragraph_feedback.map((p, idx) => (
-                              <li key={idx}>
-                                <b>{p.section}</b>
-                                <ul>
-                                  <li>✅ Strengths: {p.strengths.join(", ")}</li>
-                                  <li>⚠️ Weaknesses: {p.weaknesses.join(", ")}</li>
-                                  <li>💡 Advice: {p.advice}</li>
-                                </ul>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </details>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* ===== RIGHT SIDE ===== */}

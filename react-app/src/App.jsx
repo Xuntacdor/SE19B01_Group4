@@ -28,6 +28,8 @@ import VipPlans from "./Pages/Transactions/VipPlans.jsx";
 import PaymentPage from "./Pages/Transactions/PaymentPage.jsx";
 import PaymentTab from "./Pages/Profile/Tabs/PaymentTab.jsx";
 import AdminVipPlans from "./Pages/Admin/AdminVipPlans.jsx";
+import WritingResultPage from "./Pages/Writing/WritingResultPage.jsx";
+
 function App() {
   return (
     <BrowserRouter>
@@ -55,6 +57,8 @@ function App() {
         <Route path="/admin/exam/add-listening" element={<AddListening />} />
         <Route path="/admin/exam/add-writing" element={<AddWriting />} />
         <Route path="/writing/test" element={<WritingTestPage />} />
+        <Route path="/writing/result" element={<WritingResultPage />} />
+
         <Route path="/reading/test" element={<ReadingExamPage />} />
 
         <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />

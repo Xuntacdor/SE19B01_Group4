@@ -15,6 +15,13 @@ namespace WebAPI.Repositories
             _db = db;
         }
 
+        public List<WritingFeedback> GetAll()
+        {
+            return _db.WritingFeedback
+                .Include(f => f.ExamAttempt)
+                .ToList();
+        }
+
         public WritingFeedback? GetById(int id)
         {
             return _db.WritingFeedback
@@ -31,6 +38,13 @@ namespace WebAPI.Repositories
                             f.ExamAttempt.UserId == userId)
                 .OrderByDescending(f => f.CreatedAt)
                 .ToList();
+        }
+
+        // ✅ Thêm mới hàm tiện ích cho ghi đè feedback
+        public WritingFeedback? GetByAttemptAndWriting(long attemptId, int writingId)
+        {
+            return _db.WritingFeedback
+                .FirstOrDefault(f => f.AttemptId == attemptId && f.WritingId == writingId);
         }
 
         public void Add(WritingFeedback entity)
