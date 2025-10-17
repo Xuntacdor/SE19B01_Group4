@@ -2,7 +2,7 @@
 
 * {
   font-family: 'Inter', sans-serif;
-  font-weight: 500; /* Dùng Inter Medium làm mặc định */
+  font-weight: 500;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
@@ -268,15 +268,61 @@
   position: fixed;
   z-index: 1000;
   max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-}
-
-.errorPopupContent {
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-  position: relative;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 16px 20px;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.errorCloseBtn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: color 0.2s ease;
+}
+.errorCloseBtn:hover {
+  color: #111827;
+}
+
+.errorType {
+  font-weight: 600;
+  color: #1e3a8a;
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.errorText {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.errorIncorrect strong {
+  color: #b91c1c;
+}
+.errorSuggestion strong {
+  color: #047857;
+}
+.errorExplanation strong {
+  color: #1e40af;
 }
 
 /* ================= Footer ================= */
@@ -329,7 +375,7 @@
   }
 
   .header h2 {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .errorPopup {
@@ -337,4 +383,25 @@
     left: 50% !important;
     transform: translateX(-50%);
   }
+}
+.paragraphFeedbackBox {
+  margin-top: 12px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+}
+
+.paragraphItem {
+  border-left: 3px solid #007bff;
+  padding-left: 10px;
+  margin-bottom: 10px;
+}
+
+.paragraphItem h4 {
+  margin: 0 0 5px 0;
+  color: #2c3e50;
+}
+
+.paragraphItem p {
+  margin: 2px 0;
 }

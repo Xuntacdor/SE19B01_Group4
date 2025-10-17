@@ -78,11 +78,10 @@ function TextWithErrors({ text, errors, onErrorClick, errorType = "grammarVocab"
         p.type === "error" ? (
           <span
             key={p.key}
-            className={`${styles.errorHighlight} ${
-              errorType === "coherenceLogic"
+            className={`${styles.errorHighlight} ${errorType === "coherenceLogic"
                 ? styles.coherenceLogicError
                 : styles.grammarVocabError
-            }`}
+              }`}
             onClick={(e) => onErrorClick(e, p.error)}
           >
             {p.content}
@@ -127,7 +126,7 @@ export default function WritingResultPage() {
           clearInterval(interval);
           clearInterval(progressTimer);
         }
-      } catch {}
+      } catch { }
     };
 
     if (isWaiting) {
@@ -200,7 +199,7 @@ export default function WritingResultPage() {
               {/* ===== LEFT PANEL ===== */}
               <div className={styles.leftPanel}>
                 <div className={styles.criteriaHeader}>
-            
+
                 </div>
 
                 <div className={styles.feedbackSection}>
@@ -225,7 +224,7 @@ export default function WritingResultPage() {
               <div className={styles.rightPanel}>
                 <div className={styles.criteriaHeader}>
                   <div className={styles.squareGrid}>
-                  
+
                   </div>
                 </div>
 
@@ -255,9 +254,16 @@ export default function WritingResultPage() {
                 </div>
                 <div className={styles.feedbackSection}>
                   <h3 className={styles.sectionTitle}>Coherence & Cohesion</h3>
-                  {coherenceLogicParsed.overview && (
-                    <div className={styles.overviewBox}>
-                      <strong>Overview:</strong> {coherenceLogicParsed.overview}
+                  {coherenceLogicParsed.paragraph_feedback && (
+                    <div className={styles.paragraphFeedbackBox}>
+                      {coherenceLogicParsed.paragraph_feedback.map((p, i) => (
+                        <div key={i} className={styles.paragraphItem}>
+                          <h4>{p.section}</h4>
+                          <p><strong>Strengths:</strong> {p.strengths?.join(", ") || "None"}</p>
+                          <p><strong>Weaknesses:</strong> {p.weaknesses?.join(", ") || "None"}</p>
+                          <p><strong>Advice:</strong> {p.advice}</p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

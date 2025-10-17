@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using OpenAI;
 using OpenAI.Chat;
+using OpenAI.Audio;
 using System;
 using System.ClientModel;
 using System.Collections.Generic;
@@ -23,20 +24,17 @@ namespace WebAPI.ExternalServices
             _logger = logger;
         }
 
-        /// <summary>
-        /// Grade an IELTS Writing Task (Task 1 or Task 2) and return structured JSON feedback.
-        /// Supports image-based Task 1 via base64 image embedding.
-        /// </summary>
+        // ========================================
+        // == 1. WRITING GRADER ==
+        // ========================================
         public JsonDocument GradeWriting(string question, string answer, string? imageUrl = null)
         {
             try
             {
-                // ✅ Model tốt nhất cho bài viết + ảnh + JSON ổn định
                 var chatClient = _client.GetChatClient("gpt-4o");
-
-                // === Step 1. Convert image (if exists)
                 string? base64 = null;
                 string mimeType = "image/png";
+
                 if (!string.IsNullOrEmpty(imageUrl))
                 {
                     try
@@ -52,55 +50,21 @@ namespace WebAPI.ExternalServices
                     }
                 }
 
-                // === Step 2. Build the detailed grading prompt
                 string prompt = $@"
 You are an **IELTS Writing examiner**.
-You must grade the student's essay following the **official IELTS Writing band descriptors**:
-Task Achievement, Coherence & Cohesion, Lexical Resource, and Grammatical Range & Accuracy.
+Grade the student's essay using official IELTS Writing band descriptors:
+Task Achievement, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy.
 
-Your output must be **pure JSON**, following this structure EXACTLY — no markdown, no explanation outside JSON.
+Return **strict JSON only**, following this structure:
 
 {{
   ""grammar_vocab"": {{
-    ""overview"": ""3–5 sentences summarizing grammar and vocabulary performance."",
-    ""errors"": [
-      {{
-        ""type"": ""Grammar"" or ""Vocabulary"",
-        ""category"": ""e.g. Tense, Word Choice, Collocation, Article, Preposition, Word Form, Lexical Range"",
-        ""incorrect"": ""the student's incorrect phrase"",
-        ""suggestion"": ""corrected phrase"",
-        ""explanation"": ""brief reason why it’s wrong (≤2 sentences)""
-      }}
-    ]
+    ""overview"": ""3–5 sentences"",
+    ""errors"": [{{ ""type"": ""Grammar"", ""category"": ""Tense"", ""incorrect"": ""..."", ""suggestion"": ""..."", ""explanation"": ""..."" }}]
   }},
   ""coherence_logic"": {{
-    ""overview"": ""3–4 sentences summarizing task achievement, coherence, cohesion, and logical development."",
-    ""paragraph_feedback"": [
-      {{
-        ""section"": ""Introduction"",
-        ""strengths"": [""clear overview"", ""effective paraphrasing""],
-        ""weaknesses"": [""missing thesis"", ""limited coherence""],
-        ""advice"": ""Specific suggestion to improve introduction clarity.""
-      }},
-      {{
-        ""section"": ""Body 1"",
-        ""strengths"": [""logical argument"", ""appropriate examples""],
-        ""weaknesses"": [""unclear topic sentence"", ""repetitive linking words""],
-        ""advice"": ""Concrete suggestion for improving argumentation.""
-      }},
-      {{
-        ""section"": ""Body 2"",
-        ""strengths"": [""good cohesion"", ""clear comparison""],
-        ""weaknesses"": [""unsupported claims"", ""limited lexical variety""],
-        ""advice"": ""How to make analysis more persuasive.""
-      }},
-      {{
-        ""section"": ""Overview"",
-        ""strengths"": [""clear summary of trends""],
-        ""weaknesses"": [""omits key features""],
-        ""advice"": ""Advice on improving summary and conclusion.""
-      }}
-    ]
+    ""overview"": ""summary of coherence and logic"",
+    ""paragraph_feedback"": [{{ ""section"": ""Body 1"", ""strengths"": [], ""weaknesses"": [], ""advice"": ""..."" }}]
   }},
   ""band_estimate"": {{
     ""task_achievement"": 0–9,
@@ -111,15 +75,6 @@ Your output must be **pure JSON**, following this structure EXACTLY — no markd
   }}
 }}
 
-### Instructions:
-- Return **strict JSON** (no markdown).
-- Include **6–10 Grammar/Vocabulary errors** with clear explanations.
-- Each paragraph must contain both strengths and weaknesses.
-- Use real examples from the essay text wherever possible.
-- Keep tone professional, concise, and examiner-like.
-
-Now evaluate this essay:
-
 Essay Question:
 {question}
 
@@ -127,18 +82,16 @@ Essay Answer:
 {answer}
 ";
 
-                // === Step 3. Create Chat messages
                 var messages = new List<ChatMessage>
                 {
-                    new SystemChatMessage("You are a certified IELTS Writing examiner. Always return valid JSON that strictly follows the schema above.")
+                    new SystemChatMessage("You are a certified IELTS Writing examiner. Always return valid JSON following the schema exactly.")
                 };
 
                 if (!string.IsNullOrEmpty(base64))
                 {
                     messages.Add(ChatMessage.CreateUserMessage(
-                        ChatMessageContentPart.CreateTextPart($"IELTS Writing Task 1:\n{question}\nAnalyze the image and essay below."),
-                        ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(Convert.FromBase64String(base64)), mimeType),
-                        ChatMessageContentPart.CreateTextPart($"Essay:\n{answer}\n\n{prompt}")
+                        ChatMessageContentPart.CreateTextPart($"Analyze the image and essay below:\n{prompt}"),
+                        ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(Convert.FromBase64String(base64)), mimeType)
                     ));
                 }
                 else
@@ -146,39 +99,119 @@ Essay Answer:
                     messages.Add(new UserChatMessage(prompt));
                 }
 
-                // === Step 4. Call OpenAI (extended tokens, low randomness)
-                var result = chatClient.CompleteChat(
-                    messages,
-                    new ChatCompletionOptions
-                    {
-                        MaxOutputTokenCount = 2500,
-                        Temperature = 0.3f
-                    }
-                );
+                var result = chatClient.CompleteChat(messages, new ChatCompletionOptions
+                {
+                    MaxOutputTokenCount = 2500,
+                    Temperature = 0.3f
+                });
 
                 var raw = result.Value.Content[0].Text ?? "{}";
-
-                // === Step 5. Extract JSON only
                 int first = raw.IndexOf('{');
                 int last = raw.LastIndexOf('}');
                 string jsonText = (first >= 0 && last > first)
                     ? raw.Substring(first, last - first + 1)
                     : "{}";
 
-                _logger.LogInformation("[OpenAIService] JSON feedback generated successfully.");
-                _logger.LogInformation("[OpenAIService] Raw JSON Output:\n{JsonText}", jsonText);
+                _logger.LogInformation("[OpenAIService] Writing JSON feedback generated successfully:\n{Json}", jsonText);
+                return JsonDocument.Parse(jsonText);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[OpenAIService] Writing grading failed.");
+                return JsonDocument.Parse($@"{{ ""error"": ""{ex.Message}"" }}");
+            }
+        }
 
-                // === Step 6. Parse and return
+        // ========================================
+        // == 2. SPEECH-TO-TEXT ==
+        // ========================================
+        public string SpeechToText(string audioUrl)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(audioUrl))
+                    throw new ArgumentException("Audio URL is empty.");
+
+                var audioClient = _client.GetAudioClient("gpt-4o-mini-tts"); // or whisper-1 if available
+                _logger.LogInformation("[OpenAIService] Starting transcription for {AudioUrl}", audioUrl);
+
+                // In production, download Cloudinary file to memory stream before sending.
+                // Here we mock transcript for development.
+                return "This is a sample transcript from the uploaded audio.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[OpenAIService] Speech-to-text failed.");
+                return "[Transcription failed]";
+            }
+        }
+
+        // ========================================
+        // == 3. SPEAKING GRADER ==
+        // ========================================
+        public JsonDocument GradeSpeaking(string question, string transcript)
+        {
+            try
+            {
+                var chatClient = _client.GetChatClient("gpt-4o");
+
+                string prompt = $@"
+You are an **IELTS Speaking examiner**.
+Evaluate the candidate's speaking based on the transcript below.
+Use IELTS Speaking band descriptors (Fluency & Coherence, Lexical Resource, Grammar Accuracy, Pronunciation).
+Return **strict JSON only**, no markdown or commentary.
+
+{{
+  ""band_estimate"": {{
+    ""pronunciation"": 0–9,
+    ""fluency"": 0–9,
+    ""lexical_resource"": 0–9,
+    ""grammar_accuracy"": 0–9,
+    ""coherence"": 0–9,
+    ""overall"": 0–9
+  }},
+  ""ai_analysis"": {{
+    ""overview"": ""3–5 sentences summarizing performance."",
+    ""strengths"": [""clear pronunciation"", ""good coherence""],
+    ""weaknesses"": [""occasional pauses"", ""limited vocabulary""],
+    ""advice"": ""specific tips to improve""
+  }}
+}}
+
+Transcript:
+{transcript}
+";
+
+                var messages = new List<ChatMessage>
+                {
+                    new SystemChatMessage("You are a certified IELTS Speaking examiner. Always return valid JSON following the schema."),
+                    new UserChatMessage(prompt)
+                };
+
+                var result = chatClient.CompleteChat(messages, new ChatCompletionOptions
+                {
+                    MaxOutputTokenCount = 1800,
+                    Temperature = 0.4f
+                });
+
+                var raw = result.Value.Content[0].Text ?? "{}";
+                int first = raw.IndexOf('{');
+                int last = raw.LastIndexOf('}');
+                string jsonText = (first >= 0 && last > first)
+                    ? raw.Substring(first, last - first + 1)
+                    : "{}";
+
+                _logger.LogInformation("[OpenAIService] Speaking JSON feedback generated successfully:\n{Json}", jsonText);
                 return JsonDocument.Parse(jsonText);
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "Failed to parse JSON from OpenAI output.");
+                _logger.LogError(ex, "Failed to parse JSON from Speaking output.");
                 return JsonDocument.Parse(@"{ ""error"": ""Invalid JSON returned from OpenAI"" }");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "OpenAI call failed.");
+                _logger.LogError(ex, "[OpenAIService] Speaking grading failed.");
                 return JsonDocument.Parse($@"{{ ""error"": ""{ex.Message}"" }}");
             }
         }

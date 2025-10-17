@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppLayout from "../../Components/Layout/AppLayout";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
-import styles from "./WritingTestPage.module.css";
 import * as WritingApi from "../../Services/WritingApi";
+import LoadingComponent from "../../Components/Exam/LoadingComponent"; // ✅ import here
+import styles from "./WritingTestPage.module.css";
 
 export default function WritingTest() {
   const { state } = useLocation();
@@ -28,7 +29,7 @@ export default function WritingTest() {
 
   const { exam, tasks, task, mode } = state;
 
-  // ========== TIMER ==========
+  // Timer logic
   useEffect(() => {
     if (mode === "full") setTimeLeft(60 * 60);
     else if (task?.displayOrder === 1) setTimeLeft(20 * 60);
@@ -47,7 +48,6 @@ export default function WritingTest() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  // ========== TASK ==========
   const currentTask =
     mode === "full" && Array.isArray(tasks) ? tasks[currentIndex] : task;
 
@@ -78,10 +78,10 @@ export default function WritingTest() {
     if (currentIndex > 0) setCurrentIndex((i) => i - 1);
   };
 
-  // ========== SUBMIT HANDLER ==========
+  // ✅ Modified submit handler
   const handleSubmit = async () => {
     try {
-      setSubmitting(true);
+      setSubmitting(true); // show loading
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user) {
         alert("Please log in to submit your test.");
@@ -99,11 +99,10 @@ export default function WritingTest() {
         })),
       };
 
-      // 🧠 Gửi bài lên để AI chấm, không đợi phản hồi
-      WritingApi.gradeWriting(gradeData)
-        .catch((err) => console.error("Grading failed:", err));
+      // Send essay for grading
+      await WritingApi.gradeWriting(gradeData);
 
-      // ⚡ Chuyển qua trang result, có trạng thái “đang chờ”
+      // Navigate to result page
       navigate("/writing/result", {
         state: {
           examId: exam.examId,
@@ -122,7 +121,6 @@ export default function WritingTest() {
     }
   };
 
-  // ========== UI ==========
   return (
     <AppLayout title="Writing Test" sidebar={<GeneralSidebar />}>
       <div className={styles.container}>
@@ -136,7 +134,6 @@ export default function WritingTest() {
         </div>
 
         <div className={styles.splitLayout}>
-          {/* ===== LEFT SIDE ===== */}
           <div className={styles.leftPane}>
             <div className={styles.answerHeader}>
               <h4>Your Answer:</h4>
@@ -162,7 +159,7 @@ export default function WritingTest() {
                 onClick={handleSubmit}
                 disabled={submitting}
               >
-                {submitting ? "Submitting..." : "Submit"}
+                Submit
               </button>
               <button className={styles.backBtn} onClick={() => navigate(-1)}>
                 ← Back
@@ -170,7 +167,6 @@ export default function WritingTest() {
             </div>
           </div>
 
-          {/* ===== RIGHT SIDE ===== */}
           <div className={styles.rightPane}>
             <div className={styles.taskBlock}>
               <h3>Task {currentTask?.displayOrder}</h3>
@@ -201,6 +197,9 @@ export default function WritingTest() {
           </div>
         </div>
       </div>
+
+      {/* ✅ Overlay spinner shown while submitting */}
+      {submitting && <LoadingComponent text="Submitting your essay..." />}
     </AppLayout>
   );
 }

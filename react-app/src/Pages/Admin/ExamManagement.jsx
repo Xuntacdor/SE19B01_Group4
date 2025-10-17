@@ -5,6 +5,7 @@ import * as examService from "../../Services/ExamApi";
 import * as readingService from "../../Services/ReadingApi";
 import * as listeningService from "../../Services/ListeningApi";
 import * as writingService from "../../Services/WritingApi";
+import * as speakingService from "../../Services/SpeakingApi"; // 🆕 NEW
 import ExamSkillModal from "../../Components/Admin/ExamPopup.jsx";
 import Sidebar from "../../Components/Admin/AdminNavbar.jsx";
 import styles from "./ExamManagement.module.css";
@@ -24,6 +25,7 @@ export default function ExamManagement() {
     Reading: readingService,
     Listening: listeningService,
     Writing: writingService,
+    Speaking: speakingService, // 🆕 NEW
   };
 
   // ====== Load exams ======
@@ -84,6 +86,7 @@ export default function ExamManagement() {
       Reading: "add-reading",
       Listening: "add-listening",
       Writing: "add-writing",
+      Speaking: "add-speaking", // 🆕 NEW PATH
     };
     return map[type] || "";
   };
@@ -155,6 +158,7 @@ export default function ExamManagement() {
                   <option value="Reading">Reading</option>
                   <option value="Listening">Listening</option>
                   <option value="Writing">Writing</option>
+                  <option value="Speaking">Speaking</option> {/* 🆕 ADDED */}
                 </select>
               </div>
 
@@ -203,7 +207,10 @@ export default function ExamManagement() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: "center", opacity: 0.6 }}>
+                      <td
+                        colSpan="5"
+                        style={{ textAlign: "center", opacity: 0.6 }}
+                      >
                         No exams found.
                       </td>
                     </tr>
