@@ -22,6 +22,7 @@ namespace WebAPI.DTOs
         // --- Dành cho tạo mới (CreateTransactionDTO cũ) ---
         public string? ReferenceCode { get; set; }
         public string? Description { get; set; }
+        public int PlanId { get; set; }
 
         // --- Dành cho filter (TransactionQueryDTO cũ) ---
         public int Page { get; set; } = 1;

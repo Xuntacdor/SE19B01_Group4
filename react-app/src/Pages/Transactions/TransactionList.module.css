@@ -115,6 +115,27 @@
   align-items: center;
   gap: 6px;
 }
+.manageVipBtn {
+  border: none;
+  background: #d27742;
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.manageVipBtn:hover {
+  background: #b15e2d;
+  transform: translateY(-1px);
+}
 
 .card {
   background: #fff;
