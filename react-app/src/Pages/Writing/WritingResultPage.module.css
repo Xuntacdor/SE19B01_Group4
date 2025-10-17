@@ -1,11 +1,39 @@
-/* ================= Main Container ================= */
-.container {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-  min-height: 100vh; /* Fill viewport height */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500; /* Dùng Inter Medium làm mặc định */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
 }
 
+/* ================= PAGE WRAPPER ================= */
+.container {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: #f9fafb;
+  overflow-x: hidden;
+}
+
+/* Sidebar bên trái */
+.container > :first-child {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+/* Nội dung bên phải */
+.mainContent {
+  flex: 1;
+  margin-left: 250px;
+  padding: 24px;
+  background: #f9fafb;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* ================= Centered empty state ================= */
 .center {
   display: flex;
   flex-direction: column;
@@ -27,13 +55,9 @@
 
 .header h2 {
   margin: 0;
-  font-size: 28px;
+  font-size: 24px;
+  font-weight: 600;
   color: #1f2937;
-}
-
-.bandScore {
-  font-size: 18px;
-  color: #374151;
 }
 
 /* ================= Result Container ================= */
@@ -46,7 +70,8 @@
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  height: calc(100vh - 180px); /* Fit into one screen minus header paddings */
+  height: calc(100vh - 180px);
+  width: 100%;
 }
 
 /* ================= Left Panel ================= */
@@ -57,7 +82,6 @@
   overflow-y: auto;
 }
 
-/* ===== Criteria header (square cards with icons) ===== */
 .criteriaHeader {
   margin-bottom: 16px;
 }
@@ -76,9 +100,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: box-shadow 140ms ease, border-color 140ms ease,
-    transform 80ms ease, background-color 140ms ease;
+  transition: all 0.15s ease;
 }
+
 .criterionCard:hover {
   border-color: #cbd5e1;
   background: #f8fafc;
@@ -97,11 +121,6 @@
   color: #1d4ed8;
 }
 
-.criterionIcon {
-  width: 20px;
-  height: 20px;
-}
-
 .criterionTitle {
   font-weight: 600;
 }
@@ -111,86 +130,20 @@
   font-size: 14px;
 }
 
-.taskSection {
-  margin-bottom: 24px;
-}
-
-.taskSection h3 {
-  margin: 0 0 16px 0;
-  font-size: 24px;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.taskContent {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-}
-
-.bandScores {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.bandItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.bandItem:last-child {
-  border-bottom: none;
-  padding-top: 12px;
-  border-top: 2px solid #e5e7eb;
-}
-
-.bandValue {
-  font-weight: 600;
-  font-size: 16px;
-  color: #1f2937;
-}
-
-.originalTextSection {
-  margin-top: 24px;
-}
-
-.originalTextSection h4 {
-  margin: 0 0 12px 0;
-  font-size: 18px;
-  color: #374151;
-  font-weight: 600;
-}
-
-.originalText {
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #374151;
-  white-space: pre-wrap;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
 /* ================= Right Panel ================= */
 .rightPanel {
   padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* ===== Band score flex row ===== */
+/* ===== Band Score Box ===== */
 .bandScoreBox {
   display: flex;
   gap: 12px;
   align-items: stretch;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .bandOverall {
@@ -198,7 +151,7 @@
   color: #fff;
   border-radius: 12px;
   padding: 12px 16px;
-  min-width: 160px;
+  min-width: 140px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -207,20 +160,22 @@
 
 .bandOverall h4 {
   margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .bandMain {
-  font-size: 40px;
-  font-weight: 800;
+  font-size: 32px;
+  font-weight: 700;
   line-height: 1;
 }
 
 .bandGrid {
   display: flex;
-  gap: 12px;
   flex: 1;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .bandGrid > div {
@@ -233,24 +188,26 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-width: 160px;
+  flex: 1 1 150px;
+  min-width: 120px;
 }
 
 .bandGrid > div b {
   display: block;
   margin-bottom: 8px;
-  font-size: 14px;
+  font-size: 13px;
   color: #111827;
+  font-weight: 600;
 }
 
 .bandGrid > div p {
   margin: 0;
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   color: #111827;
 }
 
-/* Utility boxes referenced in JSX */
+/* ================= Utility boxes ================= */
 .overviewBox {
   margin-bottom: 12px;
   padding: 12px;
@@ -267,38 +224,6 @@
   border-radius: 8px;
 }
 
-.paragraphCard {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-
-.feedbackSection {
-  margin-bottom: 32px;
-}
-
-.sectionTitle {
-  margin: 0 0 20px 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f2937;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #3b82f6;
-}
-
-.overview {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #374151;
-}
-
 /* ================= Error Highlighting ================= */
 .essayText {
   font-size: 14px;
@@ -309,6 +234,8 @@
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .errorHighlight {
@@ -320,22 +247,18 @@
   transition: background-color 0.2s ease;
 }
 
-/* Grammar & Vocabulary errors - Yellow highlighting */
 .grammarVocabError {
   background-color: #fef3c7;
   color: #92400e;
 }
-
 .grammarVocabError:hover {
   background-color: #fde68a;
 }
 
-/* Coherence & Logic errors - Blue highlighting */
 .coherenceLogicError {
   background-color: #dbeafe;
   color: #1e40af;
 }
-
 .coherenceLogicError:hover {
   background-color: #bfdbfe;
 }
@@ -356,232 +279,6 @@
   position: relative;
 }
 
-.errorCloseBtn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  color: #6b7280;
-  padding: 4px;
-}
-
-.errorCloseBtn:hover {
-  color: #374151;
-}
-
-.errorType {
-  font-size: 12px;
-  color: #6b7280;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.errorText {
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.errorIncorrect,
-.errorSuggestion,
-.errorExplanation {
-  margin-bottom: 8px;
-}
-
-.errorIncorrect strong {
-  color: #dc2626;
-}
-
-.errorSuggestion strong {
-  color: #059669;
-}
-
-.errorExplanation strong {
-  color: #1f2937;
-}
-
-/* ================= Coherence Content ================= */
-.coherenceContent {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.generalComments {
-  padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.generalComments h4 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.taskAchievement {
-  margin-bottom: 16px;
-  font-size: 14px;
-  color: #374151;
-  line-height: 1.5;
-}
-
-.questionType {
-  margin-bottom: 16px;
-}
-
-.questionTypeHeader {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.questionTypeHeader span:first-child {
-  font-weight: 600;
-  color: #1f2937;
-  font-size: 14px;
-}
-
-.questionTypeContent {
-  font-size: 13px;
-  color: #6b7280;
-  line-height: 1.4;
-  padding-left: 16px;
-}
-
-.expandableSection {
-  border-top: 1px solid #f3f4f6;
-  padding-top: 12px;
-}
-
-.expandableHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  padding: 8px 0;
-  font-weight: 600;
-  color: #1f2937;
-  font-size: 14px;
-}
-
-.expandableHeader:hover {
-  color: #3b82f6;
-}
-
-.expandArrow {
-  font-size: 12px;
-  color: #6b7280;
-  transition: transform 0.2s ease;
-}
-
-.expandableContent {
-  padding: 12px 0 0 16px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.seeMore {
-  color: #3b82f6;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-/* ================= Paragraph Feedback ================= */
-.paragraphFeedback {
-  padding: 20px;
-  background: #f9fafb;
-}
-
-.paragraphItem {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: #fff;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-}
-
-.paragraphItem:last-child {
-  margin-bottom: 0;
-}
-
-.paragraphItem h5 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.paragraphSummary {
-  cursor: pointer;
-  font-size: 14px;
-  color: #1f2937;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  padding: 8px 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.paragraphSummary:hover {
-  color: #3b82f6;
-}
-
-.paragraphDetails {
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.strengths {
-  margin-bottom: 8px;
-  color: #059669;
-}
-
-.weaknesses {
-  margin-bottom: 8px;
-  color: #dc2626;
-}
-
-.advice {
-  color: #1f2937;
-}
-
-.strengths strong,
-.weaknesses strong,
-.advice strong {
-  font-weight: 600;
-}
-
-/* ================= Corrected Essay Section ================= */
-.correctedEssaySection {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.correctedEssaySection h4 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  color: #374151;
-  font-weight: 600;
-}
-
-.correctedText {
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #374151;
-  white-space: pre-wrap;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
 /* ================= Footer ================= */
 .footer {
   margin-top: 32px;
@@ -597,7 +294,7 @@
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   transition: background-color 0.2s ease;
 }
@@ -612,33 +309,29 @@
     grid-template-columns: 1fr;
     gap: 24px;
   }
-  
+
   .leftPanel {
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
   }
+
+  .mainContent {
+    margin-left: 0;
+    padding: 16px;
+  }
 }
 
 @media (max-width: 768px) {
-  .container {
-    padding: 16px;
-  }
-  
   .header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .header h2 {
     font-size: 24px;
   }
-  
-  .leftPanel,
-  .rightPanel {
-    padding: 16px;
-  }
-  
+
   .errorPopup {
     max-width: 300px;
     left: 50% !important;

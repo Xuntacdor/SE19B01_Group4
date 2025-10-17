@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import AppLayout from "../../Components/Layout/AppLayout";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as WritingApi from "../../Services/WritingApi";
 import styles from "./WritingResultPage.module.css";
 import { SpellCheck, CheckCircle2, ListTree, Link2 } from "lucide-react";
-
-// ===== Error Popup =====
 function ErrorPopup({ error, isOpen, onClose, position }) {
   if (!isOpen || !error) return null;
   return (
@@ -38,9 +35,9 @@ function ErrorPopup({ error, isOpen, onClose, position }) {
   );
 }
 
-// ===== Highlighted Essay with Clickable Errors =====
 function TextWithErrors({ text, errors, onErrorClick, errorType = "grammarVocab" }) {
-  if (!errors || errors.length === 0) return <div className={styles.essayText}>{text}</div>;
+  if (!errors || errors.length === 0)
+    return <div className={styles.essayText}>{text}</div>;
 
   let processedText = text || "";
   const parts = [];
@@ -97,8 +94,6 @@ function TextWithErrors({ text, errors, onErrorClick, errorType = "grammarVocab"
     </div>
   );
 }
-
-// ===== MAIN PAGE =====
 export default function WritingResultPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -110,20 +105,15 @@ export default function WritingResultPage() {
 
   if (!state) {
     return (
-      <AppLayout title="Writing Result" sidebar={<GeneralSidebar />}>
-        <div className={styles.center}>
-          <h2>No result data found</h2>
-          <button onClick={() => navigate("/")} className={styles.backBtn}>
-            ← Back
-          </button>
-        </div>
-      </AppLayout>
+      <div className={styles.center}>
+        <h2>No result data found</h2>
+        <button onClick={() => navigate("/")} className={styles.backBtn}>
+          ← Back
+        </button>
+      </div>
     );
   }
-
   const { examId, userId, exam, mode, originalAnswers, isWaiting } = state;
-
-  // ===== POLLING FEEDBACK =====
   useEffect(() => {
     let interval;
     let progressTimer;
@@ -145,7 +135,6 @@ export default function WritingResultPage() {
       progressTimer = setInterval(() => {
         setProgress((p) => (p < 90 ? p + 5 : p));
       }, 1000);
-
       interval = setInterval(fetchFeedback, 2500);
       fetchFeedback();
     } else {
@@ -155,7 +144,6 @@ export default function WritingResultPage() {
         averageOverall: state.averageBand,
       });
     }
-
     return () => {
       clearInterval(interval);
       clearInterval(progressTimer);
@@ -167,34 +155,40 @@ export default function WritingResultPage() {
     setErrorPopupPosition({ top: rect.bottom + 5, left: rect.left });
     setSelectedError(error);
   };
-
-  // ===== LOADING =====
   if (isLoading) {
     return (
-      <AppLayout title="Writing Result" sidebar={<GeneralSidebar />}>
-        <div className={styles.loadingContainer}>
-          <div className={styles.loadingSpinner}></div>
-          <p className={styles.loadingText}>AI is grading your essay... Please wait.</p>
-          <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: `${progress}%` }}></div>
-          </div>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p className={styles.loadingText}>
+          AI is grading your essay... Please wait.
+        </p>
+        <div className={styles.progressBar}>
+          <div
+            className={styles.progressFill}
+            style={{ width: `${progress}%` }}
+          ></div>
         </div>
-      </AppLayout>
+      </div>
     );
   }
-
   const { feedbacks, averageOverall } = feedbackData || { feedbacks: [], averageOverall: 0 };
+  const filteredFeedbacks = feedbacks.filter(
+    (f) =>
+      !originalAnswers ||
+      Object.keys(originalAnswers).includes(String(f.writingId))
+  );
 
   return (
-    <AppLayout title="Writing Result" sidebar={<GeneralSidebar />}>
-      <div className={styles.container}>
+    <div className={styles.pageLayout}>
+      <GeneralSidebar />
+      <div className={styles.mainContent}>
         <div className={styles.header}>
           <h2>
             Writing Test Result — {exam?.examName || "Unknown Exam"} ({mode})
           </h2>
         </div>
 
-        {feedbacks.map((f, i) => {
+        {filteredFeedbacks.map((f, i) => {
           const originalText =
             originalAnswers?.[f.writingId] || f.answerText || "";
 
@@ -203,26 +197,12 @@ export default function WritingResultPage() {
 
           return (
             <div key={i} className={styles.resultContainer}>
-              {/* ===== LEFT PANEL: Grammar & Vocabulary ===== */}
+              {/* ===== LEFT PANEL ===== */}
               <div className={styles.leftPanel}>
                 <div className={styles.criteriaHeader}>
-                  <div className={styles.squareGrid}>
-                    <div className={styles.criterionCard}>
-                      <div className={styles.criterionIconWrap}>
-                        <SpellCheck className={styles.criterionIcon} />
-                      </div>
-                      <div className={styles.criterionTitle}>Grammar</div>
-                      <div className={styles.criterionSub}>Tenses, agreement, complex forms</div>
-                    </div>
-                    <div className={styles.criterionCard}>
-                      <div className={styles.criterionIconWrap}>
-                        <CheckCircle2 className={styles.criterionIcon} />
-                      </div>
-                      <div className={styles.criterionTitle}>Vocabulary</div>
-                      <div className={styles.criterionSub}>Range, accuracy, collocation</div>
-                    </div>
-                  </div>
+            
                 </div>
+
                 <div className={styles.feedbackSection}>
                   <h3 className={styles.sectionTitle}>Grammar & Vocabulary</h3>
                   {grammarVocabParsed.overview && (
@@ -241,39 +221,38 @@ export default function WritingResultPage() {
                 </div>
               </div>
 
-              {/* ===== RIGHT PANEL: Coherence & Cohesion ===== */}
+              {/* ===== RIGHT PANEL ===== */}
               <div className={styles.rightPanel}>
                 <div className={styles.criteriaHeader}>
                   <div className={styles.squareGrid}>
-                    <div className={styles.criterionCard}>
-                      <div className={styles.criterionIconWrap}>
-                        <ListTree className={styles.criterionIcon} />
-                      </div>
-                      <div className={styles.criterionTitle}>Organization</div>
-                      <div className={styles.criterionSub}>Paragraphing, progression</div>
-                    </div>
-                    <div className={styles.criterionCard}>
-                      <div className={styles.criterionIconWrap}>
-                        <Link2 className={styles.criterionIcon} />
-                      </div>
-                      <div className={styles.criterionTitle}>Linking</div>
-                      <div className={styles.criterionSub}>Cohesive devices, referencing</div>
-                    </div>
+                  
                   </div>
                 </div>
+
                 <div className={styles.bandScoreBox}>
                   <div className={styles.bandOverall}>
                     <h4>Band Score</h4>
                     <div className={styles.bandMain}>{f.overall}</div>
                   </div>
                   <div className={styles.bandGrid}>
-                    <div><b>Task Achievement</b><p>{f.taskAchievement}</p></div>
-                    <div><b>Coherence & Cohesion</b><p>{f.coherenceCohesion}</p></div>
-                    <div><b>Lexical Resource</b><p>{f.lexicalResource}</p></div>
-                    <div><b>Grammar Accuracy</b><p>{f.grammarAccuracy}</p></div>
+                    <div>
+                      <b>Task Achievement</b>
+                      <p>{f.taskAchievement}</p>
+                    </div>
+                    <div>
+                      <b>Coherence & Cohesion</b>
+                      <p>{f.coherenceCohesion}</p>
+                    </div>
+                    <div>
+                      <b>Lexical Resource</b>
+                      <p>{f.lexicalResource}</p>
+                    </div>
+                    <div>
+                      <b>Grammar Accuracy</b>
+                      <p>{f.grammarAccuracy}</p>
+                    </div>
                   </div>
                 </div>
-
                 <div className={styles.feedbackSection}>
                   <h3 className={styles.sectionTitle}>Coherence & Cohesion</h3>
                   {coherenceLogicParsed.overview && (
@@ -281,33 +260,11 @@ export default function WritingResultPage() {
                       <strong>Overview:</strong> {coherenceLogicParsed.overview}
                     </div>
                   )}
-                  {Array.isArray(coherenceLogicParsed.paragraph_feedback) &&
-                    coherenceLogicParsed.paragraph_feedback.map((p, idx) => (
-                      <div key={idx} className={styles.paragraphCard}>
-                        <h4>{p.section}</h4>
-                        {p.strengths?.length > 0 && (
-                          <p><b>✅ Strengths:</b> {p.strengths.join(", ")}</p>
-                        )}
-                        {p.weaknesses?.length > 0 && (
-                          <p><b>⚠️ Weaknesses:</b> {p.weaknesses.join(", ")}</p>
-                        )}
-                        {p.advice && (
-                          <p><b>💡 Advice:</b> {p.advice}</p>
-                        )}
-                      </div>
-                    ))}
                 </div>
               </div>
             </div>
           );
         })}
-
-        <div className={styles.footer}>
-          <button className={styles.backBtn} onClick={() => navigate("/")}>
-            Back to Dashboard
-          </button>
-        </div>
-
         <ErrorPopup
           error={selectedError}
           isOpen={!!selectedError}
@@ -315,6 +272,6 @@ export default function WritingResultPage() {
           position={errorPopupPosition}
         />
       </div>
-    </AppLayout>
+    </div>
   );
-}  
+}
