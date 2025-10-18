@@ -1,4 +1,76 @@
-@import "../../Components/Exam/ExamSkillPage.module.css";
+/* Exam wrapper styles */
+.examWrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+/* Top bar styles */
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 15px 0;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.backBtn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.backBtn:hover {
+  background: #5a6268;
+}
+
+.examTitle {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.timer {
+  font-size: 18px;
+  font-weight: bold;
+  color: #dc3545;
+}
+
+/* Form styles */
+.examForm {
+  margin-bottom: 20px;
+}
+
+.activeForm {
+  display: block;
+}
+
+.hiddenForm {
+  display: none;
+}
+
+.questionPage {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.questionTitle {
+  font-size: 20px;
+  color: #333;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
 
 .readingContent {
   margin-bottom: 1.5rem;
@@ -8,4 +80,73 @@
 
 .question {
   margin-top: 1rem;
+}
+
+/* Navigation styles */
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.navBtn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.navBtn:hover {
+  background: #0056b3;
+}
+
+.submitBtn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.submitBtn:hover {
+  background: #218838;
+}
+
+.submitBtn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Fullscreen center styles */
+.fullscreenCenter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  text-align: center;
+}
+
+.fullscreenCenter h2 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.fullscreenCenter h3 {
+  color: #28a745;
+  margin-bottom: 15px;
+}
+
+.fullscreenCenter p {
+  color: #666;
+  margin-bottom: 25px;
+  font-size: 16px;
 }
