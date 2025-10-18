@@ -102,67 +102,6 @@ namespace WebAPI.Controllers
             return Ok(attempt);
         }
 
-        [HttpPost("submit")]
-        public ActionResult<ExamAttemptDto> SubmitAnswers([FromBody] SubmitAttemptDto dto)
-        {
-            if (dto == null || string.IsNullOrEmpty(dto.AnswerText))
-                return BadRequest("Invalid or empty payload.");
-
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null)
-                return Unauthorized("Please login to submit exam.");
-
-            try
-            {
-                var exam = _examService.GetById(dto.ExamId);
-                if (exam == null)
-                    return NotFound("Exam not found.");
-
-                decimal score = 0;
-
-                switch (exam.ExamType.ToLower())
-                {
-                    case "reading":
-                        score = _readingService.EvaluateReading(dto);
-                        break;
-
-                    case "listening":
-                        score = _listeningService.EvaluateListening(dto);
-                        break;
-
-                    default:
-                        score = 0;
-                        break;
-                }
-
-                dto.Score = score;
-                var attempt = _examService.SubmitAttempt(dto, userId.Value);
-
-                var result = new ExamAttemptDto
-                {
-                    AttemptId = attempt.AttemptId,
-                    StartedAt = attempt.StartedAt,
-                    SubmittedAt = attempt.SubmittedAt,
-                    ExamId = attempt.ExamId,
-                    ExamName = attempt.Exam?.ExamName ?? string.Empty,
-                    ExamType = attempt.Exam?.ExamType ?? string.Empty,
-                    TotalScore = attempt.Score ?? 0,
-                    AnswerText = attempt.AnswerText ?? string.Empty
-                };
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    Message = "Error submitting answers.",
-                    Exception = ex.Message,
-                    StackTrace = ex.StackTrace
-                });
-            }
-        }
-
         // ========= PRIVATE HELPER =========
         private static ExamDto ConvertToDto(Exam exam)
         {

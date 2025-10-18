@@ -29,3 +29,9 @@ export function update(id, data) {
 export function remove(id) {
   return API.delete(`/${id}`);
 }
+
+export function submitReadingAttempt(attempt) {
+  return API.post("/submit", attempt, {
+    headers: { "Content-Type": "application/json" },
+  });
+}

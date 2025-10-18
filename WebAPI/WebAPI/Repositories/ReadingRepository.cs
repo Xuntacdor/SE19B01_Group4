@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
 using WebAPI.Data;
 using WebAPI.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace WebAPI.Repositories
 {
@@ -13,17 +14,29 @@ namespace WebAPI.Repositories
             _db = db;
         }
 
-        public Reading? GetById(int id) =>
-            _db.Reading.FirstOrDefault(r => r.ReadingId == id);
+        public Reading? GetById(int id) => _db.Reading.FirstOrDefault(r => r.ReadingId == id);
 
         public List<Reading> GetByExamId(int examId) =>
-            _db.Reading.Where(r => r.ExamId == examId)
-                       .OrderBy(r => r.DisplayOrder)
-                       .ToList();
+            _db.Reading.Where(r => r.ExamId == examId).ToList();
 
-        public void Add(Reading reading) => _db.Reading.Add(reading);
-        public void Update(Reading reading) => _db.Reading.Update(reading);
-        public void Delete(Reading reading) => _db.Reading.Remove(reading);
+        public void Add(Reading reading)
+        {
+            _db.Reading.Add(reading);
+            SaveChanges();
+        }
+
+        public void Update(Reading reading)
+        {
+            _db.Reading.Update(reading);
+            SaveChanges();
+        }
+
+        public void Delete(Reading reading)
+        {
+            _db.Reading.Remove(reading);
+            SaveChanges();
+        }
+
         public void SaveChanges() => _db.SaveChanges();
     }
 }
