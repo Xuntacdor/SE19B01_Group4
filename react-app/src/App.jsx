@@ -20,46 +20,55 @@ import AddReading from "./Pages/Admin/AddReading.jsx";
 import AddListening from "./Pages/Admin/AddListening.jsx";
 import AddWriting from "./Pages/Admin/AddWriting.jsx";
 import ModeratorDashboard from "./Pages/Moderator/ModeratorDashboard.jsx"; // ⚡ import moderator dashboard
-import WritingTestPage from "./Pages/Writing/WritingTestPage.jsx"
+import WritingTestPage from "./Pages/Writing/WritingTestPage.jsx";
 import ReadingExamPage from "./Pages/Reading/ReadingExamPage.jsx";
 import TransactionList from "./Pages/Transactions/TransactionList.jsx";
 import TransactionDetail from "./Pages/Transactions/TransactionDetail.jsx";
+import VipPlans from "./Pages/Transactions/VipPlans.jsx";
+import PaymentPage from "./Pages/Transactions/PaymentPage.jsx";
+import PaymentTab from "./Pages/Profile/Tabs/PaymentTab.jsx";
+import AdminVipPlans from "./Pages/Admin/AdminVipPlans.jsx";
+import WritingResultPage from "./Pages/Writing/WritingResultPage.jsx";
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-otp" element={<VerifyOtp />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-          <Route path="/home" element={<Home />} />
-          <Route path="/dictionary" element={<Dictionary />} />
-          <Route path="/reading" element={<ReadingPage />} />
-          <Route path="/listening" element={<ListeningPage />} />
-          <Route path="/writing" element={<WritingPage />} />
-          <Route path="/forum" element={<Forum />} />
-          <Route path="/create-post" element={<CreatePost />} />
-          <Route path="/edit-post/:postId" element={<EditPost />} />
-          <Route path="/post/:postId" element={<PostDetail />} />
-          <Route path="/profile" element={<Profile />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/dictionary" element={<Dictionary />} />
+        <Route path="/reading" element={<ReadingPage />} />
+        <Route path="/listening" element={<ListeningPage />} />
+        <Route path="/writing" element={<WritingPage />} />
+        <Route path="/forum" element={<Forum />} />
+        <Route path="/create-post" element={<CreatePost />} />
+        <Route path="/edit-post/:postId" element={<EditPost />} />
+        <Route path="/post/:postId" element={<PostDetail />} />
+        <Route path="/profile" element={<Profile />} />
 
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/exam" element={<ExamManagement />} />
-          <Route path="/admin/exam/add-reading" element={<AddReading />} />
-          <Route path="/admin/exam/add-listening" element={<AddListening />} />
-          <Route path="/admin/exam/add-writing" element={<AddWriting />} />
-          <Route path="/writing/test" element={<WritingTestPage />} />
-          <Route path="/reading/test" element={<ReadingExamPage />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/exam" element={<ExamManagement />} />
+        <Route path="/admin/exam/add-reading" element={<AddReading />} />
+        <Route path="/admin/exam/add-listening" element={<AddListening />} />
+        <Route path="/admin/exam/add-writing" element={<AddWriting />} />
+        <Route path="/writing/test" element={<WritingTestPage />} />
+        <Route path="/writing/result" element={<WritingResultPage />} />
 
-          <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
-          <Route path="/admin/transactions" element={<TransactionList />} />
-          <Route
-            path="/admin/transactions/:id"
-            element={<TransactionDetail />}
-          />
-        </Routes>
+        <Route path="/reading/test" element={<ReadingExamPage />} />
+
+        <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
+        <Route path="/admin/transactions" element={<TransactionList />} />
+        <Route path="/admin/transactions/:id" element={<TransactionDetail />} />
+        <Route path="/transactions/plans" element={<VipPlans />} />
+        <Route path="/transactions/payment/:id" element={<PaymentPage />} />
+        <Route path="/profile/payment" element={<PaymentTab />} />
+        <Route path="/admin/vip-plans" element={<AdminVipPlans />} />
+      </Routes>
     </BrowserRouter>
   );
 }

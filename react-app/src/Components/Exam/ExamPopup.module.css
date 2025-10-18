@@ -42,7 +42,7 @@
 .iconBtn {
   border: none;
   background: transparent;
-  font-size: 22px;
+  font-size: 20px;
   cursor: pointer;
   line-height: 1;
   color: #64748b;
@@ -176,6 +176,9 @@
   border-radius: 10px;
   transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
 }
+.taskOption  input{
+width: 30%;
+}
 .taskOption:hover {
   border-color: #cbd5e1;
   background: #f8fafc;
@@ -190,6 +193,7 @@
 
 .taskTitle {
   font-weight: 600;
+  font-size: 15px
 }
 
 /* ===== Buttons ===== */
@@ -222,7 +226,7 @@
   padding: 10px 14px;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: px;
   transition: background-color 140ms ease, border-color 140ms ease, transform 80ms ease;
 }
 .secondaryBtn:hover {
@@ -271,16 +275,20 @@
 .infoLabel {
   width: 100px;
   color: #6b7280;
+  font-size: 15px;
 }
 
 .infoValue {
   flex: 1;
   color: #111827;
+    font-size: 15px;
+
 }
 
 .list {
   margin: 0;
   padding-left: 18px;
+  font-size: 13px;
 }
 
 .highlightNumber {
@@ -318,4 +326,8 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+input[type="radio"]:focus {
+  outline: none;
+  box-shadow: none;
 }

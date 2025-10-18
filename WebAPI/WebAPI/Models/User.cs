@@ -26,7 +26,9 @@ public partial class User
     public DateTime? UpdatedAt { get; set; }
 
     public string? Avatar { get; set; }
-    //public DateTime? VipExpireAt { get; set; }
+    public DateTime? VipExpireAt { get; set; }
+    public bool IsVip => VipExpireAt != null && VipExpireAt > DateTime.UtcNow;
+
 
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
 

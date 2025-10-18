@@ -68,8 +68,18 @@ builder.Services.AddScoped<IExamRepository, ExamRepository>();
 builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<IWritingFeedbackRepository, WritingFeedbackRepository>();
 builder.Services.AddScoped<IWritingFeedbackService, WritingFeedbackService>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IVipPlanRepository, VipPlanRepository>();
+builder.Services.AddScoped<IVipPlanService, VipPlanService>();
 
+builder.Services.AddScoped<ISpeakingRepository, SpeakingRepository>();
+builder.Services.AddScoped<ISpeakingFeedbackRepository, SpeakingFeedbackRepository>();
+builder.Services.AddScoped<ISpeakingService, SpeakingService>();
+builder.Services.AddScoped<ISpeakingFeedbackService, SpeakingFeedbackService>();
+
+// Speech to Text
+builder.Services.AddScoped<SpeechToTextService>();
 
 // ====== Authentication ======
 builder.Services.AddAuthentication(options =>

@@ -11,5 +11,8 @@ namespace WebAPI.Repositories
         void Update(WritingFeedback entity);
         void Delete(WritingFeedback entity);
         void SaveChanges();
+        List<WritingFeedback> GetAll();
+        WritingFeedback? GetByAttemptAndWriting(long attemptId, int writingId);
+
     }
 }

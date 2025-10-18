@@ -172,6 +172,9 @@ export default function TransactionList() {
                 Export CSV
               </button>
             </div>
+            <Link to="/admin/vip-plans" className={styles.manageVipBtn}>
+              Manage VIP Plans
+            </Link>
           </div>
 
           {/* Table */}

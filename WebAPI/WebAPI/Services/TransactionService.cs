@@ -1,27 +1,32 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using WebAPI.Data;
 using WebAPI.DTOs;
 using WebAPI.Models;
-using System.Linq.Expressions;
+using WebAPI.Repositories;
 
 namespace WebAPI.Services
 {
     public sealed class TransactionService : ITransactionService
     {
-        private readonly ApplicationDbContext _db;
+        private readonly ITransactionRepository _repo;
+        private readonly IVipPlanRepository _vipRepo;
+        private readonly IUserRepository _userRepo;
         private const int CsvMaxRows = 50000;
 
-        public TransactionService(ApplicationDbContext db)
+        public TransactionService(
+            ITransactionRepository repo,
+            IVipPlanRepository vipRepo,
+            IUserRepository userRepo)
         {
-            _db = db;
+            _repo = repo;
+            _vipRepo = vipRepo;
+            _userRepo = userRepo;
         }
 
-        // =====================
-        // == GET Paged ==
-        // =====================
+        // ===================== GET Paged =====================
         public PagedResult<TransactionDTO> GetPaged(TransactionDTO q, int currentUserId, bool isAdmin)
         {
             var scoped = ScopeQuery(q, currentUserId, isAdmin);
@@ -46,34 +51,23 @@ namespace WebAPI.Services
             };
         }
 
-        // =====================
-        // == GET By Id ==
-        // =====================
+        // ===================== GET By Id =====================
         public TransactionDTO? GetById(int id, int currentUserId, bool isAdmin)
         {
-            var tx = _db.Transactions
-                .Include(t => t.User)
-                .AsNoTracking()
-                .FirstOrDefault(t => t.TransactionId == id);
-
+            var tx = _repo.GetById(id);
             if (tx == null) return null;
             if (!isAdmin && tx.UserId != currentUserId) return null;
             return MapToDto(tx);
         }
 
-        // =====================
-        // == CREATE ==
-        // =====================
+        // ===================== CREATE (Generic) =====================
         public TransactionDTO CreateOrGetByReference(TransactionDTO dto, int currentUserId)
         {
             var reference = dto.ProviderTxnId ?? dto.ReferenceCode;
             if (string.IsNullOrWhiteSpace(reference))
                 throw new InvalidOperationException("ReferenceCode is required.");
 
-            var existing = _db.Transactions
-                .AsNoTracking()
-                .FirstOrDefault(t => t.ProviderTxnId == reference);
-
+            var existing = _repo.GetByReference(reference);
             if (existing != null) return MapToDto(existing);
 
             var entity = new Transaction
@@ -88,18 +82,15 @@ namespace WebAPI.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            _db.Transactions.Add(entity);
-            _db.SaveChanges();
-
+            _repo.Add(entity);
+            _repo.SaveChanges();
             return MapToDto(entity);
         }
 
-        // =====================
-        // == CANCEL ==
-        // =====================
+        // ===================== CANCEL =====================
         public TransactionDTO Cancel(int id, int currentUserId, bool isAdmin)
         {
-            var tx = _db.Transactions.FirstOrDefault(t => t.TransactionId == id);
+            var tx = _repo.GetById(id);
             if (tx == null) throw new KeyNotFoundException("Transaction not found.");
             if (!isAdmin && tx.UserId != currentUserId)
                 throw new UnauthorizedAccessException("Forbidden.");
@@ -108,16 +99,16 @@ namespace WebAPI.Services
                 throw new InvalidOperationException("Only pending transactions can be canceled.");
 
             tx.Status = "FAILED";
-            _db.SaveChanges();
+            _repo.Update(tx);
+            _repo.SaveChanges();
+
             return MapToDto(tx);
         }
 
-        // =====================
-        // == REFUND ==
-        // =====================
+        // ===================== REFUND =====================
         public TransactionDTO Refund(int id, int currentUserId, bool isAdmin)
         {
-            var tx = _db.Transactions.FirstOrDefault(t => t.TransactionId == id);
+            var tx = _repo.GetById(id);
             if (tx == null) throw new KeyNotFoundException("Transaction not found.");
             if (!isAdmin && tx.UserId != currentUserId)
                 throw new UnauthorizedAccessException("Forbidden.");
@@ -126,55 +117,97 @@ namespace WebAPI.Services
                 throw new InvalidOperationException("Only paid transactions can be refunded.");
 
             tx.Status = "REFUNDED";
-            _db.SaveChanges();
+            _repo.Update(tx);
+            _repo.SaveChanges();
+
             return MapToDto(tx);
         }
 
-        // =====================
-        // == APPROVE ==
-        // =====================
+        // ===================== APPROVE =====================
         public TransactionDTO Approve(int id, int currentUserId, bool isAdmin)
         {
             if (!isAdmin)
                 throw new UnauthorizedAccessException("Only admin can approve.");
 
-            var tx = _db.Transactions.FirstOrDefault(t => t.TransactionId == id);
-            if (tx == null) throw new KeyNotFoundException("Transaction not found.");
+            var tx = _repo.GetById(id);
+            if (tx == null)
+                throw new KeyNotFoundException("Transaction not found.");
 
             if (!tx.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Only pending transactions can be approved.");
 
             tx.Status = "PAID";
-            _db.SaveChanges();
+            _repo.Update(tx);
+            _repo.SaveChanges();
+
+            if (tx.PlanId.HasValue && tx.Plan != null)
+            {
+                var user = _userRepo.GetById(tx.UserId);
+                var plan = _vipRepo.GetById(tx.PlanId.Value);
+                if (user != null && plan != null)
+                {
+                    var now = DateTime.UtcNow;
+                    var baseDate = user.VipExpireAt.HasValue && user.VipExpireAt > now
+                        ? user.VipExpireAt.Value
+                        : now;
+
+                    user.VipExpireAt = baseDate.AddDays(plan.DurationDays);
+                    _userRepo.Update(user);
+                    _userRepo.SaveChanges();
+                }
+            }
+
             return MapToDto(tx);
         }
 
-        // =====================
-        // == EXPORT CSV ==
-        // =====================
+        // ===================== CREATE VIP Transaction =====================
+        public TransactionDTO CreateVipTransaction(TransactionDTO dto, int currentUserId)
+        {
+            var plan = _vipRepo.GetById(dto.PlanId);
+            if (plan == null)
+                throw new InvalidOperationException("Selected plan not found.");
+
+            var tx = new Transaction
+            {
+                UserId = currentUserId,
+                PlanId = plan.VipPlanId,
+                Amount = plan.Price,
+                Currency = "VND",
+                PaymentMethod = dto.PaymentMethod,
+                ProviderTxnId = dto.ProviderTxnId,
+                Purpose = "VIP",
+                Status = "PENDING",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _repo.Add(tx);
+            _repo.SaveChanges();
+
+            return MapToDto(tx);
+        }
+
+        // ===================== EXPORT CSV =====================
         public byte[] ExportCsv(TransactionDTO q, int currentUserId, bool isAdmin)
         {
             var scoped = ScopeQuery(q, currentUserId, isAdmin);
             var filtered = ApplyFilters(scoped, q);
             var sorted = ApplySort(filtered, q).AsNoTracking();
 
-            var rows = sorted
-                .Include(t => t.User)
-                .Take(CsvMaxRows)
-                .Select(t => new
-                {
-                    t.TransactionId,
-                    t.UserId,
-                    Username = t.User.Username,
-                    t.Amount,
-                    t.Currency,
-                    t.PaymentMethod,
-                    t.ProviderTxnId,
-                    t.Purpose,
-                    t.Status,
-                    t.CreatedAt
-                })
-                .ToList();
+            var rows = sorted.Include(t => t.User)
+                             .Take(CsvMaxRows)
+                             .Select(t => new
+                             {
+                                 t.TransactionId,
+                                 t.UserId,
+                                 Username = t.User.Username,
+                                 t.Amount,
+                                 t.Currency,
+                                 t.PaymentMethod,
+                                 t.ProviderTxnId,
+                                 t.Purpose,
+                                 t.Status,
+                                 t.CreatedAt
+                             }).ToList();
 
             var sb = new StringBuilder();
             sb.AppendLine("TransactionId,UserId,Username,Amount,Currency,PaymentMethod,ReferenceCode,Purpose,Status,CreatedAt");
@@ -197,21 +230,10 @@ namespace WebAPI.Services
             return Encoding.UTF8.GetBytes(sb.ToString());
         }
 
-        // =====================
-        // == Helper ==
-        // =====================
-        private static string EscapeCsv(string? value)
-        {
-            if (string.IsNullOrEmpty(value)) return "";
-            var v = value.Replace("\"", "\"\"");
-            if (v.Contains(',') || v.Contains('\n') || v.Contains('\r'))
-                return "\"" + v + "\"";
-            return v;
-        }
-
+        // ===================== Helper =====================
         private IQueryable<Transaction> ScopeQuery(TransactionDTO q, int currentUserId, bool isAdmin)
         {
-            var src = _db.Transactions.AsQueryable();
+            var src = _repo.GetAll();
             if (!isAdmin)
                 return src.Where(t => t.UserId == currentUserId);
             if (q.UserId > 0)
@@ -250,6 +272,15 @@ namespace WebAPI.Services
                 _ => desc ? q.OrderByDescending(t => t.CreatedAt)
                           : q.OrderBy(t => t.CreatedAt)
             };
+        }
+
+        private static string EscapeCsv(string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            var v = value.Replace("\"", "\"\"");
+            if (v.Contains(',') || v.Contains('\n') || v.Contains('\r'))
+                return "\"" + v + "\"";
+            return v;
         }
 
         private static Expression<Func<Transaction, TransactionDTO>> MapToDtoExpr()

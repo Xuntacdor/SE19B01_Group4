@@ -107,6 +107,18 @@ namespace WebAPI.Controllers
                 return Conflict(ex.Message);
             }
         }
+        [HttpPost("create")]
+        [Authorize]
+        public IActionResult CreateTransaction([FromBody] TransactionDTO dto)
+        {
+            var userContext = GetCurrentUser();
+            if (userContext == null)
+                return Unauthorized("User not logged in.");
+
+            var created = _service.CreateVipTransaction(dto, userContext.UserId);
+            return Ok(created);
+        }
+
 
         [HttpGet("export")]
         public IActionResult Export([FromQuery] TransactionDTO query)

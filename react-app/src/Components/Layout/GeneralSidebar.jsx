@@ -48,7 +48,7 @@ const menuItems = [
   {
     icon: <ShoppingBag size={20} />,
     label: "Transaction",
-    path: "/transactions",
+    path: "/transactions/plans",
   },
 ];
 
