@@ -28,3 +28,25 @@ export function update(id, data) {
 export function remove(id) {
   return API.delete(`/${id}`);
 }
+
+export const transcribeAudio = (attemptId, audioUrl) =>
+  API.post("/transcribe", { attemptId, audioUrl })
+    .then((r) => r.data)
+    .catch((err) => {
+      console.error(
+        "Transcription API failed:",
+        err.response?.data || err.message
+      );
+      return { transcript: "[Transcription failed]" };
+    });
+
+export const gradeSpeaking = (gradeData) =>
+  API.post("/grade", gradeData)
+    .then((r) => r.data)
+    .catch((err) => {
+      console.error("Grading API failed:", err.response?.data || err.message);
+      throw err;
+    });
+
+export const getFeedback = (examId, userId) =>
+  API.get(`/feedback/${examId}/${userId}`).then((r) => r.data);
