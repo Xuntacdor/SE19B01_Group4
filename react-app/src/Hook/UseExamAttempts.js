@@ -20,9 +20,7 @@ export default function useExamAttempts(userId) {
     setError(null);
 
     getExamAttemptsByUser(userId)
-      .then((res) => {
-        let data = res.data;
-
+      .then((data) => {
         if (typeof data === "string") {
           try {
             data = JSON.parse(data);
@@ -32,11 +30,10 @@ export default function useExamAttempts(userId) {
           }
         }
 
-        if (isMounted) {
-          console.log("Attempts from API:", data);
-          setAttempts(data);
-        }
+        console.log("Attempts from API:", data);
+        setAttempts(data);
       })
+
       .catch((err) => {
         if (isMounted) setError(err);
       })

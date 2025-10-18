@@ -1,0 +1,120 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap");
+
+.container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 0;
+  font-family: "Outfit", sans-serif;
+}
+
+.pageTitle {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 24px;
+  text-align: left; /* ✅ align left to match Writing */
+}
+
+/* ===== State and error text ===== */
+.stateText {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #6b7280;
+  padding: 40px 0;
+}
+
+.errorText {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #ef4444;
+  background: #fef2f2;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  padding: 40px 0;
+}
+
+/* ===== Exams section ===== */
+.examsSection {
+  margin-top: 24px;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 20px;
+  text-align: left; /* ✅ keep left-aligned like Writing */
+}
+
+/* ===== Exam grid ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.examCardWrapper {
+  position: relative;
+  transition: transform 0.25s ease;
+  overflow: visible;
+}
+
+.examCardWrapper:hover {
+  transform: translateY(-2px);
+}
+
+/* ===== Exam feature tags ===== */
+.examFeatures {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.featureTag {
+  background: rgba(37, 99, 235, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== Center wrapper for empty state ===== */
+.centerWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  grid-column: 1 / -1;
+}
+
+/* ===== Responsive layout ===== */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .pageTitle {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .examFeatures {
+    position: static;
+    margin-top: 6px;
+    justify-content: flex-start;
+  }
+}

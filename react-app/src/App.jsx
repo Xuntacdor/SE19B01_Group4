@@ -19,6 +19,7 @@ import AdminDashboard from "./Pages/Admin/AdminDashBoard.jsx"; // ⚡ import adm
 import AddReading from "./Pages/Admin/AddReading.jsx";
 import AddListening from "./Pages/Admin/AddListening.jsx";
 import AddWriting from "./Pages/Admin/AddWriting.jsx";
+import AddSpeaking from "./Pages/Admin/AddSpeaking.jsx";
 import ModeratorDashboard from "./Pages/Moderator/ModeratorDashboard.jsx"; // ⚡ import moderator dashboard
 import WritingTestPage from "./Pages/Writing/WritingTestPage.jsx";
 import ReadingExamPage from "./Pages/Reading/ReadingExamPage.jsx";
@@ -29,6 +30,9 @@ import PaymentPage from "./Pages/Transactions/PaymentPage.jsx";
 import PaymentTab from "./Pages/Profile/Tabs/PaymentTab.jsx";
 import AdminVipPlans from "./Pages/Admin/AdminVipPlans.jsx";
 import WritingResultPage from "./Pages/Writing/WritingResultPage.jsx";
+import SpeakingPage from "./Pages/Speaking/SpeakingPage.jsx";
+import SpeakingTestPage from "./Pages/Speaking/SpeakingTestPage.jsx";
+import SpeakingResultPage from "./Pages/Speaking/SpeakingResultPage.jsx";
 
 function App() {
   return (
@@ -45,6 +49,7 @@ function App() {
         <Route path="/reading" element={<ReadingPage />} />
         <Route path="/listening" element={<ListeningPage />} />
         <Route path="/writing" element={<WritingPage />} />
+        <Route path="/speaking" element={<SpeakingPage />} />
         <Route path="/forum" element={<Forum />} />
         <Route path="/create-post" element={<CreatePost />} />
         <Route path="/edit-post/:postId" element={<EditPost />} />
@@ -56,8 +61,11 @@ function App() {
         <Route path="/admin/exam/add-reading" element={<AddReading />} />
         <Route path="/admin/exam/add-listening" element={<AddListening />} />
         <Route path="/admin/exam/add-writing" element={<AddWriting />} />
+        <Route path="/admin/exam/add-speaking" element={<AddSpeaking />} />
         <Route path="/writing/test" element={<WritingTestPage />} />
         <Route path="/writing/result" element={<WritingResultPage />} />
+        <Route path="/speaking/test" element={<SpeakingTestPage />} />
+        <Route path="/speaking/result" element={<SpeakingResultPage />} />
 
         <Route path="/reading/test" element={<ReadingExamPage />} />
 

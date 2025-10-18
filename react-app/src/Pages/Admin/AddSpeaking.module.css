@@ -1,0 +1,341 @@
+/* ============ Layout tổng thể ============ */
+.splitLayout {
+  display: flex;
+  gap: 1.5rem;
+  height: 100vh;
+  padding: 1.25rem 2.5rem;
+  margin-left: 240px;
+  background: #f9fafb;
+  color: #1f2937;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-size: 1.4rem;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* ============ Panel trái/phải ============ */
+.leftPanel,
+.rightPanel {
+  flex: 1;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.leftPanel {
+  flex: 1.15;
+  overflow-y: auto;
+}
+
+.rightPanel {
+  flex: 0.9;
+  align-items: center;
+  text-align: center;
+  justify-content: flex-start;
+}
+
+/* ============ Tiêu đề ============ */
+h2,
+h3 {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+h4 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+/* ============ Form ============ */
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: #374151;
+  font-size: 1.25rem;
+}
+
+textarea,
+input,
+select {
+  width: 95%;
+  padding: 0.6rem 0.8rem;
+  font-size: 1.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  transition: 0.2s;
+}
+
+textarea:focus,
+input:focus,
+select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  outline: none;
+}
+
+.note {
+  font-size: 1.15rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* ============ Timing Information ============ */
+.timingInfo {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.timingCard {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+/* ============ Sample Questions ============ */
+.sampleSection {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.sampleQuestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sampleQuestion {
+  padding: 0.8rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: #4b5563;
+  transition: all 0.2s ease;
+  white-space: pre-line;
+}
+
+.sampleQuestion:hover {
+  background: #f1f5f9;
+  border-color: #2563eb;
+  color: #1e40af;
+}
+
+/* ============ Upload + Submit cùng hàng ============ */
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+.uploadLabel,
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.6rem 1.4rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.uploadLabel {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.uploadLabel:hover {
+  background: #e5e7eb;
+}
+
+.btnPrimary {
+  background-color: #2563eb;
+  color: #fff;
+  border: none;
+}
+
+.btnPrimary:hover {
+  background-color: #1e40af;
+}
+
+/* ============ Back Button ============ */
+.backBtn {
+  margin-top: 1rem;
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s ease;
+}
+
+.backBtn:hover {
+  color: #1e3a8a;
+}
+
+/* ============ Preview ============ */
+.previewCard {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 12px;
+  text-align: left;
+  font-size: 1.25rem;
+  border: 1px solid #e2e8f0;
+}
+
+.previewHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.previewContent h4 {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  margin-top: 1rem;
+}
+
+.previewContent h4:first-child {
+  margin-top: 0;
+}
+
+.previewContent p {
+  color: #4b5563;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.previewTiming {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.timingItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.1rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.previewImage {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  margin-top: 1rem;
+}
+
+.placeholder {
+  opacity: 0.6;
+  text-align: center;
+  padding: 1rem 0;
+  font-style: italic;
+  color: #6b7280;
+  font-size: 1.25rem;
+}
+
+/* ============ Status & Exam Info ============ */
+.status {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 1.25rem;
+}
+
+.examInfo {
+  margin-bottom: 1rem;
+  opacity: 0.85;
+  font-size: 1.25rem;
+  color: #4b5563;
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 1200px) {
+  .splitLayout {
+    flex-direction: column;
+    margin-left: 0;
+    height: auto;
+    padding: 1.2rem;
+    overflow: auto;
+  }
+
+  .actionRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .timingInfo {
+    flex-direction: column;
+  }
+
+  .previewTiming {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
