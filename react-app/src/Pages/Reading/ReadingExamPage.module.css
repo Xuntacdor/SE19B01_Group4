@@ -1,19 +1,21 @@
-/* Exam wrapper styles */
+/* Main Exam Wrapper */
 .examWrapper {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #ffffff;
   font-family: Arial, sans-serif;
 }
 
-/* Top bar styles */
-.topBar {
+/* Top Header */
+.topHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding: 15px 0;
-  border-bottom: 2px solid #e0e0e0;
+  padding: 16px 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .backBtn {
@@ -31,97 +33,271 @@
 }
 
 .examTitle {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
   color: #333;
   margin: 0;
 }
 
 .timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 25px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+/* Main Content Layout */
+.mainContent {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left Panel - Reading Passage */
+.leftPanel {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  border-right: 1px solid #e0e0e0;
+  background-color: #ffffff;
+}
+
+/* Passage Header */
+.passageHeader {
+  background-color: #f5f5dc;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.authorInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.authorAvatar {
+  flex-shrink: 0;
+}
+
+.avatarCircle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #007bff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.authorSummary ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.authorSummary li {
+  margin-bottom: 4px;
+}
+
+.expandLink {
+  color: #dc3545;
+  text-decoration: none;
+  font-size: 14px;
+  margin-top: 8px;
+  display: inline-block;
+}
+
+.expandLink:hover {
+  text-decoration: underline;
+}
+
+/* Passage Title */
+.passageTitle {
   font-size: 18px;
   font-weight: bold;
-  color: #dc3545;
-}
-
-/* Form styles */
-.examForm {
-  margin-bottom: 20px;
-}
-
-.activeForm {
-  display: block;
-}
-
-.hiddenForm {
-  display: none;
-}
-
-.questionPage {
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.questionTitle {
-  font-size: 20px;
   color: #333;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
+  margin: 0 0 20px 0;
 }
 
-.readingContent {
-  margin-bottom: 1.5rem;
+/* Passage Content */
+.passageContent {
   line-height: 1.7;
   color: #333;
+  text-align: justify;
 }
 
-.question {
-  margin-top: 1rem;
+.passageContent p {
+  margin-bottom: 16px;
 }
 
-/* Navigation styles */
-.navigation {
+/* Right Panel - Questions */
+.rightPanel {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background-color: #ffffff;
+}
+
+/* Question Sections */
+.questionSection {
+  margin-bottom: 32px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.instructions {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+}
+
+/* True/False Questions */
+.questionItem {
   display: flex;
-  justify-content: space-between;
-  margin-top: 30px;
-  padding-top: 20px;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.questionNumber {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #fd7e14;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.answerSelect {
+  width: 120px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.questionText {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+/* Fill-in-the-blank Questions */
+.subSectionTitle {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin: 20px 0 16px 0;
+}
+
+.notesSection {
+  margin-left: 16px;
+}
+
+.notesTitle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  margin: 16px 0 12px 0;
+}
+
+.fillBlankItem {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.bulletPoint {
+  color: #333;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.fillBlankInput {
+  width: 100px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Bottom Navigation */
+.bottomNavigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background-color: #f8f9fa;
   border-top: 1px solid #e0e0e0;
 }
 
-.navBtn {
-  background: #007bff;
-  color: white;
+.navButton {
+  width: 40px;
+  height: 40px;
   border: none;
-  padding: 12px 24px;
   border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.navBtn:hover {
-  background: #0056b3;
-}
-
-.submitBtn {
-  background: #28a745;
+  background-color: #28a745;
   color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
   font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.submitBtn:hover {
-  background: #218838;
+.navButton:hover {
+  background-color: #218838;
 }
 
-.submitBtn:disabled {
-  background: #6c757d;
+.activeNavButton {
+  background-color: #155724;
+}
+
+.completeButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  margin-left: 16px;
+}
+
+.completeButton:hover {
+  background-color: #0056b3;
+}
+
+.completeButton:disabled {
+  background-color: #6c757d;
   cursor: not-allowed;
 }
 
@@ -149,4 +325,33 @@
   color: #666;
   margin-bottom: 25px;
   font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .mainContent {
+    flex-direction: column;
+  }
+  
+  .leftPanel,
+  .rightPanel {
+    flex: none;
+    max-height: 50vh;
+  }
+  
+  .leftPanel {
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .bottomNavigation {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .navButton {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
 }

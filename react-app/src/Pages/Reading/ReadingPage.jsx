@@ -26,13 +26,15 @@ export default function ReadingPage() {
       .getAll()
       .then((data) => {
         if (!mounted) return;
+        console.log('All exams fetched:', data);
         const list = Array.isArray(data)
           ? data.filter((e) => e.examType === "Reading")
           : [];
+        console.log('Filtered Reading exams:', list);
         setExams(list);
       })
       .catch((err) => {
-        console.error(err);
+        console.error('Error fetching exams:', err);
         if (mounted) setError("Failed to load Reading exams.");
       })
       .finally(() => mounted && setLoading(false));
@@ -48,11 +50,12 @@ export default function ReadingPage() {
     readingService
       .getByExam(exam.examId)
       .then((data) => {
+        console.log('Reading questions fetched for exam', exam.examId, ':', data);
         const list = Array.isArray(data) ? data : [];
         setExamQuestions(list);
       })
       .catch((err) => {
-        console.error(err);
+        console.error('Error fetching reading questions:', err);
         alert("Failed to load reading questions for this exam.");
       })
       .finally(() => setLoadingDetail(false));
