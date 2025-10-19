@@ -16,6 +16,8 @@ namespace WebAPI.Repositories
 
         public Reading? GetById(int id) => _db.Reading.FirstOrDefault(r => r.ReadingId == id);
 
+        public List<Reading> GetAll() => _db.Reading.ToList();
+
         public List<Reading> GetByExamId(int examId) =>
             _db.Reading.Where(r => r.ExamId == examId).ToList();
 

@@ -56,7 +56,7 @@ namespace WebAPI.Controllers
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                                new Claim("UserId", user.UserId.ToString()), 
+                                new Claim("UserId", user.UserId.ToString()),
 
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Email, user.Email),
@@ -110,38 +110,54 @@ namespace WebAPI.Controllers
         [HttpGet("google/login")]
         public IActionResult GoogleLogin()
         {
-            var redirectUrl = Url.Action("GoogleResponse", "Auth", null, Request.Scheme);
-            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+            // Use absolute URL for the callback
+            var redirectUrl = $"{Request.Scheme}://{Request.Host}/api/auth/google/response";
+            Console.WriteLine($"[Google OAuth] Initiating login with redirect URL: {redirectUrl}");
+
+            var properties = new AuthenticationProperties
+            {
+                RedirectUri = redirectUrl
+            };
+
             return Challenge(properties, "Google");
         }
 
         [HttpGet("google/response")]
         public IActionResult GoogleResponse()
         {
-            var result = HttpContext.AuthenticateAsync("Google").GetAwaiter().GetResult();
-            if (!result.Succeeded) return Unauthorized();
-
-            var claims = result.Principal.Identities.FirstOrDefault()?.Claims.ToList();
-            var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-            var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-
-            if (email == null) return BadRequest("Google did not return email");
-
-            var user = _userService.GetByEmail(email);
-            if (user == null)
+            try
             {
-                _userService.Register(new RegisterRequestDTO
-                {
-                    Username = email.Split('@')[0],
-                    Email = email,
-                    Password = Guid.NewGuid().ToString(),
-                    Firstname = name ?? "",
-                    Lastname = ""
-                });
-                user = _userService.GetByEmail(email)!;
-            }
+                Console.WriteLine($"[Google OAuth] Callback received at: {Request.Scheme}://{Request.Host}{Request.Path}{Request.QueryString}");
+                Console.WriteLine($"[Google OAuth] Query parameters: {Request.QueryString}");
 
-            var appClaims = new List<Claim>
+                var result = HttpContext.AuthenticateAsync("Google").GetAwaiter().GetResult();
+                if (!result.Succeeded)
+                {
+                    Console.WriteLine($"[Google OAuth] Authentication failed: {result.Failure?.Message}");
+                    return Unauthorized($"Authentication failed: {result.Failure?.Message}");
+                }
+
+                var claims = result.Principal.Identities.FirstOrDefault()?.Claims.ToList();
+                var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+                var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
+                if (email == null) return BadRequest("Google did not return email");
+
+                var user = _userService.GetByEmail(email);
+                if (user == null)
+                {
+                    _userService.Register(new RegisterRequestDTO
+                    {
+                        Username = email.Split('@')[0],
+                        Email = email,
+                        Password = Guid.NewGuid().ToString(),
+                        Firstname = name ?? "",
+                        Lastname = ""
+                    });
+                    user = _userService.GetByEmail(email)!;
+                }
+
+                var appClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                     new Claim("UserId", user.UserId.ToString()),
@@ -151,26 +167,34 @@ namespace WebAPI.Controllers
                 new Claim(ClaimTypes.Role, user.Role)
             };
 
-            var identity = new ClaimsIdentity(appClaims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var principal = new ClaimsPrincipal(identity);
+                var identity = new ClaimsIdentity(appClaims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var principal = new ClaimsPrincipal(identity);
 
-            HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal)
-                       .GetAwaiter().GetResult();
+                HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal)
+                           .GetAwaiter().GetResult();
 
-            HttpContext.Session.SetInt32("UserId", user.UserId);
-            try
-            {
-                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-                var device = Request.Headers["User-Agent"].ToString();
-                _signInHistoryService.LogSignIn(user.UserId, ip, device);
+                HttpContext.Session.SetInt32("UserId", user.UserId);
+                try
+                {
+                    var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+                    var device = Request.Headers["User-Agent"].ToString();
+                    _signInHistoryService.LogSignIn(user.UserId, ip, device);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AuthController] Failed to log Google sign-in: {ex.Message}");
+                }
+
+
+                return Redirect("https://localhost:5173?login=success");
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[AuthController] Failed to log Google sign-in: {ex.Message}");
+                Console.WriteLine($"[Google OAuth] Error in callback: {ex.Message}");
+                Console.WriteLine($"[Google OAuth] Stack trace: {ex.StackTrace}");
+                return BadRequest($"OAuth callback error: {ex.Message}");
             }
-
-
-            return Redirect($"https://localhost:5173?login=success&email={user.Email}&username={user.Username}&role={user.Role}");
         }
 
         [HttpGet("me")]
@@ -269,10 +293,10 @@ namespace WebAPI.Controllers
                 Console.WriteLine($"[EMAIL TEST] SMTP Port: {_configuration["Email:SmtpPort"] ?? "Not configured"}");
                 Console.WriteLine($"[EMAIL TEST] Username: {_configuration["Email:Username"] ?? "Not configured"}");
                 Console.WriteLine($"[EMAIL TEST] FromEmail: {_configuration["Email:FromEmail"] ?? "Not configured"}");
-                
+
                 // Test email sending
                 _emailService.SendOtpEmail(dto.Email, "123456");
-                
+
                 return Ok(new { message = "Email test successful", email = dto.Email });
             }
             catch (Exception ex)

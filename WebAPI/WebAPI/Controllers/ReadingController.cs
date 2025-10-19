@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Http;
 using WebAPI.Models;
 using WebAPI.DTOs;
 using WebAPI.Services;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace WebAPI.Controllers
 {
@@ -19,12 +22,29 @@ namespace WebAPI.Controllers
             _examService = examService;
         }
 
+        // ✅ GET all readings
+        [HttpGet]
+        public ActionResult<IEnumerable<ReadingDto>> GetAll()
+        {
+            var readings = _readingService.GetAll();
+            return Ok(readings);
+        }
+
+        // ✅ GET reading by ID
+        [HttpGet("{id}")]
+        public ActionResult<ReadingDto> GetById(int id)
+        {
+            var reading = _readingService.GetById(id);
+            if (reading == null)
+                return NotFound();
+            return Ok(reading);
+        }
+
+        // ✅ GET readings by Exam
         [HttpGet("exam/{examId}")]
         public ActionResult<IEnumerable<ReadingDto>> GetByExam(int examId)
         {
             var readings = _readingService.GetReadingsByExam(examId);
-
-            // Inline mapping: entity → DTO
             var result = readings.Select(r => new ReadingDto
             {
                 ReadingId = r.ReadingId,
@@ -41,6 +61,46 @@ namespace WebAPI.Controllers
             return Ok(result);
         }
 
+        // ✅ CREATE new reading
+        [HttpPost]
+        public ActionResult<ReadingDto> Add([FromBody] CreateReadingDto dto)
+        {
+            if (dto == null)
+                return BadRequest("Invalid data.");
+
+            var created = _readingService.Add(dto);
+            if (created == null)
+                return StatusCode(500, "Failed to create reading.");
+
+            return CreatedAtAction(nameof(GetById), new { id = created.ReadingId }, created);
+        }
+
+        // ✅ UPDATE existing reading
+        [HttpPut("{id}")]
+        public IActionResult Update(int id, [FromBody] UpdateReadingDto dto)
+        {
+            if (dto == null)
+                return BadRequest("Invalid reading data.");
+
+            var success = _readingService.Update(id, dto);
+            if (!success)
+                return NotFound("Reading not found.");
+
+            return NoContent();
+        }
+
+        // ✅ DELETE reading
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
+        {
+            var success = _readingService.Delete(id);
+            if (!success)
+                return NotFound("Reading not found.");
+
+            return NoContent();
+        }
+
+        // ✅ SUBMIT reading attempt (for user exams)
         [HttpPost("submit")]
         public ActionResult<ExamAttemptDto> SubmitAnswers([FromBody] SubmitAttemptDto dto)
         {
@@ -57,22 +117,17 @@ namespace WebAPI.Controllers
                 if (exam == null)
                     return NotFound("Exam not found.");
 
-                // Parse answers: "1:A,2:B,3:C"
+                // Parse "1:A,2:B,3:C"
                 var answers = dto.AnswerText
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(a => a.Split(':'))
                     .ToDictionary(p => int.Parse(p[0]), p => p[1]);
 
-                // Evaluate score only for reading module
                 var score = _readingService.EvaluateReading(dto.ExamId, answers);
-
-                // Attach score to DTO for persistence
                 dto.Score = score;
 
-                // Persist attempt using ExamService (shared logic)
                 var attempt = _examService.SubmitAttempt(dto, userId.Value);
 
-                // Build response DTO
                 var result = new ExamAttemptDto
                 {
                     AttemptId = attempt.AttemptId,
@@ -99,6 +154,3 @@ namespace WebAPI.Controllers
         }
     }
 }
-
-
-
