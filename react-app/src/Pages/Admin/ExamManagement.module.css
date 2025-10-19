@@ -42,6 +42,7 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   margin-bottom: 30px;
   transition: 0.25s ease;
+  margin-left: 250px;
 }
 .card:hover {
   transform: translateY(-2px);

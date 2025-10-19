@@ -26,13 +26,8 @@ namespace WebAPI.Services
 
         public List<SpeakingFeedback> GetByExamAndUser(int examId, int userId)
         {
-            // Dựa vào navigation property từ ExamAttempt
-            return _repo.GetAll()
-                .Where(f => f.Attempt != null &&
-                            f.Attempt.ExamId == examId &&
-                            f.Attempt.UserId == userId)
-                .OrderByDescending(f => f.CreatedAt)
-                .ToList();
+            // Sử dụng repository method với Include để load navigation properties
+            return _repo.GetByExamAndUser(examId, userId);
         }
 
         public void Add(SpeakingFeedback feedback)

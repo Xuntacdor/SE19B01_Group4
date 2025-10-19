@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using System.Text.Json;
 using WebAPI.DTOs;
 using WebAPI.Services;
@@ -92,11 +93,12 @@ namespace WebAPI.Controllers
                 averageOverall = Math.Round(feedbacks.Average(f => f.Overall ?? 0), 1),
                 feedbacks = feedbacks.Select(f => new
                 {
-                    f.SpeakingId,
+                    f.SpeakingAttemptId,
                     f.Pronunciation,
                     f.Fluency,
                     f.LexicalResource,
                     f.GrammarAccuracy,
+                    f.Coherence,
                     f.Overall,
                     f.AiAnalysisJson,
                     f.CreatedAt
@@ -136,6 +138,92 @@ namespace WebAPI.Controllers
         }
 
         // ==========================================
+        // === TEST CLOUDINARY ACCESS ===
+        // ==========================================
+        [HttpPost("test-cloudinary")]
+        [Authorize(Roles = "user,admin")]
+        public IActionResult TestCloudinaryAccess([FromBody] SpeechTranscribeDto dto)
+        {
+            try
+            {
+                if (dto == null || string.IsNullOrEmpty(dto.AudioUrl))
+                    return BadRequest("Audio URL is required.");
+
+                var isAccessible = _speechService.TestCloudinaryAccess(dto.AudioUrl);
+                return Ok(new
+                {
+                    audioUrl = dto.AudioUrl,
+                    isAccessible,
+                    message = isAccessible ? "Cloudinary URL is accessible" : "Cloudinary URL is not accessible"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SpeakingController] Cloudinary access test failed.");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        // ==========================================
+        // === TRANSCRIBE AUDIO FROM FRONTEND ===
+        // ==========================================
+        [HttpPost("transcribe-audio")]
+        [Authorize(Roles = "user,admin")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        [ApiExplorerSettings(IgnoreApi = false)]
+        public IActionResult TranscribeAudio([FromForm] AudioTranscribeDto dto)
+        {
+            try
+            {
+                if (dto.AudioFile == null || dto.AudioFile.Length == 0)
+                    return BadRequest("Audio file is required.");
+                if (dto.AttemptId <= 0)
+                    return BadRequest("Invalid attempt ID.");
+
+                _logger.LogInformation("[SpeakingController] Transcribing audio file: {FileName}, Size: {Size} bytes", 
+                    dto.AudioFile.FileName, dto.AudioFile.Length);
+
+                // Convert IFormFile to byte array
+                using var memoryStream = new MemoryStream();
+                dto.AudioFile.CopyTo(memoryStream);
+                var audioBytes = memoryStream.ToArray();
+
+                // Create temporary file
+                var tempFileName = $"temp_audio_{dto.AttemptId}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.webm";
+                var tempFilePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), tempFileName);
+                
+                System.IO.File.WriteAllBytes(tempFilePath, audioBytes);
+
+                try
+                {
+                    // Transcribe using temporary file
+                    var transcript = _speechService.TranscribeFromFile(tempFilePath, dto.AttemptId);
+                    
+                    return Ok(new
+                    {
+                        message = "Audio transcribed successfully.",
+                        attemptId = dto.AttemptId,
+                        transcript
+                    });
+                }
+                finally
+                {
+                    // Clean up temporary file
+                    if (System.IO.File.Exists(tempFilePath))
+                        System.IO.File.Delete(tempFilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SpeakingController] Audio transcription from file failed.");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        // ==========================================
         // === GRADE SPEAKING (AI EVALUATION) ===
         // ==========================================
         [HttpPost("grade")]
@@ -145,6 +233,7 @@ namespace WebAPI.Controllers
             if (dto == null || dto.Answers == null || dto.Answers.Count == 0)
                 return BadRequest("Invalid or empty answers.");
 
+            int userId = 0; // Initialize outside try block
             try
             {
                 var userIdStr = User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value
@@ -152,25 +241,29 @@ namespace WebAPI.Controllers
                 if (userIdStr == null)
                     return Unauthorized("User not logged in.");
 
-                int userId = int.Parse(userIdStr);
+                userId = int.Parse(userIdStr);
 
                 foreach (var ans in dto.Answers)
                 {
                     if (string.IsNullOrEmpty(ans.Transcript) && !string.IsNullOrEmpty(ans.AudioUrl))
                     {
                         _logger.LogInformation("[SpeakingController] Transcript missing, auto-generating for {Url}", ans.AudioUrl);
-                        ans.Transcript = _speechService.TranscribeAndSave(dto.ExamId, ans.AudioUrl);
+                        // Tạo attemptId tạm thời cho transcription
+                        var tempAttemptId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        ans.Transcript = _speechService.TranscribeAndSave(tempAttemptId, ans.AudioUrl);
+                        _logger.LogInformation("[SpeakingController] Generated transcript: {Transcript}", ans.Transcript);
                     }
                 }
 
                 var result = _speakingService.GradeSpeaking(dto, userId);
                 var parsed = JsonDocument.Parse(result.RootElement.GetRawText());
+                _logger.LogInformation("[SpeakingController] Speaking grading completed successfully for exam {ExamId}, user {UserId}", dto.ExamId, userId);
                 return Ok(parsed);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[SpeakingController] Grading failed.");
-                return StatusCode(500, new { error = ex.Message });
+                _logger.LogError(ex, "[SpeakingController] Speaking grading failed for exam {ExamId}, user {UserId}", dto.ExamId, userId);
+                return StatusCode(500, new { error = "Grading failed", details = ex.Message });
             }
         }
     }

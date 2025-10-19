@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using WebAPI.Data;
 using WebAPI.DTOs;
 using WebAPI.ExternalServices;
 using WebAPI.Models;
@@ -11,18 +12,24 @@ namespace WebAPI.Services
         private readonly ISpeakingRepository _speakingRepo;
         private readonly ISpeakingFeedbackRepository _feedbackRepo;
         private readonly OpenAIService _openAI;
+        private readonly SpeechToTextService _speechToTextService;
         private readonly IExamService _examService;
+        private readonly ApplicationDbContext _db;
 
         public SpeakingService(
             ISpeakingRepository speakingRepo,
             ISpeakingFeedbackRepository feedbackRepo,
             OpenAIService openAI,
-            IExamService examService)
+            SpeechToTextService speechToTextService,
+            IExamService examService,
+            ApplicationDbContext db)
         {
             _speakingRepo = speakingRepo;
             _feedbackRepo = feedbackRepo;
             _openAI = openAI;
+            _speechToTextService = speechToTextService;
             _examService = examService;
+            _db = db;
         }
 
         // ===========================
@@ -98,8 +105,9 @@ namespace WebAPI.Services
         {
             var question = _speakingRepo.GetById(ans.SpeakingId)?.SpeakingQuestion ?? "Unknown question";
 
-            // 1️⃣ Convert speech to text
-            var transcript = _openAI.SpeechToText(ans.AudioUrl ?? "");
+            // 1️⃣ Convert speech to text using SpeechToTextService
+            var tempAttemptId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var transcript = _speechToTextService.TranscribeAndSave(tempAttemptId, ans.AudioUrl ?? "");
 
             // 2️⃣ Grade speaking using transcript only
             var result = _openAI.GradeSpeaking(question, transcript);
@@ -117,7 +125,11 @@ namespace WebAPI.Services
             foreach (var ans in answers)
             {
                 var question = _speakingRepo.GetById(ans.SpeakingId)?.SpeakingQuestion ?? "Unknown question";
-                var transcript = _openAI.SpeechToText(ans.AudioUrl ?? "");
+                
+                // 1️⃣ Convert speech to text using SpeechToTextService
+                var tempAttemptId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var transcript = _speechToTextService.TranscribeAndSave(tempAttemptId, ans.AudioUrl ?? "");
+                
                 var result = _openAI.GradeSpeaking(question, transcript);
 
                 SaveFeedback(examId, ans.SpeakingId, result, userId, ans.AudioUrl, transcript);
@@ -148,13 +160,17 @@ namespace WebAPI.Services
         {
             try
             {
+                Console.WriteLine($"[SaveSpeakingFeedback] Starting save for examId: {examId}, speakingId: {speakingId}, userId: {userId}");
+                
                 // 1️⃣ Find or create ExamAttempt
                 var attempts = _examService.GetExamAttemptsByUser(userId);
                 var existingAttempt = attempts.FirstOrDefault(a => a.ExamId == examId);
+                Console.WriteLine($"[SaveSpeakingFeedback] Found {attempts.Count()} attempts for user {userId}, existing for exam {examId}: {existingAttempt != null}");
 
                 ExamAttempt attempt;
                 if (existingAttempt == null)
                 {
+                    Console.WriteLine($"[SaveSpeakingFeedback] Creating new ExamAttempt for exam {examId}, user {userId}");
                     var dto = new SubmitAttemptDto
                     {
                         ExamId = examId,
@@ -162,11 +178,13 @@ namespace WebAPI.Services
                         StartedAt = DateTime.UtcNow
                     };
                     attempt = _examService.SubmitAttempt(dto, userId);
+                    Console.WriteLine($"[SaveSpeakingFeedback] Created ExamAttempt with ID: {attempt.AttemptId}");
                 }
                 else
                 {
                     attempt = _examService.GetAttemptById(existingAttempt.AttemptId)
                               ?? throw new Exception("ExamAttempt not found.");
+                    Console.WriteLine($"[SaveSpeakingFeedback] Using existing ExamAttempt with ID: {attempt.AttemptId}");
 
                     // update transcript/audio if empty
                     if (string.IsNullOrEmpty(attempt.AnswerText))
@@ -178,13 +196,40 @@ namespace WebAPI.Services
 
                 // 2️⃣ Extract band scores
                 var band = feedback.RootElement.GetProperty("band_estimate");
+                Console.WriteLine($"[SaveSpeakingFeedback] Extracted band scores: pronunciation={band.GetProperty("pronunciation").GetDecimal()}, overall={band.GetProperty("overall").GetDecimal()}");
 
-                // 3️⃣ Save or update SpeakingFeedback
+                // 3️⃣ Tạo hoặc tìm SpeakingAttempt
+                var speakingAttempt = _db.SpeakingAttempts
+                    .FirstOrDefault(sa => sa.AttemptId == attempt.AttemptId && sa.SpeakingId == speakingId);
+
+                if (speakingAttempt == null)
+                {
+                    Console.WriteLine($"[SaveSpeakingFeedback] Creating new SpeakingAttempt for attempt {attempt.AttemptId}, speaking {speakingId}");
+                    speakingAttempt = new SpeakingAttempt
+                    {
+                        AttemptId = attempt.AttemptId,
+                        SpeakingId = speakingId,
+                        AudioUrl = audioUrl,
+                        Transcript = transcript,
+                        StartedAt = DateTime.UtcNow,
+                        SubmittedAt = DateTime.UtcNow
+                    };
+                    _db.SpeakingAttempts.Add(speakingAttempt);
+                    _db.SaveChanges();
+                    Console.WriteLine($"[SaveSpeakingFeedback] Created SpeakingAttempt with ID: {speakingAttempt.SpeakingAttemptId}");
+                }
+                else
+                {
+                    Console.WriteLine($"[SaveSpeakingFeedback] Using existing SpeakingAttempt with ID: {speakingAttempt.SpeakingAttemptId}");
+                }
+
+                // 4️⃣ Save or update SpeakingFeedback
                 var oldFeedback = _feedbackRepo.GetAll()
-                    .FirstOrDefault(f => f.AttemptId == attempt.AttemptId && f.SpeakingId == speakingId);
+                    .FirstOrDefault(f => f.SpeakingAttemptId == speakingAttempt.SpeakingAttemptId);
 
                 if (oldFeedback != null)
                 {
+                    Console.WriteLine($"[SaveSpeakingFeedback] Updating existing feedback with ID: {oldFeedback.FeedbackId}");
                     oldFeedback.Pronunciation = band.GetProperty("pronunciation").GetDecimal();
                     oldFeedback.Fluency = band.GetProperty("fluency").GetDecimal();
                     oldFeedback.LexicalResource = band.GetProperty("lexical_resource").GetDecimal();
@@ -198,10 +243,10 @@ namespace WebAPI.Services
                 }
                 else
                 {
+                    Console.WriteLine($"[SaveSpeakingFeedback] Creating new SpeakingFeedback for SpeakingAttempt {speakingAttempt.SpeakingAttemptId}");
                     var entity = new SpeakingFeedback
                     {
-                        AttemptId = attempt.AttemptId,
-                        SpeakingId = speakingId,
+                        SpeakingAttemptId = speakingAttempt.SpeakingAttemptId,
                         Pronunciation = band.GetProperty("pronunciation").GetDecimal(),
                         Fluency = band.GetProperty("fluency").GetDecimal(),
                         LexicalResource = band.GetProperty("lexical_resource").GetDecimal(),
@@ -215,10 +260,14 @@ namespace WebAPI.Services
                 }
 
                 _feedbackRepo.SaveChanges();
+                Console.WriteLine($"[SaveSpeakingFeedback] Successfully saved feedback for exam {examId}, speaking {speakingId}, user {userId}");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[SaveSpeakingFeedback] Failed: {ex.Message}");
+                Console.WriteLine($"[SaveSpeakingFeedback] Stack trace: {ex.StackTrace}");
+                // Re-throw để caller biết có lỗi
+                throw;
             }
         }
 

@@ -35,6 +35,7 @@ namespace WebAPI.Data
         public virtual DbSet<Speaking> Speakings { get; set; }
 
         public virtual DbSet<SpeakingFeedback> SpeakingFeedbacks { get; set; }
+        public virtual DbSet<SpeakingAttempt> SpeakingAttempts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -741,7 +742,6 @@ namespace WebAPI.Data
                 entity.Property(e => e.Pronunciation)
                     .HasColumnType("decimal(3, 1)")
                     .HasColumnName("pronunciation");
-                entity.Property(e => e.AttemptId).HasColumnName("speaking_attempt_id");
             });
 
             OnModelCreatingPartial(modelBuilder);

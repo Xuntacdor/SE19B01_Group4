@@ -28,7 +28,6 @@ export default function SpeakingTest() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordings, setRecordings] = useState({});
   const [audioUrls, setAudioUrls] = useState({});
-  const [transcripts, setTranscripts] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -87,7 +86,21 @@ export default function SpeakingTest() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      
+      // Sử dụng MIME type được Whisper hỗ trợ, với fallback
+      let options = {};
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        options = { mimeType: 'audio/webm;codecs=opus' };
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options = { mimeType: 'audio/webm' };
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options = { mimeType: 'audio/mp4' };
+      } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+        options = { mimeType: 'audio/wav' };
+      }
+      
+      console.log('Using MediaRecorder options:', options);
+      const mediaRecorder = new MediaRecorder(stream, options);
       const audioChunks = [];
 
       mediaRecorder.ondataavailable = (event) => {
@@ -95,8 +108,16 @@ export default function SpeakingTest() {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+        // Tạo blob với format phù hợp
+        const mimeType = options.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunks, { type: mimeType });
         const audioUrl = URL.createObjectURL(audioBlob);
+        
+        console.log('Created audio blob:', { 
+          type: mimeType, 
+          size: audioBlob.size,
+          chunks: audioChunks.length 
+        });
 
         setRecordings((prev) => ({
           ...prev,
@@ -107,8 +128,9 @@ export default function SpeakingTest() {
           [currentId]: audioUrl,
         }));
 
-        // Auto-upload after recording
-        await uploadAudio(audioBlob, currentId);
+      // Auto-upload after recording (no transcription here)
+      console.log(`Auto-uploading audio for task ${currentId}`);
+      await uploadAudio(audioBlob, currentId);
 
         // Stop all tracks
         stream.getTracks().forEach((track) => track.stop());
@@ -155,10 +177,17 @@ export default function SpeakingTest() {
     setUploading((prev) => ({ ...prev, [taskId]: true }));
     try {
       const formData = new FormData();
+      
+      // Xác định extension dựa trên MIME type
+      let extension = 'webm';
+      if (audioBlob.type.includes('mp4')) extension = 'mp4';
+      else if (audioBlob.type.includes('wav')) extension = 'wav';
+      else if (audioBlob.type.includes('ogg')) extension = 'ogg';
+      
       formData.append(
         "file",
         audioBlob,
-        `speaking_${taskId}_${Date.now()}.wav`
+        `speaking_${taskId}_${Date.now()}.${extension}`
       );
 
       const response = await UploadApi.uploadAudio(audioBlob);
@@ -167,8 +196,8 @@ export default function SpeakingTest() {
         [taskId]: response.url,
       }));
 
-      // Auto-transcribe
-      await transcribeAudio(response.url, taskId);
+      // No frontend transcription - will be done on backend during grading
+      console.log(`Audio uploaded for task ${taskId}:`, response.url);
     } catch (error) {
       console.error("Upload failed:", error);
       alert("Failed to upload audio. Please try again.");
@@ -177,19 +206,8 @@ export default function SpeakingTest() {
     }
   };
 
-  const transcribeAudio = async (audioUrl, taskId) => {
-    try {
-      // Create a mock attempt ID for now - in real app, this would come from exam attempt
-      const attemptId = Date.now();
-      const response = await SpeakingApi.transcribeAudio(attemptId, audioUrl);
-      setTranscripts((prev) => ({
-        ...prev,
-        [taskId]: response.transcript,
-      }));
-    } catch (error) {
-      console.error("Transcription failed:", error);
-    }
-  };
+  // Transcription is now handled on backend during grading
+  // No frontend transcription needed
 
   const handleNext = () => {
     if (currentIndex < tasks.length - 1) setCurrentIndex((i) => i + 1);
@@ -228,10 +246,17 @@ export default function SpeakingTest() {
         // Nếu đang là blob: thì upload để lấy link Cloudinary
         if (!url || url.startsWith("blob:")) {
           const formData = new FormData();
+          
+          // Xác định extension dựa trên MIME type
+          let extension = 'webm';
+          if (recordedBlob.type.includes('mp4')) extension = 'mp4';
+          else if (recordedBlob.type.includes('wav')) extension = 'wav';
+          else if (recordedBlob.type.includes('ogg')) extension = 'ogg';
+          
           formData.append(
             "file",
             recordedBlob,
-            `speaking_${taskId}_${Date.now()}.wav`
+            `speaking_${taskId}_${Date.now()}.${extension}`
           );
           const res = await fetch("/api/upload/audio", {
             method: "POST",
@@ -246,8 +271,8 @@ export default function SpeakingTest() {
           speakingId: taskId,
           displayOrder: t.displayOrder ?? 1,
           audioUrl: url,
-          // transcript có thì gửi kèm cũng được
-          transcript: transcripts[taskId] || "",
+          // transcript will be generated on backend
+          transcript: "",
         });
       }
 
@@ -284,7 +309,6 @@ export default function SpeakingTest() {
           exam,
           mode,
           recordings: audioUrls, // map speakingId -> cloudinary url
-          transcripts,
           isWaiting: true, // để trang result poll feedback, tùy flow của bạn
         },
       });
@@ -297,7 +321,6 @@ export default function SpeakingTest() {
   };
 
   const hasRecording = recordings[currentId];
-  const hasTranscript = transcripts[currentId];
   const isUploading = uploading[currentId];
 
   return (
@@ -418,14 +441,7 @@ export default function SpeakingTest() {
             )}
 
             {/* Transcript Display */}
-            {hasTranscript && (
-              <div className={styles.transcriptPanel}>
-                <h4>Transcript:</h4>
-                <div className={styles.transcriptText}>
-                  {transcripts[currentId]}
-                </div>
-              </div>
-            )}
+            {/* Transcript will be shown in result page after backend processing */}
           </div>
 
           {/* Navigation */}

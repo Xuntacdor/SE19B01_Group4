@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using WebAPI.Data;
 using WebAPI.Models;
 
@@ -14,12 +17,31 @@ namespace WebAPI.Repositories
 
         public IEnumerable<SpeakingFeedback> GetAll()
         {
-            return _context.SpeakingFeedbacks.ToList();
+            return _context.SpeakingFeedbacks
+                .Include(f => f.SpeakingAttempt)
+                    .ThenInclude(sa => sa.ExamAttempt)
+                .ToList();
         }
 
         public SpeakingFeedback? GetById(int id)
         {
-            return _context.SpeakingFeedbacks.Find(id);
+            return _context.SpeakingFeedbacks
+                .Include(f => f.SpeakingAttempt)
+                    .ThenInclude(sa => sa.ExamAttempt)
+                .FirstOrDefault(f => f.FeedbackId == id);
+        }
+
+        public List<SpeakingFeedback> GetByExamAndUser(int examId, int userId)
+        {
+            return _context.SpeakingFeedbacks
+                .Include(f => f.SpeakingAttempt)
+                    .ThenInclude(sa => sa.ExamAttempt)
+                .Where(f => f.SpeakingAttempt != null &&
+                            f.SpeakingAttempt.ExamAttempt != null &&
+                            f.SpeakingAttempt.ExamAttempt.ExamId == examId &&
+                            f.SpeakingAttempt.ExamAttempt.UserId == userId)
+                .OrderByDescending(f => f.CreatedAt)
+                .ToList();
         }
 
         public void Add(SpeakingFeedback entity)

@@ -24,7 +24,6 @@
 /* === Phần nội dung chính === */
 .admin-main {
   flex: 1;
-  margin-left: 250px;
   padding: 30px;
   overflow-y: auto;
   background: #f8fafc;

@@ -18,7 +18,10 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.OperationFilter<WebAPI.Swagger.FileUploadOperationFilter>();
+});
 
 // ======================================
 // Session (must allow cross-site cookies)
@@ -69,6 +72,8 @@ builder.Services.AddScoped<ISignInHistoryService, SignInHistoryService>();
 builder.Services.AddScoped<OpenAIService>();
 builder.Services.AddScoped<IWritingFeedbackRepository, WritingFeedbackRepository>();
 builder.Services.AddScoped<IExamRepository, ExamRepository>();
+builder.Services.AddScoped<IExamAttemptRepository, ExamAttemptRepository>(); 
+
 builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<IWritingFeedbackRepository, WritingFeedbackRepository>();
 builder.Services.AddScoped<IWritingFeedbackService, WritingFeedbackService>();

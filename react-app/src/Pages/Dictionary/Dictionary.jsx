@@ -274,9 +274,7 @@ export default function Dictionary() {
                 </button>
               ) : null}
 
-              <button className="cancel" onClick={() => setShowPopup(false)}>
-                <XCircle size={18} /> Close
-              </button>
+             
             </>
           }
         >

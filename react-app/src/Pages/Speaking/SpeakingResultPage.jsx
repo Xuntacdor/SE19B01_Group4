@@ -166,18 +166,39 @@ export default function SpeakingResultPage() {
   useEffect(() => {
     let interval;
     let progressTimer;
+    let timeoutId;
+    let pollCount = 0;
+    const MAX_POLLS = 20; // Maximum 20 polls (50 seconds)
+    const POLL_INTERVAL = 2500; // 2.5 seconds
 
     const fetchFeedback = async () => {
       try {
+        pollCount++;
+        console.log(`[SpeakingResult] Fetching feedback (attempt ${pollCount}/${MAX_POLLS}) for examId: ${examId}, userId: ${userId}`);
         const res = await SpeakingApi.getFeedback(examId, userId);
+        console.log("[SpeakingResult] Feedback API response:", res);
+        
         if (res?.feedbacks?.length > 0) {
+          console.log("[SpeakingResult] Feedback found, stopping polling");
           setFeedbackData(res);
           setIsLoading(false);
           clearInterval(interval);
           clearInterval(progressTimer);
+          clearTimeout(timeoutId);
+        } else {
+          console.log("[SpeakingResult] No feedback yet, continuing to poll...");
         }
       } catch (error) {
-        console.error("Failed to fetch feedback:", error);
+        console.error("[SpeakingResult] Failed to fetch feedback:", error);
+        console.error("[SpeakingResult] Error details:", error.response?.data || error.message);
+        
+        // If it's a 404, it means feedback is not ready yet, continue polling
+        if (error.response?.status === 404) {
+          console.log("[SpeakingResult] Feedback not ready yet (404), continuing to poll...");
+        } else {
+          // For other errors, show error after some time
+          console.error("[SpeakingResult] Non-404 error, will retry...");
+        }
       }
     };
 
@@ -186,8 +207,27 @@ export default function SpeakingResultPage() {
       progressTimer = setInterval(() => {
         setProgress((p) => (p < 90 ? p + 5 : p));
       }, 1000);
-      interval = setInterval(fetchFeedback, 2500);
+      
+      interval = setInterval(fetchFeedback, POLL_INTERVAL);
       fetchFeedback();
+      
+      // Set timeout to stop polling after maximum attempts
+      timeoutId = setTimeout(() => {
+        console.log("[SpeakingResult] Polling timeout reached, stopping...");
+        clearInterval(interval);
+        clearInterval(progressTimer);
+        
+        // Show error message if no feedback found
+        if (pollCount >= MAX_POLLS) {
+          console.error("[SpeakingResult] Maximum polling attempts reached, showing error");
+          setIsLoading(false);
+          setFeedbackData({
+            feedbacks: [],
+            averageOverall: 0,
+            error: "Feedback generation is taking longer than expected. Please try again later."
+          });
+        }
+      }, MAX_POLLS * POLL_INTERVAL);
     } else {
       setIsLoading(false);
       setFeedbackData({
@@ -199,6 +239,7 @@ export default function SpeakingResultPage() {
     return () => {
       clearInterval(interval);
       clearInterval(progressTimer);
+      clearTimeout(timeoutId);
     };
   }, [examId, userId, isWaiting, state]);
 
@@ -271,10 +312,32 @@ export default function SpeakingResultPage() {
     );
   }
 
-  const { feedbacks, averageOverall } = feedbackData || {
+  const { feedbacks, averageOverall, error } = feedbackData || {
     feedbacks: [],
     averageOverall: 0,
+    error: null,
   };
+
+  // Show error message if there's an error
+  if (error) {
+    return (
+      <div className={styles.pageLayout}>
+        <GeneralSidebar />
+        <div className={styles.mainContent}>
+          <div className={styles.errorContainer}>
+            <h2>Feedback Generation Error</h2>
+            <p>{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className={styles.retryBtn}
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.pageLayout}>
