@@ -254,42 +254,7 @@ export default function DashboardUser() {
           </div>
         </div>
 
-        {/* ===== Balance + Enjoy Section ===== */}
-        <div className={styles.balanceWrapper}>
-          <div className={styles.balanceSection}>
-            <h3>Account Balance</h3>
-            <div className={styles.balanceContent}>
-              <div className={styles.userAvatars}>
-                {["Ann", "Monica", "John", "Mike", "Mia"].map((n) => (
-                  <div className={styles.avatarItem} key={n}>
-                    <div className={styles.avatar}>{n[0]}</div>
-                    <span>{n}</span>
-                  </div>
-                ))}
-                <div className={styles.avatarItem}>
-                  <div className={`${styles.avatar} ${styles.add}`}>+</div>
-                  <span>Add New</span>
-                </div>
-              </div>
-              <div className={styles.balanceInputSection}>
-                <input className={styles.balanceInput} value="1997" readOnly />
-                <button
-                  className={styles.transferButton}
-                  onClick={() => navigate("/transaction")}
-                >
-                  Send the transfer
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.enjoyCard}>
-            <div className={styles.enjoyIcons}>
-              <Cloud size={20} /> <Wallet size={20} />
-            </div>
-            <div className={styles.enjoyText}>Enjoy your learning</div>
-          </div>
-        </div>
+     
       </div>
     </AppLayout>
   );

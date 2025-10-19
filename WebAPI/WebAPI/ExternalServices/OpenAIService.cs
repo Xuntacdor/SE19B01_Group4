@@ -6,7 +6,6 @@ using System;
 using System.ClientModel;
 using System.Collections.Generic;
 using System.Text.Json;
-
 namespace WebAPI.ExternalServices
 {
     public class OpenAIService

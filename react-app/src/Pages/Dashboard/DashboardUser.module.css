@@ -13,7 +13,7 @@
 }
 
 .dashboardContent {
-  padding: 10px;
+  padding: 10px 5px 5px 5px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-areas:
@@ -34,8 +34,7 @@
 .historyRow,
 .avatarItem,
 .enjoyText {
-  font-size: 26px;
-  font-family: var(--font-main);
+  font-size: 18px;
 }
 
 /* Generic Card */
@@ -74,7 +73,7 @@
 }
 
 .statusText {
-  font-size: 20px;
+  font-size: 18px;
   color: var(--color-green);
 }
 
@@ -130,7 +129,7 @@
 }
 
 .sectionTitle {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 700;
   margin: 0 0 5px;
 }
@@ -163,7 +162,7 @@
 }
 
 .goalLabel {
-  font-size: 22px;
+  font-size: 20px;
   color: #666;
   margin-bottom: 6px;
 }
@@ -227,7 +226,7 @@
 
 .statLabel,
 .statValue {
-  font-size: 22px;
+  font-size: 18px;
 }
 
 /* Progress bar */
@@ -281,7 +280,7 @@
 }
 
 .emptyState p {
-  font-size: 20px;
+  font-size: 15px;
   color: #555;
   margin: 0;
 }
@@ -320,7 +319,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .userAvatars {
