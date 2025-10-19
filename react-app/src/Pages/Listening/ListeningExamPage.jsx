@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { submitListeningAttempt } from "../../Services/ListeningApi";
+import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
+import { Clock, Headphones } from "lucide-react";
 import styles from "./ListeningExamPage.module.css";
 
 export default function ListeningExamPage() {
@@ -8,14 +10,15 @@ export default function ListeningExamPage() {
   const navigate = useNavigate();
   const { exam, tasks, duration } = state || {};
 
-  const [page, setPage] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(duration ? duration * 60 : 0);
+  const [answers, setAnswers] = useState({});
+  const [currentTask, setCurrentTask] = useState(0);
 
-  const formRefs = useRef([]);
+  const formRef = useRef(null);
 
-  // 🕒 Timer logic
+  // Timer
   useEffect(() => {
     if (!timeLeft || submitted) return;
     const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
@@ -28,54 +31,40 @@ export default function ListeningExamPage() {
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
-  const handleNext = () => page < tasks.length - 1 && setPage((p) => p + 1);
-  const handlePrev = () => page > 0 && setPage((p) => p - 1);
-
-  // 📝 Submission logic
+  // Submit
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    const structuredAnswers = tasks.map((task, index) => {
-      const form = formRefs.current[index];
-      if (!form) return { skillId: task.listeningId, answers: [] };
-
-      const formData = new FormData(form);
-      const values = [];
-      for (let [, value] of formData.entries()) {
-        if (value && value.trim() !== "") values.push(value.trim());
-      }
-      return { skillId: task.listeningId, answers: values };
+    const structuredAnswers = tasks.map((task) => {
+      const taskAnswers = [];
+      Object.keys(answers).forEach((key) => {
+        if (key.startsWith(`${task.listeningId}_`)) {
+          taskAnswers.push(answers[key]);
+        }
+      });
+      return { skillId: task.listeningId, answers: taskAnswers };
     });
 
-    const anyEmpty = structuredAnswers.some((x) => x.answers.length === 0);
-    if (anyEmpty) {
-      alert("Please complete all questions before submitting.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    const answerText = JSON.stringify(structuredAnswers);
     const attempt = {
       examId: exam.examId,
-      answerText,
       startedAt: new Date().toISOString(),
+      answers: structuredAnswers,
     };
 
     submitListeningAttempt(attempt)
       .then((res) => {
-        console.log(`✅ Listening submitted:`, res.data);
+        console.log("✅ Listening submitted:", res.data);
         setSubmitted(true);
       })
       .catch((err) => {
         console.error("❌ Submit failed:", err);
-        alert(`Failed to submit your listening attempt.`);
+        alert("Failed to submit your listening attempt.");
       })
       .finally(() => setIsSubmitting(false));
   };
 
-  // 🧭 Render
   if (!exam)
     return (
       <div className={styles.fullscreenCenter}>
@@ -97,70 +86,70 @@ export default function ListeningExamPage() {
       </div>
     );
 
+  const task = tasks[currentTask];
+  const getQuestionCount = (q) => {
+    if (!q) return 0;
+    const matches = q.match(/\b\d+\b/g);
+    return matches ? Math.min(Math.max(...matches), 40) : 0;
+  };
+  const questionCount = getQuestionCount(task?.listeningQuestion);
+
   return (
     <div className={styles.examWrapper}>
-      <div className={styles.topBar}>
+      {/* === Header === */}
+      <div className={styles.topHeader}>
         <button className={styles.backBtn} onClick={() => navigate("/listening")}>
           ← Back
         </button>
-        <h2 className={styles.examTitle}>{exam.examName}</h2>
-        <div className={styles.timer}>⏱️ {formatTime(timeLeft)}</div>
+        <h2 className={styles.examTitle}>
+          <Headphones size={22} style={{ marginRight: 6 }} /> {exam.examName}
+        </h2>
+        <div className={styles.timer}>
+          <Clock size={20} /> {formatTime(timeLeft)}
+        </div>
       </div>
 
-      {tasks.map((task, idx) => (
-        <form
-          key={idx}
-          ref={(el) => (formRefs.current[idx] = el)}
-          className={`${styles.examForm} ${
-            idx === page ? styles.activeForm : styles.hiddenForm
-          }`}
-        >
-          <div className={styles.questionPage}>
-            <h3 className={styles.questionTitle}>
-              Listening #{task.displayOrder || idx + 1}
-            </h3>
-
-            <div className={styles.audioSection}>
-              {task.audioUrl ? (
-                <audio controls className={styles.audioPlayer}>
-                  <source src={task.audioUrl} type="audio/mpeg" />
-                  Your browser does not support the audio element.
-                </audio>
-              ) : (
-                <p>No audio available.</p>
-              )}
+      {/* === Main === */}
+      <div className={styles.mainContent}>
+        {/* Left panel: only audio */}
+        <div className={styles.leftPanel}>
+          {task?.audioUrl ? (
+            <div className={styles.audioContainer}>
+              <h3 className={styles.audioTitle}>Audio Track</h3>
+              <audio controls className={styles.audioPlayer}>
+                <source src={task.audioUrl} type="audio/mpeg" />
+                Your browser does not support the audio element.
+              </audio>
             </div>
+          ) : (
+            <div className={styles.noAudio}>No audio available for this task.</div>
+          )}
+        </div>
 
-            <div
-              className={styles.question}
-              dangerouslySetInnerHTML={{
-                __html: task.questionHtml || task.listeningQuestion,
-              }}
-            />
-          </div>
-        </form>
-      ))}
+        {/* Right panel: Questions */}
+        <div className={styles.rightPanel}>
+          <form ref={formRef}>
+            {task?.listeningQuestion ? (
+              <ExamMarkdownRenderer markdown={task.listeningQuestion} showAnswers={false} />
+            ) : (
+              <div className={styles.noQuestionBox}>
+                <h3>No Questions Found</h3>
+                <p>This listening section has no questions configured.</p>
+              </div>
+            )}
+          </form>
+        </div>
+      </div>
 
-      <div className={styles.navigation}>
-        {page > 0 && (
-          <button type="button" className={styles.navBtn} onClick={handlePrev}>
-            ← Previous
-          </button>
-        )}
-        {page < tasks.length - 1 ? (
-          <button type="button" className={styles.navBtn} onClick={handleNext}>
-            Next →
-          </button>
-        ) : (
-          <button
-            type="button"
-            className={styles.submitBtn}
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Submitting..." : "Submit All"}
-          </button>
-        )}
+      {/* === Submit Section === */}
+      <div className={styles.submitSection}>
+        <button
+          className={styles.submitButton}
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Submitting..." : "Complete"}
+        </button>
       </div>
     </div>
   );

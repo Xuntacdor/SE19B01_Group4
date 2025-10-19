@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppLayout from "../../Components/Layout/AppLayout";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as examService from "../../Services/ExamApi";
@@ -9,6 +10,8 @@ import styles from "./ListeningPage.module.css";
 import NothingFound from "../../Components/Nothing/NothingFound";
 
 export default function ListeningPage() {
+  const navigate = useNavigate();
+
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,6 +58,32 @@ export default function ListeningPage() {
       .finally(() => setLoadingDetail(false));
   };
 
+  // ====== Callbacks for modal ======
+  const handleStartFullTest = (exam, duration) => {
+    if (loadingDetail || examQuestions.length === 0) return;
+    navigate("/listening/test", {
+      state: {
+        exam,
+        tasks: examQuestions,
+        mode: "full",
+        duration,
+      },
+    });
+  };
+
+  const handleStartIndividual = (exam, task) => {
+    if (loadingDetail || !task) return;
+    navigate("/listening/test", {
+      state: {
+        exam,
+        tasks: [task],
+        mode: "single",
+        duration: 20,
+      },
+    });
+  };
+
+  // ====== Render ======
   return (
     <AppLayout title="Listening Page" sidebar={<GeneralSidebar />}>
       <div className={styles.container}>
@@ -87,12 +116,26 @@ export default function ListeningPage() {
       </div>
 
       {activeExam && (
-        <ExamSkillModal
-          exam={activeExam}
-          tasks={examQuestions}
-          loading={loadingDetail}
-          onClose={() => setActiveExam(null)}
-        />
+        <>
+          {/* ✅ Loading overlay for exam data */}
+          {loadingDetail && (
+            <div className={styles.loadingOverlay}>
+              <div className={styles.loadingBox}>
+                <div className={styles.spinner}></div>
+                <p>Please wait, loading exam data…</p>
+              </div>
+            </div>
+          )}
+
+          <ExamSkillModal
+            exam={activeExam}
+            tasks={examQuestions}
+            loading={loadingDetail}
+            onClose={() => setActiveExam(null)}
+            onStartFullTest={handleStartFullTest}
+            onStartIndividual={handleStartIndividual}
+          />
+        </>
       )}
     </AppLayout>
   );
