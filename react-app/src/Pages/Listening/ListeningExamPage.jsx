@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { submitAttempt } from "../../Services/ExamApi";
+import { submitListeningAttempt } from "../../Services/ListeningApi";
 import styles from "./ListeningExamPage.module.css";
 
 export default function ListeningExamPage() {
@@ -63,7 +63,7 @@ export default function ListeningExamPage() {
       startedAt: new Date().toISOString(),
     };
 
-    submitAttempt(attempt)
+    submitListeningAttempt(attempt)
       .then((res) => {
         console.log(`✅ Listening submitted:`, res.data);
         setSubmitted(true);

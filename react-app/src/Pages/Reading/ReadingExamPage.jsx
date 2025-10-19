@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { submitAttempt } from "../../Services/ExamApi";
+import { submitReadingAttempt } from "../../Services/ReadingApi";
 import styles from "./ReadingExamPage.module.css";
 
 export default function ReadingExamPage() {
@@ -63,7 +63,7 @@ export default function ReadingExamPage() {
       startedAt: new Date().toISOString(),
     };
 
-    submitAttempt(attempt)
+    submitReadingAttempt(attempt)
       .then((res) => {
         console.log(`✅ Reading submitted:`, res.data);
         setSubmitted(true);
