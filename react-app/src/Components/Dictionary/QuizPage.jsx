@@ -35,11 +35,12 @@ export default function QuizPage({ groupWords, onBack }) {
   ];
 
   const makeOptions = (idx) => {
-    if (idx == null || idx < 0) return { question: "", options: [], answer: "" };
-    const word = groupWords[idx];
+    if (idx == null || idx < 0)
+      return { question: "", options: [], answer: "" };
 
+    const word = groupWords[idx];
     let pool = groupWords
-      .filter((w, i) => i !== idx && w.meaning && w.meaning.trim().length > 0)
+      .filter((w, i) => i !== idx && w.meaning?.trim())
       .map((w) => w.meaning);
 
     if (pool.length < 3) {
@@ -87,16 +88,10 @@ export default function QuizPage({ groupWords, onBack }) {
 
   const goNext = (wasCorrect) => {
     if (wasCorrect && !mastered.has(currentIndex)) {
-      const next = new Set(mastered);
-      next.add(currentIndex);
-      setMastered(next);
-    }
-
-    if (!wasCorrect) {
+      setMastered((prev) => new Set(prev).add(currentIndex));
+    } else if (!wasCorrect) {
       setQueue((q) => [...q, currentIndex]);
-      const nextFail = new Set(failed);
-      nextFail.add(currentIndex);
-      setFailed(nextFail);
+      setFailed((prev) => new Set(prev).add(currentIndex));
     }
 
     setCursor((c) => c + 1);
@@ -123,13 +118,13 @@ export default function QuizPage({ groupWords, onBack }) {
     }, 700);
   };
 
-  // ✅ Hiển thị khi quiz kết thúc
+  // === FINISHED STATE ===
   if (finished || total === 0) {
     return (
       <div className={styles.quizContainer}>
-        <Trophy size={48} color="#facc15" />
-        <h2>Quiz Finished 🎉</h2>
-        <p>
+        <Trophy size={64} color="#facc15" />
+        <h2 className={styles.finishTitle}>Quiz Finished 🎉</h2>
+        <p className={styles.finishScore}>
           Your score: <strong>{uniqueCorrect}</strong> / {total}
         </p>
 
@@ -145,7 +140,7 @@ export default function QuizPage({ groupWords, onBack }) {
         </div>
 
         <button className={styles.backBtn} onClick={onBack}>
-          <RotateCcw size={18} /> Back to Dictionary
+          <RotateCcw size={20} /> Back to Dictionary
         </button>
       </div>
     );
@@ -174,11 +169,9 @@ export default function QuizPage({ groupWords, onBack }) {
           return (
             <li key={idx}>
               <button
-                className={[
-                  styles.optionBtn,
-                  isCorrect ? styles.correct : "",
-                  isWrong ? styles.wrong : "",
-                ].join(" ")}
+                className={`${styles.optionBtn} ${
+                  isCorrect ? styles.correct : ""
+                } ${isWrong ? styles.wrong : ""}`}
                 onClick={() => handleAnswer(opt)}
                 disabled={!!selected}
               >
