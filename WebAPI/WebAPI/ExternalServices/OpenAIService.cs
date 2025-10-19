@@ -6,7 +6,6 @@ using System;
 using System.ClientModel;
 using System.Collections.Generic;
 using System.Text.Json;
-
 namespace WebAPI.ExternalServices
 {
     public class OpenAIService
@@ -49,26 +48,46 @@ namespace WebAPI.ExternalServices
                         _logger.LogWarning(ex, "[OpenAIService] Failed to convert image {Url}", imageUrl);
                     }
                 }
-
                 string prompt = $@"
-You are an **IELTS Writing examiner**.
-Grade the student's essay using official IELTS Writing band descriptors:
-Task Achievement, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy.
+You are an **IELTS Writing examiner** with years of experience in scoring IELTS essays.
+Evaluate the following essay in detail based on the official IELTS Writing Task 2 descriptors.
 
-Return **strict JSON only**, following this structure:
+Provide feedback focusing on:
+- Grammar and vocabulary issues (detailed correction + explanation)
+- Logic, coherence, and cohesion
+- Overall impression and improvement advice
+- Refined word/phrase suggestions (show before → after + explanation)
+
+Return **STRICT JSON ONLY**, matching this structure exactly:
 
 {{
   ""grammar_vocab"": {{
-    ""overview"": ""3–5 sentences"",
-    ""errors"": [{{ ""type"": ""Grammar"", ""category"": ""Tense"", ""incorrect"": ""..."", ""suggestion"": ""..."", ""explanation"": ""..."" }}]
+    ""overview"": ""2–4 sentences summarizing grammar and vocabulary quality."",
+    ""errors"": [
+      {{
+        ""type"": ""Grammar"" | ""Vocabulary"",
+        ""category"": ""e.g. Tense"", 
+        ""incorrect"": ""original sentence or phrase"",
+        ""suggestion"": ""corrected version"",
+        ""explanation"": ""why it is wrong and how to fix""
+      }}
+    ]
   }},
-  ""coherence_logic"": {{
-    ""overview"": ""summary of coherence and logic"",
-    ""paragraph_feedback"": [{{ ""section"": ""Body 1"", ""strengths"": [], ""weaknesses"": [], ""advice"": ""..."" }}]
+  
+  ""overall_feedback"": {{
+    ""overview"": ""3–5 sentences summarizing coherence, logic, idea development, and task achievement."",
+    ""refinements"": [
+      {{
+        ""original"": ""weak or overused word/phrase"",
+        ""improved"": ""more natural academic alternative"",
+        ""explanation"": ""why the new choice is better in lexical accuracy or collocation.""
+      }}
+    ]
   }},
+  
   ""band_estimate"": {{
     ""task_achievement"": 0–9,
-    ""coherence_cohesion"": 0–9,
+    ""organization_logic"": 0–9,
     ""lexical_resource"": 0–9,
     ""grammar_accuracy"": 0–9,
     ""overall"": 0–9

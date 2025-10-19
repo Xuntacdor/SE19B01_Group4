@@ -8,10 +8,12 @@ namespace WebAPI.Services
     public class ExamService : IExamService
     {
         private readonly IExamRepository _repo;
+        private readonly IExamAttemptRepository _attemptRepo;
 
-        public ExamService(IExamRepository repo)
+        public ExamService(IExamRepository repo, IExamAttemptRepository attemptRepo)
         {
             _repo = repo;
+            _attemptRepo = attemptRepo;
         }
 
         // ===== Exams =====
@@ -67,19 +69,19 @@ namespace WebAPI.Services
             {
                 ExamId = dto.ExamId,
                 UserId = userId,
-                StartedAt = dto.StartedAt,
+                StartedAt = dto.StartedAt == default ? DateTime.UtcNow : dto.StartedAt,
                 SubmittedAt = DateTime.UtcNow,
                 AnswerText = dto.AnswerText,
-                Score = dto.Score,
+                Score = dto.Score
             };
 
-            _repo.AddAttempt(attempt);
-            _repo.SaveChanges();
+            _attemptRepo.Add(attempt);
+            _attemptRepo.SaveChanges();
 
             return attempt;
         }
 
-        public ExamAttempt? GetAttemptById(long attemptId) => _repo.GetAttemptById(attemptId);
+        public ExamAttempt? GetAttemptById(long attemptId) => _attemptRepo.GetById((int)attemptId);
 
         public List<ExamAttemptSummaryDto> GetExamAttemptsByUser(int userId) =>
             _repo.GetExamAttemptsByUser(userId);
@@ -87,6 +89,10 @@ namespace WebAPI.Services
         public ExamAttemptDto? GetExamAttemptDetail(long attemptId) =>
             _repo.GetExamAttemptDetail(attemptId);
 
-        public void Save() => _repo.SaveChanges();
+        public void Save()
+        {
+            _repo.SaveChanges();
+            _attemptRepo.SaveChanges();
+        }
     }
 }

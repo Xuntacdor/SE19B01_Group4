@@ -1,24 +1,33 @@
 ﻿using System.Net.Http;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using WebAPI.Models;
 
 namespace WebAPI.ExternalServices
 {
     public class DictionaryApiClient
     {
-        const string BaseUrl = "https://api.dictionaryapi.dev/api/v2/entries/en/";
         private readonly HttpClient _httpClient;
+        private readonly string _baseUrl;
 
-                
-        public DictionaryApiClient(HttpClient httpClient)
+        public DictionaryApiClient(HttpClient httpClient, IConfiguration config)
         {
             _httpClient = httpClient;
-            _httpClient.BaseAddress = new Uri(BaseUrl);
+
+            _baseUrl = config["ExternalAPIs:ApiNinjas:BaseUrl"]
+                       ?? "https://api.api-ninjas.com/v1/dictionary?word=";
+
+            var apiKey = config["ExternalAPIs:ApiNinjas:ApiKey"];
+            if (string.IsNullOrEmpty(apiKey))
+                throw new ArgumentException("API Ninjas key not configured.");
+
+            _httpClient.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
         }
 
         public Word? GetWord(string term)
         {
-            var url = BaseUrl + term;
+            var url = _baseUrl + term;
+
             var response = _httpClient.GetAsync(url).Result;
             if (!response.IsSuccessStatusCode)
                 return null;
@@ -27,57 +36,30 @@ namespace WebAPI.ExternalServices
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() == 0)
+            if (!root.TryGetProperty("definition", out var def))
                 return null;
 
-            var entry = root[0];
-            string wordText = entry.GetProperty("word").GetString() ?? term;
+            string? definition = def.GetString();
 
-            string? meaning = null;
-            string? example = null;
-
-            if (entry.TryGetProperty("meanings", out var meanings) && meanings.GetArrayLength() > 0)
+            if (!string.IsNullOrEmpty(definition))
             {
-                foreach (var meaningBlock in meanings.EnumerateArray())
-                {
-                    if (meaningBlock.TryGetProperty("definitions", out var definitions) && definitions.GetArrayLength() > 0)
-                    {
-                        var def = definitions[0];
+                // ✅ Lấy nghĩa đầu tiên trước “2.”, “3.” hoặc xuống dòng
+                var match = Regex.Match(definition, @"^(.*?)(?:\s+\d+\.)");
+                if (match.Success)
+                    definition = match.Groups[1].Value.Trim();
+                else
+                    definition = definition.Split('\n')[0].Trim();
 
-                        if (def.TryGetProperty("definition", out var defProp))
-                        {
-                            meaning = defProp.GetString();
-                        }
-
-                        if (def.TryGetProperty("example", out var exProp))
-                        {
-                            example = exProp.GetString();
-                        }
-
-                        break; // ✅ dừng luôn sau khi lấy được nghĩa đầu tiên
-                    }
-                }
-            }
-
-            string? audio = null;
-            if (entry.TryGetProperty("phonetics", out var phonetics) && phonetics.GetArrayLength() > 0)
-            {
-                foreach (var phonetic in phonetics.EnumerateArray())
-                {
-                    if (phonetic.TryGetProperty("audio", out var audioProp) && !string.IsNullOrWhiteSpace(audioProp.GetString()))
-                    {
-                        audio = audioProp.GetString();
-                        break;
-                    }
-                }
+                // ✅ Loại bỏ phần [Obs.], [Colloq.], v.v.
+                definition = Regex.Replace(definition, @"\[[^\]]+\]", "").Trim();
             }
 
             return new Word
             {
-                Term = wordText,
-                Meaning = meaning,
-                Example = example,
-                Audio = audio
+                Term = term,
+                Meaning = definition,
+                Example = null,
+                Audio = null
             };
         }
     }

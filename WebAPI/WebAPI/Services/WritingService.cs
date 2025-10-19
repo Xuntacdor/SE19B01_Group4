@@ -167,7 +167,6 @@ namespace WebAPI.Services
                     }
                 }
 
-                // 2️⃣ Phân tích feedback JSON để lấy band
                 var band = feedback.RootElement.GetProperty("band_estimate");
 
                 // 3️⃣ Kiểm tra xem feedback cũ đã tồn tại chưa
@@ -178,12 +177,13 @@ namespace WebAPI.Services
                 {
                     // 4️⃣ Ghi đè (update) bài chấm cũ
                     existing.TaskAchievement = band.GetProperty("task_achievement").GetDecimal();
-                    existing.CoherenceCohesion = band.GetProperty("coherence_cohesion").GetDecimal();
+                    // Map organization_logic từ JSON thành coherence_cohesion trong database
+                    existing.CoherenceCohesion = band.GetProperty("organization_logic").GetDecimal();
                     existing.LexicalResource = band.GetProperty("lexical_resource").GetDecimal();
                     existing.GrammarAccuracy = band.GetProperty("grammar_accuracy").GetDecimal();
                     existing.Overall = band.GetProperty("overall").GetDecimal();
                     existing.GrammarVocabJson = feedback.RootElement.GetProperty("grammar_vocab").GetRawText();
-                    existing.FeedbackSections = feedback.RootElement.GetProperty("coherence_logic").GetRawText();
+                    existing.FeedbackSections = feedback.RootElement.GetProperty("overall_feedback").GetRawText();
                     existing.CreatedAt = DateTime.UtcNow;
 
                     _feedbackRepo.Update(existing);
@@ -195,12 +195,13 @@ namespace WebAPI.Services
                         AttemptId = attempt.AttemptId,
                         WritingId = writingId,
                         TaskAchievement = band.GetProperty("task_achievement").GetDecimal(),
-                        CoherenceCohesion = band.GetProperty("coherence_cohesion").GetDecimal(),
+                        // Map organization_logic từ JSON thành coherence_cohesion trong database
+                        CoherenceCohesion = band.GetProperty("organization_logic").GetDecimal(),
                         LexicalResource = band.GetProperty("lexical_resource").GetDecimal(),
                         GrammarAccuracy = band.GetProperty("grammar_accuracy").GetDecimal(),
                         Overall = band.GetProperty("overall").GetDecimal(),
                         GrammarVocabJson = feedback.RootElement.GetProperty("grammar_vocab").GetRawText(),
-                        FeedbackSections = feedback.RootElement.GetProperty("coherence_logic").GetRawText(),
+                        FeedbackSections = feedback.RootElement.GetProperty("overall_feedback").GetRawText(),
                         CreatedAt = DateTime.UtcNow
                     };
 

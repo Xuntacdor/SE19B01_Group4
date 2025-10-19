@@ -4,6 +4,8 @@ import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as WritingApi from "../../Services/WritingApi";
 import styles from "./WritingResultPage.module.css";
 import { SpellCheck, CheckCircle2, ListTree, Link2 } from "lucide-react";
+
+/* ====================== Error Popup ====================== */
 function ErrorPopup({ error, isOpen, onClose, position }) {
   if (!isOpen || !error) return null;
   return (
@@ -35,11 +37,20 @@ function ErrorPopup({ error, isOpen, onClose, position }) {
   );
 }
 
-function TextWithErrors({ text, errors, onErrorClick, errorType = "grammarVocab" }) {
+/* ====================== Highlighted Text Component ====================== */
+function TextWithErrors({ text, errors, onErrorClick, errorType = "grammarVocab", replacedTexts = {}, writingId }) {
   if (!errors || errors.length === 0)
     return <div className={styles.essayText}>{text}</div>;
 
   let processedText = text || "";
+  
+  // Apply text replacements first
+  if (replacedTexts[writingId]) {
+    Object.entries(replacedTexts[writingId]).forEach(([original, replacement]) => {
+      processedText = processedText.replace(new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), replacement);
+    });
+  }
+
   const parts = [];
   let lastIndex = 0;
 
@@ -78,10 +89,11 @@ function TextWithErrors({ text, errors, onErrorClick, errorType = "grammarVocab"
         p.type === "error" ? (
           <span
             key={p.key}
-            className={`${styles.errorHighlight} ${errorType === "coherenceLogic"
+            className={`${styles.errorHighlight} ${
+              errorType === "coherenceLogic"
                 ? styles.coherenceLogicError
                 : styles.grammarVocabError
-              }`}
+            }`}
             onClick={(e) => onErrorClick(e, p.error)}
           >
             {p.content}
@@ -93,14 +105,18 @@ function TextWithErrors({ text, errors, onErrorClick, errorType = "grammarVocab"
     </div>
   );
 }
+
+/* ====================== MAIN PAGE ====================== */
 export default function WritingResultPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
+
   const [selectedError, setSelectedError] = useState(null);
   const [errorPopupPosition, setErrorPopupPosition] = useState({ top: 0, left: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [feedbackData, setFeedbackData] = useState(null);
+  const [replacedTexts, setReplacedTexts] = useState({});
 
   if (!state) {
     return (
@@ -112,7 +128,10 @@ export default function WritingResultPage() {
       </div>
     );
   }
+
   const { examId, userId, exam, mode, originalAnswers, isWaiting } = state;
+
+  /* ====================== Fetch Feedback ====================== */
   useEffect(() => {
     let interval;
     let progressTimer;
@@ -126,7 +145,7 @@ export default function WritingResultPage() {
           clearInterval(interval);
           clearInterval(progressTimer);
         }
-      } catch { }
+      } catch {}
     };
 
     if (isWaiting) {
@@ -143,6 +162,7 @@ export default function WritingResultPage() {
         averageOverall: state.averageBand,
       });
     }
+
     return () => {
       clearInterval(interval);
       clearInterval(progressTimer);
@@ -154,6 +174,23 @@ export default function WritingResultPage() {
     setErrorPopupPosition({ top: rect.bottom + 5, left: rect.left });
     setSelectedError(error);
   };
+
+  const handleReplaceText = (originalText, improvedText, writingId) => {
+    setReplacedTexts(prev => ({
+      ...prev,
+      [writingId]: {
+        ...prev[writingId],
+        [originalText]: improvedText
+      }
+    }));
+  };
+
+  const getDisplayText = (originalText, writingId) => {
+    const replaced = replacedTexts[writingId]?.[originalText];
+    return replaced || originalText;
+  };
+
+  /* ====================== Loading State ====================== */
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
@@ -170,6 +207,7 @@ export default function WritingResultPage() {
       </div>
     );
   }
+
   const { feedbacks, averageOverall } = feedbackData || { feedbacks: [], averageOverall: 0 };
   const filteredFeedbacks = feedbacks.filter(
     (f) =>
@@ -177,6 +215,7 @@ export default function WritingResultPage() {
       Object.keys(originalAnswers).includes(String(f.writingId))
   );
 
+  /* ====================== RENDER ====================== */
   return (
     <div className={styles.pageLayout}>
       <GeneralSidebar />
@@ -191,30 +230,31 @@ export default function WritingResultPage() {
           const originalText =
             originalAnswers?.[f.writingId] || f.answerText || "";
 
+          // === parse new JSON fields ===
           const grammarVocabParsed = JSON.parse(f.grammarVocabJson || "{}");
-          const coherenceLogicParsed = JSON.parse(f.feedbackSections || "{}");
+          const overallFeedbackParsed = JSON.parse(f.feedbackSections || "{}");
 
           return (
             <div key={i} className={styles.resultContainer}>
               {/* ===== LEFT PANEL ===== */}
               <div className={styles.leftPanel}>
-                <div className={styles.criteriaHeader}>
-
-                </div>
-
                 <div className={styles.feedbackSection}>
                   <h3 className={styles.sectionTitle}>Grammar & Vocabulary</h3>
+
                   {grammarVocabParsed.overview && (
                     <div className={styles.overviewBox}>
                       <strong>Overview:</strong> {grammarVocabParsed.overview}
                     </div>
                   )}
+
                   <div className={styles.correctedTextBox}>
                     <TextWithErrors
                       text={originalText}
                       errors={grammarVocabParsed.errors || []}
                       onErrorClick={handleErrorClick}
                       errorType="grammarVocab"
+                      replacedTexts={replacedTexts}
+                      writingId={f.writingId}
                     />
                   </div>
                 </div>
@@ -222,12 +262,7 @@ export default function WritingResultPage() {
 
               {/* ===== RIGHT PANEL ===== */}
               <div className={styles.rightPanel}>
-                <div className={styles.criteriaHeader}>
-                  <div className={styles.squareGrid}>
-
-                  </div>
-                </div>
-
+                {/* === Band Score Box === */}
                 <div className={styles.bandScoreBox}>
                   <div className={styles.bandOverall}>
                     <h4>Band Score</h4>
@@ -239,7 +274,7 @@ export default function WritingResultPage() {
                       <p>{f.taskAchievement}</p>
                     </div>
                     <div>
-                      <b>Coherence & Cohesion</b>
+                      <b>Organization & Logic</b>
                       <p>{f.coherenceCohesion}</p>
                     </div>
                     <div>
@@ -252,25 +287,55 @@ export default function WritingResultPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* === Overall Feedback Section === */}
                 <div className={styles.feedbackSection}>
-                  <h3 className={styles.sectionTitle}>Coherence & Cohesion</h3>
-                  {coherenceLogicParsed.paragraph_feedback && (
-                    <div className={styles.paragraphFeedbackBox}>
-                      {coherenceLogicParsed.paragraph_feedback.map((p, i) => (
-                        <div key={i} className={styles.paragraphItem}>
-                          <h4>{p.section}</h4>
-                          <p><strong>Strengths:</strong> {p.strengths?.join(", ") || "None"}</p>
-                          <p><strong>Weaknesses:</strong> {p.weaknesses?.join(", ") || "None"}</p>
-                          <p><strong>Advice:</strong> {p.advice}</p>
-                        </div>
-                      ))}
+                  <h3 className={styles.sectionTitle}>Overall Feedback</h3>
+
+                  {overallFeedbackParsed.overview && (
+                    <div className={styles.overviewBox}>
+                      <strong>Overview:</strong> {overallFeedbackParsed.overview}
                     </div>
                   )}
+
+                  {overallFeedbackParsed.refinements &&
+                    overallFeedbackParsed.refinements.length > 0 && (
+                      <div className={styles.paragraphFeedbackBox}>
+                        <h4 style={{ marginBottom: "12px" }}>
+                          Refined Vocabulary & Collocations
+                        </h4>
+                        {overallFeedbackParsed.refinements.map((r, idx) => (
+                          <div key={idx} className={styles.refinementItem}>
+                            <div className={styles.refinementRow}>
+                              <div className={styles.refinementOld}>
+                                <strong>Old:</strong>{" "}
+                                <span className={styles.oldWord}>{r.original}</span>
+                              </div>
+                              <div className={styles.refinementArrow}>→</div>
+                              <div className={styles.refinementNew}>
+                                <strong>New:</strong>{" "}
+                                <span 
+                                  className={styles.newWord}
+                                  onClick={() => handleReplaceText(r.original, r.improved, f.writingId)}
+                                  title="Click to replace in essay"
+                                >
+                                  {r.improved}
+                                </span>
+                              </div>
+                            </div>
+                            <div className={styles.refinementExplanation}>
+                              <strong>Explanation:</strong> {r.explanation}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
           );
         })}
+
         <ErrorPopup
           error={selectedError}
           isOpen={!!selectedError}
