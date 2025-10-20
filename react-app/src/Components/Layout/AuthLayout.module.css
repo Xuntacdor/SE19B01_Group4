@@ -3,7 +3,7 @@
 }
 
 .title {
-  font-size: 48px;       /* nhỏ hơn 60px để tránh xuống dòng */
+  font-size: 38px;       /* Reduced from 48px to fit better */
   color: #C1C242;
   margin: 0 auto;        /* căn giữa */
   padding: 0;
