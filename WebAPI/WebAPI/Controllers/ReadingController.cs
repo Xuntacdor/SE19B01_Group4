@@ -1,16 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using WebAPI.Models;
+using System.Text.Json;
 using WebAPI.DTOs;
 using WebAPI.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace WebAPI.Controllers
 {
     [ApiController]
-    [Route("api/reading")]
+    [Route("api/[controller]")]
     public class ReadingController : ControllerBase
     {
         private readonly IReadingService _readingService;
@@ -25,23 +21,18 @@ namespace WebAPI.Controllers
         // ✅ GET all readings
         [HttpGet]
         public ActionResult<IEnumerable<ReadingDto>> GetAll()
-        {
-            var readings = _readingService.GetAll();
-            return Ok(readings);
-        }
+            => Ok(_readingService.GetAll());
 
-        // ✅ GET reading by ID
-        [HttpGet("{id}")]
+        // ✅ GET reading by ID (restrict to numeric ID)
+        [HttpGet("{id:int}")]
         public ActionResult<ReadingDto> GetById(int id)
         {
             var reading = _readingService.GetById(id);
-            if (reading == null)
-                return NotFound();
-            return Ok(reading);
+            return reading == null ? NotFound() : Ok(reading);
         }
 
         // ✅ GET readings by Exam
-        [HttpGet("exam/{examId}")]
+        [HttpGet("exam/{examId:int}")]
         public ActionResult<IEnumerable<ReadingDto>> GetByExam(int examId)
         {
             var readings = _readingService.GetReadingsByExam(examId);
@@ -57,7 +48,6 @@ namespace WebAPI.Controllers
                 QuestionHtml = r.QuestionHtml,
                 CreatedAt = r.CreatedAt
             });
-
             return Ok(result);
         }
 
@@ -65,46 +55,32 @@ namespace WebAPI.Controllers
         [HttpPost]
         public ActionResult<ReadingDto> Add([FromBody] CreateReadingDto dto)
         {
-            if (dto == null)
-                return BadRequest("Invalid data.");
+            if (dto == null) return BadRequest("Invalid data.");
 
             var created = _readingService.Add(dto);
-            if (created == null)
-                return StatusCode(500, "Failed to create reading.");
+            if (created == null) return StatusCode(500, "Failed to create reading.");
 
             return CreatedAtAction(nameof(GetById), new { id = created.ReadingId }, created);
         }
 
         // ✅ UPDATE existing reading
-        [HttpPut("{id}")]
+        [HttpPut("{id:int}")]
         public IActionResult Update(int id, [FromBody] UpdateReadingDto dto)
         {
-            if (dto == null)
-                return BadRequest("Invalid reading data.");
-
-            var success = _readingService.Update(id, dto);
-            if (!success)
-                return NotFound("Reading not found.");
-
-            return NoContent();
+            if (dto == null) return BadRequest("Invalid reading data.");
+            return _readingService.Update(id, dto) ? NoContent() : NotFound("Reading not found.");
         }
 
         // ✅ DELETE reading
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public IActionResult Delete(int id)
-        {
-            var success = _readingService.Delete(id);
-            if (!success)
-                return NotFound("Reading not found.");
+            => _readingService.Delete(id) ? NoContent() : NotFound("Reading not found.");
 
-            return NoContent();
-        }
-
-        // ✅ SUBMIT reading attempt (for user exams)
+        // ✅ SUBMIT reading answers by exam
         [HttpPost("submit")]
-        public ActionResult<ExamAttemptDto> SubmitAnswers([FromBody] SubmitAttemptDto dto)
+        public ActionResult<ExamAttemptDto> SubmitAnswers([FromBody] SubmitSectionDto dto)
         {
-            if (dto == null || string.IsNullOrEmpty(dto.AnswerText))
+            if (dto == null || dto.Answers == null)
                 return BadRequest("Invalid or empty payload.");
 
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -117,30 +93,69 @@ namespace WebAPI.Controllers
                 if (exam == null)
                     return NotFound("Exam not found.");
 
-                // Parse "1:A,2:B,3:C"
-                var answers = dto.AnswerText
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(a => a.Split(':'))
-                    .ToDictionary(p => int.Parse(p[0]), p => p[1]);
+                // Parse answers (handles both raw array or stringified JSON)
+                List<UserAnswerGroup>? structuredAnswers = null;
 
-                var score = _readingService.EvaluateReading(dto.ExamId, answers);
-                dto.Score = score;
-
-                var attempt = _examService.SubmitAttempt(dto, userId.Value);
-
-                var result = new ExamAttemptDto
+                if (dto.Answers is JsonElement jsonElement)
                 {
-                    AttemptId = attempt.AttemptId,
-                    StartedAt = attempt.StartedAt,
-                    SubmittedAt = attempt.SubmittedAt,
-                    ExamId = attempt.ExamId,
-                    ExamName = attempt.Exam?.ExamName ?? string.Empty,
-                    ExamType = attempt.Exam?.ExamType ?? string.Empty,
-                    TotalScore = attempt.Score ?? 0,
-                    AnswerText = attempt.AnswerText ?? string.Empty
+                    var raw = jsonElement.GetRawText();
+                    if (raw.StartsWith("\""))
+                    {
+                        var inner = JsonSerializer.Deserialize<string>(raw);
+                        structuredAnswers = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
+                            inner!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                    else
+                    {
+                        structuredAnswers = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
+                            raw, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    }
+                }
+                else if (dto.Answers is string jsonString)
+                {
+                    if (jsonString.TrimStart().StartsWith("\""))
+                        jsonString = JsonSerializer.Deserialize<string>(jsonString)!;
+
+                    structuredAnswers = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
+                        jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                else
+                {
+                    structuredAnswers = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
+                        dto.Answers.ToString() ?? "[]",
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+
+                if (structuredAnswers == null || structuredAnswers.Count == 0)
+                    return BadRequest("No answers found in payload.");
+
+                var answersDict = structuredAnswers
+                    .Where(g => g.Answers?.Count > 0)
+                    .ToDictionary(g => g.SkillId, g => g.Answers!.First());
+
+                var score = _readingService.EvaluateReading(dto.ExamId, answersDict);
+
+                var attemptDto = new SubmitAttemptDto
+                {
+                    ExamId = dto.ExamId,
+                    StartedAt = dto.StartedAt,
+                    AnswerText = JsonSerializer.Serialize(structuredAnswers),
+                    Score = score
                 };
 
-                return Ok(result);
+                var attempt = _examService.SubmitAttempt(attemptDto, userId.Value);
+
+                return Ok(new ExamAttemptDto
+                {
+                    AttemptId = attempt.AttemptId,
+                    ExamId = attempt.ExamId,
+                    ExamName = attempt.Exam?.ExamName ?? "",
+                    ExamType = attempt.Exam?.ExamType ?? "",
+                    StartedAt = attempt.StartedAt,
+                    SubmittedAt = attempt.SubmittedAt,
+                    TotalScore = attempt.Score ?? 0,
+                    AnswerText = attempt.AnswerText ?? ""
+                });
             }
             catch (Exception ex)
             {

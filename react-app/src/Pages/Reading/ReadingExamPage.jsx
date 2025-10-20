@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { submitAttempt } from "../../Services/ExamApi";
+import { submitReadingAttempt } from "../../Services/ReadingApi";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 import { Clock } from "lucide-react";
 import styles from "./ReadingExamPage.module.css";
@@ -21,7 +21,10 @@ export default function ReadingExamPage() {
   // 🕒 Timer logic
   useEffect(() => {
     if (!timeLeft || submitted) return;
-    const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
+    const timer = setInterval(
+      () => setTimeLeft((t) => Math.max(0, t - 1)),
+      1000
+    );
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
 
@@ -32,9 +35,9 @@ export default function ReadingExamPage() {
   };
 
   const handleAnswerChange = (questionNumber, value) => {
-    setAnswers(prev => ({
+    setAnswers((prev) => ({
       ...prev,
-      [questionNumber]: value
+      [questionNumber]: value,
     }));
   };
 
@@ -51,7 +54,7 @@ export default function ReadingExamPage() {
     const structuredAnswers = tasks.map((task, index) => {
       const taskAnswers = [];
       // Extract answers for this task
-      Object.keys(answers).forEach(key => {
+      Object.keys(answers).forEach((key) => {
         if (key.startsWith(`${task.readingId}_`)) {
           taskAnswers.push(answers[key]);
         }
@@ -62,11 +65,11 @@ export default function ReadingExamPage() {
     const answerText = JSON.stringify(structuredAnswers);
     const attempt = {
       examId: exam.examId,
-      answerText,
       startedAt: new Date().toISOString(),
+      answers: structuredAnswers, // ✅ send real JSON array, not string
     };
 
-    submitAttempt(attempt)
+    submitReadingAttempt(attempt)
       .then((res) => {
         console.log(`✅ Reading submitted:`, res.data);
         setSubmitted(true);
@@ -81,32 +84,36 @@ export default function ReadingExamPage() {
   // Get question count for navigation - find actual question numbers
   const getQuestionCount = (readingQuestion) => {
     if (!readingQuestion) return 0;
-    
+
     // Look for question numbers that are likely to be actual questions
     // Pattern 1: Numbers at the end of lines (like "9", "10", "11" at end of fill-in questions)
     const endOfLineNumbers = readingQuestion.match(/(\d+)\s*$/gm);
-    
+
     // Pattern 2: Numbers after [!num] markers
     const numMarkerNumbers = readingQuestion.match(/\[!num\]\s*(\d+)/g);
-    
+
     // Pattern 3: Numbers in question ranges like "Questions 9 - 13"
-    const rangeNumbers = readingQuestion.match(/Questions?\s+(\d+)\s*-\s*(\d+)/gi);
-    
+    const rangeNumbers = readingQuestion.match(
+      /Questions?\s+(\d+)\s*-\s*(\d+)/gi
+    );
+
     let allQuestionNumbers = [];
-    
+
     if (endOfLineNumbers) {
       allQuestionNumbers.push(...endOfLineNumbers.map(Number));
     }
-    
+
     if (numMarkerNumbers) {
-      allQuestionNumbers.push(...numMarkerNumbers.map(match => {
-        const num = match.match(/(\d+)/);
-        return num ? Number(num[1]) : 0;
-      }));
+      allQuestionNumbers.push(
+        ...numMarkerNumbers.map((match) => {
+          const num = match.match(/(\d+)/);
+          return num ? Number(num[1]) : 0;
+        })
+      );
     }
-    
+
     if (rangeNumbers) {
-      rangeNumbers.forEach(range => {
+      rangeNumbers.forEach((range) => {
         const match = range.match(/(\d+)\s*-\s*(\d+)/i);
         if (match) {
           const start = Number(match[1]);
@@ -117,15 +124,18 @@ export default function ReadingExamPage() {
         }
       });
     }
-    
+
     // Filter out unreasonable numbers (keep only 1-50 range for questions)
-    const validQuestionNumbers = allQuestionNumbers.filter(n => n >= 1 && n <= 50);
-    const maxQuestionNumber = validQuestionNumbers.length > 0 ? Math.max(...validQuestionNumbers) : 0;
-    
-    console.log('All numbers found:', allQuestionNumbers);
-    console.log('Valid question numbers:', validQuestionNumbers);
-    console.log('Max question number:', maxQuestionNumber);
-    
+    const validQuestionNumbers = allQuestionNumbers.filter(
+      (n) => n >= 1 && n <= 50
+    );
+    const maxQuestionNumber =
+      validQuestionNumbers.length > 0 ? Math.max(...validQuestionNumbers) : 0;
+
+    console.log("All numbers found:", allQuestionNumbers);
+    console.log("Valid question numbers:", validQuestionNumbers);
+    console.log("Max question number:", maxQuestionNumber);
+
     return maxQuestionNumber;
   };
 
@@ -153,12 +163,12 @@ export default function ReadingExamPage() {
 
   const currentTaskData = tasks[currentTask];
   const questionCount = getQuestionCount(currentTaskData?.readingQuestion);
-  
+
   // Debug logging
-  console.log('Current task data:', currentTaskData);
-  console.log('Reading question markdown:', currentTaskData?.readingQuestion);
-  console.log('Question count:', questionCount);
-  console.log('All tasks:', tasks);
+  console.log("Current task data:", currentTaskData);
+  console.log("Reading question markdown:", currentTaskData?.readingQuestion);
+  console.log("Question count:", questionCount);
+  console.log("All tasks:", tasks);
 
   return (
     <div className={styles.examWrapper}>
@@ -182,14 +192,16 @@ export default function ReadingExamPage() {
             <div className={styles.passageHeader}>
               <h3 className={styles.passageTitle}>
                 {currentTaskData.passageTitle}
-            </h3>
+              </h3>
             </div>
           )}
 
           {/* Passage Content */}
           <div className={styles.passageContent}>
             <div
-              dangerouslySetInnerHTML={{ __html: currentTaskData?.readingContent || "" }}
+              dangerouslySetInnerHTML={{
+                __html: currentTaskData?.readingContent || "",
+              }}
             />
           </div>
         </div>
@@ -198,16 +210,27 @@ export default function ReadingExamPage() {
         <div className={styles.rightPanel}>
           <form ref={formRef}>
             {currentTaskData?.readingQuestion ? (
-              <ExamMarkdownRenderer 
+              <ExamMarkdownRenderer
                 markdown={currentTaskData.readingQuestion}
                 showAnswers={false}
               />
             ) : (
               <div className={styles.questionSection}>
-                <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                <div
+                  style={{
+                    padding: "40px",
+                    textAlign: "center",
+                    color: "#666",
+                  }}
+                >
                   <h3>No Questions Found</h3>
-                  <p>This reading test doesn't have any questions configured yet.</p>
-                  <p>Please check the reading content format or contact the administrator.</p>
+                  <p>
+                    This reading test doesn't have any questions configured yet.
+                  </p>
+                  <p>
+                    Please check the reading content format or contact the
+                    administrator.
+                  </p>
                 </div>
               </div>
             )}
@@ -222,7 +245,7 @@ export default function ReadingExamPage() {
           <button
             key={num}
             className={`${styles.navButton} ${
-              currentTask === num - 1 ? styles.activeNavButton : ''
+              currentTask === num - 1 ? styles.activeNavButton : ""
             }`}
             onClick={() => handleQuestionNavigation(num)}
           >
