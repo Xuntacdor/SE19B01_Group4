@@ -28,7 +28,6 @@ namespace WebAPI.Data
         public virtual DbSet<PostLike> PostLike { get; set; }
         public virtual DbSet<CommentLike> CommentLike { get; set; }
         public virtual DbSet<UserPostHide> UserPostHide { get; set; }
-        public virtual DbSet<PasswordResetOtp> PasswordResetOtp { get; set; }
         public virtual DbSet<UserSignInHistory> UserSignInHistory { get; set; }
         public virtual DbSet<WritingFeedback> WritingFeedback { get; set; }
         public virtual DbSet<VipPlan> VipPlans { get; set; }
@@ -596,39 +595,6 @@ namespace WebAPI.Data
                     .HasConstraintName("FK__Writing__exam_id__5FB337D6");
             });
 
-            modelBuilder.Entity<PasswordResetOtp>(entity =>
-            {
-                entity.HasKey(e => e.Id).HasName("PK__PasswordResetOtp__Id");
-
-                entity.ToTable("PasswordResetOtp");
-
-                entity.Property(e => e.Id).HasColumnName("id");
-                entity.Property(e => e.Email)
-                    .HasMaxLength(150)
-                    .HasColumnName("email");
-                entity.Property(e => e.OtpCode)
-                    .HasMaxLength(6)
-                    .HasColumnName("otp_code");
-                entity.Property(e => e.CreatedAt)
-                    .HasPrecision(0)
-                    .HasDefaultValueSql("(sysdatetime())")
-                    .HasColumnName("created_at");
-                entity.Property(e => e.ExpiresAt)
-                    .HasPrecision(0)
-                    .HasColumnName("expires_at");
-                entity.Property(e => e.IsUsed)
-                    .HasDefaultValue(false)
-                    .HasColumnName("is_used");
-                entity.Property(e => e.ResetToken)
-                    .HasMaxLength(255)
-                    .HasColumnName("reset_token");
-                entity.Property(e => e.ResetTokenExpires)
-                    .HasPrecision(0)
-                    .HasColumnName("reset_token_expires");
-
-                entity.HasIndex(e => e.Email, "IX_PasswordResetOtp_Email");
-                entity.HasIndex(e => e.ResetToken, "IX_PasswordResetOtp_ResetToken");
-            });
 
             modelBuilder.Entity<WritingFeedback>(entity =>
             {
