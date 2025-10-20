@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createVipTransaction } from "../../Services/TransactionApi";
+import AppLayout from "../../Components/Layout/AppLayout";
+import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import styles from "./PaymentPage.module.css";
 
 export default function PaymentPage() {
@@ -22,7 +24,7 @@ export default function PaymentPage() {
         alert(
           "Payment created! Please complete transfer then wait for admin approval."
         );
-        navigate("/profile/payment");
+        navigate("/profile", { state: { activeTab: "payment" } });
       })
       .catch(() => {
         alert("Failed to create transaction.");
@@ -33,23 +35,25 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <h2>Confirm Payment</h2>
-      <p>Plan: {plan.planName}</p>
-      <p>Price: {plan.price.toLocaleString()} VND</p>
+    <AppLayout title="Confirm Payment" sidebar={<GeneralSidebar />}>
+      <div className={styles.page}>
+        <h2>Confirm Payment</h2>
+        <p>Plan: {plan.planName}</p>
+        <p>Price: {plan.price.toLocaleString()} VND</p>
 
-      <div className={styles.qrBox}>
-        <img src="/qr-admin-bank.png" alt="QR Code" />
-        <p>Scan this QR to pay via your bank app.</p>
+        <div className={styles.qrBox}>
+          <img src="/qr-admin-bank.png" alt="QR Code" />
+          <p>Scan this QR to pay via your bank app.</p>
+        </div>
+
+        <button
+          onClick={handleConfirm}
+          className={styles.confirmBtn}
+          disabled={loading}
+        >
+          {loading ? "Processing..." : "I've Paid"}
+        </button>
       </div>
-
-      <button
-        onClick={handleConfirm}
-        className={styles.confirmBtn}
-        disabled={loading}
-      >
-        {loading ? "Processing..." : "I've Paid"}
-      </button>
-    </div>
+    </AppLayout>
   );
 }

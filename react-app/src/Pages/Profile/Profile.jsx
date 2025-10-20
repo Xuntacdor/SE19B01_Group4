@@ -11,6 +11,8 @@ import TestHistoryTab from "./Tabs/TestHistoryTab";
 import PaymentTab from "./Tabs/PaymentTab";
 import SignInTab from "./Tabs/SignInTab";
 
+import { useLocation } from "react-router-dom";
+
 export default function Profile() {
   const { user, loading, refreshUser } = useAuth();
   const { attempts, loading: attemptsLoading } = useExamAttempts(user?.userId);
@@ -22,6 +24,17 @@ export default function Profile() {
     password: "",
     avatar: "",
   });
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(
+        location.state.activeTab === "payment"
+          ? "payment-history"
+          : location.state.activeTab
+      );
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (user) {
