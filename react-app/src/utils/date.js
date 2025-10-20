@@ -26,7 +26,6 @@ export function getMonthGrid(date = new Date()) {
 }
 
 // ==============================
-// 🕐 Format thời gian kiểu "x phút trước" theo giờ Việt Nam
 // ==============================
 export function formatTimeVietnam(dateInput) {
   if (!dateInput) return "";

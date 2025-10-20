@@ -75,3 +75,47 @@ WebAPI/WebAPI/.vs/WebAPI/v17/DocumentLayout.backup.json
 WebAPI/WebAPI/.vs/WebAPI/v17/DocumentLayout.json
 WebAPI/WebAPI/WebAPI.sln
 WebAPI/WebAPI/.vs/WebAPI/FileContentIndex/5995458d-01d2-42e0-b80e-e73fd4feb2a7.vsidx
+
+###########################
+# 🧪 Unit Test & Coverage
+###########################
+# xUnit, NUnit, MSTest output
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+*.testsettings
+
+# ReportGenerator output
+coverage-report/
+coverageReport/
+coverage/
+*.html
+*.xml
+
+# Local coverage data
+*.cobertura.xml
+*.opencover.xml
+*.json
+*.lcov
+*.info
+
+# Visual Studio test discovery cache
+.vstest/
+*.vsmdi
+
+# Global test folders
+/WebAPI.Tests/TestResults/
+/WebAPI.Tests/coverageReport/
+/WebAPI.Tests/coverage.cobertura.xml
+
+###########################
+# Local backups or temp files
+###########################
+*.tmp
+*.bak
+*.swp
+~$*
+WebAPI.Tests/
+*/WebAPI.Tests/
+**/WebAPI.Tests/**
