@@ -1,4 +1,5 @@
-﻿using WebAPI.Models;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using WebAPI.Models;
 
 public partial class Writing
 {
@@ -7,7 +8,7 @@ public partial class Writing
     public string WritingQuestion { get; set; } = null!;
     public int DisplayOrder { get; set; }
     public DateTime CreatedAt { get; set; }
-
+    [Column("image_url")]
     public string? ImageUrl { get; set; } 
 
     public virtual Exam Exam { get; set; } = null!;
