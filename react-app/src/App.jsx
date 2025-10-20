@@ -23,6 +23,7 @@ import AddSpeaking from "./Pages/Admin/AddSpeaking.jsx";
 import ModeratorDashboard from "./Pages/Moderator/ModeratorDashboard.jsx"; // ⚡ import moderator dashboard
 import WritingTestPage from "./Pages/Writing/WritingTestPage.jsx";
 import ReadingExamPage from "./Pages/Reading/ReadingExamPage.jsx";
+import ListeningExamPage from "./Pages/Listening/ListeningExamPage.jsx";
 import TransactionList from "./Pages/Transactions/TransactionList.jsx";
 import TransactionDetail from "./Pages/Transactions/TransactionDetail.jsx";
 import VipPlans from "./Pages/Transactions/VipPlans.jsx";
@@ -68,6 +69,7 @@ function App() {
         <Route path="/speaking/result" element={<SpeakingResultPage />} />
 
         <Route path="/reading/test" element={<ReadingExamPage />} />
+        <Route path="/listening/test" element={<ListeningExamPage />} />
 
         <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
         <Route path="/admin/transactions" element={<TransactionList />} />

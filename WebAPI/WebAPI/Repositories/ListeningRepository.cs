@@ -16,6 +16,9 @@ namespace WebAPI.Repositories
         public Listening? GetById(int id) =>
             _db.Listening.FirstOrDefault(r => r.ListeningId == id);
 
+        public List<Listening> GetAll() =>
+            _db.Listening.OrderBy(r => r.ListeningId).ToList();
+
         public List<Listening> GetByExamId(int examId) =>
             _db.Listening.Where(r => r.ExamId == examId)
                        .OrderBy(r => r.DisplayOrder)
