@@ -12,7 +12,6 @@ namespace WebAPI.ExternalServices
 
             try
             {
-                // ✅ Ép Cloudinary link về PNG format
                 if (imageUrl.Contains("res.cloudinary.com") && imageUrl.Contains("/image/upload/"))
                 {
                     if (!imageUrl.Contains("/f_png/"))
@@ -27,7 +26,6 @@ namespace WebAPI.ExternalServices
                     webClient.Headers.Add("User-Agent", "Mozilla/5.0");
                     var bytes = webClient.DownloadData(imageUrl);
 
-                    // ✅ MIME mặc định là PNG (đảm bảo OpenAI chấp nhận)
                     string mimeType = "image/png";
                     try
                     {

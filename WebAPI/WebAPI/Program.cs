@@ -86,6 +86,7 @@ builder.Services.AddScoped<ISpeakingRepository, SpeakingRepository>();
 builder.Services.AddScoped<ISpeakingFeedbackRepository, SpeakingFeedbackRepository>();
 builder.Services.AddScoped<ISpeakingService, SpeakingService>();
 builder.Services.AddScoped<ISpeakingFeedbackService, SpeakingFeedbackService>();
+builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 
 // Speech to Text
 builder.Services.AddScoped<SpeechToTextService>();

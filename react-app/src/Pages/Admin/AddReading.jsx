@@ -148,7 +148,6 @@ export default function AddReading() {
           )}
         </form>
 
-        {/* ===== Right: Preview ===== */}
         <div className={styles.preview}>
           <div className={styles.previewHeader}>
             <h3>Live Preview</h3>

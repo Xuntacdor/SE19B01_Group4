@@ -65,3 +65,19 @@
   margin: 3px 0 3px 24px;
   line-height: 1.5;
 }
+.choiceItem {
+  display: flex;              /* dùng flex để căn giữa */
+  align-items: center;        /* căn giữa theo chiều dọc */
+  gap: 8px;                   /* khoảng cách giữa nút và chữ */
+  margin: 6px 0 6px 24px;     /* giữ spacing giống cũ */
+  line-height: 1.4;           /* tránh giãn quá cao */
+  cursor: pointer;
+}
+
+.choiceItem input[type="radio"],
+.choiceItem input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;      /* màu xanh đồng bộ */
+  cursor: pointer;
+}

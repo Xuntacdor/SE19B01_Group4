@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 namespace WebAPI.ExternalServices
 {
-    public class OpenAIService
+    public class OpenAIService : IOpenAIService
     {
         private readonly OpenAIClient _client;
         private readonly ILogger<OpenAIService> _logger;

@@ -10,13 +10,13 @@ namespace WebAPI.Services
     {
         private readonly IWritingRepository _writingRepo;
         private readonly IWritingFeedbackRepository _feedbackRepo;
-        private readonly OpenAIService _openAI;
+        private readonly IOpenAIService _openAI; // ✅ Dùng interface thay vì class cụ thể
         private readonly IExamService _examService;
 
         public WritingService(
             IWritingRepository writingRepo,
             IWritingFeedbackRepository feedbackRepo,
-            OpenAIService openAI,
+            IOpenAIService openAI, // ✅ Inject interface
             IExamService examService)
         {
             _writingRepo = writingRepo;
@@ -97,7 +97,7 @@ namespace WebAPI.Services
         private JsonDocument GradeSingle(int examId, int userId, WritingAnswerDTO ans)
         {
             var question = _writingRepo.GetById(ans.WritingId)?.WritingQuestion ?? "Unknown question";
-            var result = _openAI.GradeWriting(question, ans.AnswerText, ans.ImageUrl);
+            var result = _openAI.GradeWriting(question, ans.AnswerText, ans.ImageUrl); // ✅ Interface
 
             SaveFeedback(examId, ans.WritingId, result, userId, ans.AnswerText);
             return result;
@@ -110,7 +110,7 @@ namespace WebAPI.Services
             foreach (var ans in answers)
             {
                 var question = _writingRepo.GetById(ans.WritingId)?.WritingQuestion ?? "Unknown question";
-                var result = _openAI.GradeWriting(question, ans.AnswerText, ans.ImageUrl);
+                var result = _openAI.GradeWriting(question, ans.AnswerText, ans.ImageUrl); // ✅ Interface
 
                 SaveFeedback(examId, ans.WritingId, result, userId, ans.AnswerText);
 
@@ -138,7 +138,6 @@ namespace WebAPI.Services
         {
             try
             {
-                // 1️⃣ Tìm ExamAttempt hiện tại (nếu chưa có thì tạo mới)
                 var attemptList = _examService.GetExamAttemptsByUser(userId);
                 var attemptSummary = attemptList.FirstOrDefault(a => a.ExamId == examId);
 
@@ -169,15 +168,12 @@ namespace WebAPI.Services
 
                 var band = feedback.RootElement.GetProperty("band_estimate");
 
-                // 3️⃣ Kiểm tra xem feedback cũ đã tồn tại chưa
                 var existing = _feedbackRepo.GetAll()
                     .FirstOrDefault(f => f.AttemptId == attempt.AttemptId && f.WritingId == writingId);
 
                 if (existing != null)
                 {
-                    // 4️⃣ Ghi đè (update) bài chấm cũ
                     existing.TaskAchievement = band.GetProperty("task_achievement").GetDecimal();
-                    // Map organization_logic từ JSON thành coherence_cohesion trong database
                     existing.CoherenceCohesion = band.GetProperty("organization_logic").GetDecimal();
                     existing.LexicalResource = band.GetProperty("lexical_resource").GetDecimal();
                     existing.GrammarAccuracy = band.GetProperty("grammar_accuracy").GetDecimal();
@@ -195,7 +191,6 @@ namespace WebAPI.Services
                         AttemptId = attempt.AttemptId,
                         WritingId = writingId,
                         TaskAchievement = band.GetProperty("task_achievement").GetDecimal(),
-                        // Map organization_logic từ JSON thành coherence_cohesion trong database
                         CoherenceCohesion = band.GetProperty("organization_logic").GetDecimal(),
                         LexicalResource = band.GetProperty("lexical_resource").GetDecimal(),
                         GrammarAccuracy = band.GetProperty("grammar_accuracy").GetDecimal(),
@@ -215,7 +210,6 @@ namespace WebAPI.Services
                 Console.WriteLine($"[SaveFeedback] Failed: {ex.Message}");
             }
         }
-
 
         private static WritingDTO MapToDto(Writing w) =>
             new WritingDTO
