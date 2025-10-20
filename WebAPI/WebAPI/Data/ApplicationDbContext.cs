@@ -677,6 +677,51 @@ namespace WebAPI.Data
                     .HasMaxLength(50)
                     .HasColumnName("speaking_type");
             });
+            modelBuilder.Entity<SpeakingAttempt>(entity =>
+            {
+                entity.HasKey(e => e.SpeakingAttemptId)
+                    .HasName("PK__SpeakingAttempt");
+
+                entity.ToTable("SpeakingAttempt");
+
+                entity.Property(e => e.SpeakingAttemptId)
+                    .HasColumnName("speaking_attempt_id");
+
+                entity.Property(e => e.AttemptId)
+                    .HasColumnName("attempt_id");
+
+                entity.Property(e => e.SpeakingId)
+                    .HasColumnName("speaking_id");
+
+                entity.Property(e => e.AudioUrl)
+                    .HasColumnName("audio_url")
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.Transcript)
+                    .HasColumnName("transcript");
+
+                entity.Property(e => e.StartedAt)
+                    .HasColumnName("started_at")
+                    .HasPrecision(0)
+                    .HasDefaultValueSql("SYSDATETIME()");
+
+                entity.Property(e => e.SubmittedAt)
+                    .HasColumnName("submitted_at")
+                    .HasPrecision(0);
+
+                // Foreign Keys
+                entity.HasOne(e => e.ExamAttempt)
+                    .WithMany()
+                    .HasForeignKey(e => e.AttemptId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .HasConstraintName("FK_SpeakingAttempt_ExamAttempt");
+
+                entity.HasOne(e => e.Speaking)
+                    .WithMany()
+                    .HasForeignKey(e => e.SpeakingId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .HasConstraintName("FK_SpeakingAttempt_Speaking");
+            });
 
             modelBuilder.Entity<SpeakingFeedback>(entity =>
             {

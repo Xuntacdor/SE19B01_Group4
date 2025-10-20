@@ -28,7 +28,7 @@ namespace WebAPI.Models
         [Column("submitted_at")]
         public DateTime? SubmittedAt { get; set; }
 
-        // Navigation
+        // Navigation properties
         [ForeignKey(nameof(AttemptId))]
         public ExamAttempt? ExamAttempt { get; set; }
 
