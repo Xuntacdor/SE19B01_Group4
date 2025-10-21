@@ -193,7 +193,14 @@ Return **strict JSON only**, no markdown or commentary.
     ""overview"": ""3–5 sentences summarizing performance."",
     ""strengths"": [""clear pronunciation"", ""good coherence""],
     ""weaknesses"": [""occasional pauses"", ""limited vocabulary""],
-    ""advice"": ""specific tips to improve""
+    ""advice"": ""Provide 1-2 specific tips to improve overall speaking score."",
+    ""vocabulary_suggestions"": [
+        {{
+            ""original_word"": ""The word or phrase used by the candidate"",
+            ""suggested_alternative"": ""A better, more precise, or less common alternative"",
+            ""explanation"": ""Explain why the alternative is better (e.g., more idiomatic, less common, more precise context).""
+        }}
+    ]
   }}
 }}
 

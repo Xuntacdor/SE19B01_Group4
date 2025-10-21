@@ -221,8 +221,13 @@ namespace WebAPI.Services
                 else
                 {
                     Console.WriteLine($"[SaveSpeakingFeedback] Using existing SpeakingAttempt with ID: {speakingAttempt.SpeakingAttemptId}");
+                    speakingAttempt.AudioUrl = audioUrl;
+                    speakingAttempt.Transcript = transcript; // <<<<<< UPDATE TRANSCRIPT HERE TOO
+                    speakingAttempt.SubmittedAt = DateTime.UtcNow; // Update submission time
+                    _db.SpeakingAttempts.Update(speakingAttempt); // Mark as updated
                 }
-
+                _db.SaveChanges(); // Save changes for SpeakingAttempt
+                Console.WriteLine($"[SaveSpeakingFeedback] Ensured SpeakingAttempt exists/created with ID: {speakingAttempt.SpeakingAttemptId}");
                 // 4️⃣ Save or update SpeakingFeedback
                 var oldFeedback = _feedbackRepo.GetAll()
                     .FirstOrDefault(f => f.SpeakingAttemptId == speakingAttempt.SpeakingAttemptId);

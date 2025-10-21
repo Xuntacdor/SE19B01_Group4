@@ -111,30 +111,7 @@ namespace WebAPI.Services
                 _logger.LogInformation("[SpeechToText] Transcription OK: {Transcript}", transcript);
 
                 // 4) Try to save to ExamAttempt.AnswerText as JSON { audioUrl, transcript }
-                try
-                {
-                    var attempt = _examService.GetAttemptById(attemptId);
-                    if (attempt != null)
-                    {
-                        var payloadJson = JsonSerializer.Serialize(new
-                        {
-                            audioUrl,
-                            transcript
-                        });
-
-                        attempt.AnswerText = payloadJson;
-                        _examService.Save();
-                        _logger.LogInformation("[SpeechToText] Saved transcript into ExamAttempt.AnswerText.");
-                    }
-                    else
-                    {
-                        _logger.LogWarning("[SpeechToText] ExamAttempt not found (ID={AttemptId}), transcript not saved to database.", attemptId);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "[SpeechToText] Failed to save transcript to database, but transcription was successful.");
-                }
+                
                 return transcript;
             }
             catch (Exception ex)
