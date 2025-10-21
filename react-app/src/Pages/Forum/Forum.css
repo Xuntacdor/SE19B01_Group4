@@ -277,15 +277,15 @@
   gap: 8px;
 }
 
-.post-title {
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
-  line-height: 1.3;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 22px;
+.forum-main .post-item .post-content .post-title {
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+  margin: 0 !important;
+  line-height: 1.3 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 22px !important;
 }
 
 .pinned-indicator {
