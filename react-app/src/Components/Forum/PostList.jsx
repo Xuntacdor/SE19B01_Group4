@@ -59,8 +59,8 @@ export default function PostList({ posts, loading, onLoadMore, hasMore, onPostUp
         <div className="header-activity">Activity</div>
       </div>
       
-      {posts.map((post) => (
-        <PostItem key={post.postId} post={post} onPostUpdated={onPostUpdated} isInClosedSection={isInClosedSection} />
+      {posts.map((post, index) => (
+        <PostItem key={post.postId || post.id || index} post={post} onPostUpdated={onPostUpdated} isInClosedSection={isInClosedSection} />
       ))}
       
       {/* Loading indicator for infinite scroll */}

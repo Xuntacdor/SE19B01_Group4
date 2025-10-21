@@ -332,7 +332,7 @@ export default function PostDetail() {
                 <div className="post-tags">
                   {post.tags.map((tag, index) => (
                     <span key={index} className="post-tag">
-                      {tag.tagName}
+                      #{tag.tagName}
                     </span>
                   ))}
                 </div>

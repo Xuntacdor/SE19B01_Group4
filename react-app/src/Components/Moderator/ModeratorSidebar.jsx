@@ -6,7 +6,9 @@ import {
   XCircle,
   Bell,
   User,
-  Settings
+  Settings,
+  BarChart3,
+  Tag
 } from "lucide-react";
 import "./ModeratorSidebar.css";
 
@@ -14,9 +16,21 @@ export default function ModeratorSidebar({ currentView, onViewChange }) {
   const menuItems = [
     {
       icon: <LayoutDashboard size={20} />,
-      label: "Overview",
+      label: "All Posts",
       view: "overview",
       active: currentView === "overview"
+    },
+    {
+      icon: <BarChart3 size={20} />,
+      label: "Statistics",
+      view: "statistics",
+      active: currentView === "statistics"
+    },
+    {
+      icon: <Tag size={20} />,
+      label: "Tag Management",
+      view: "tags",
+      active: currentView === "tags"
     },
     {
       icon: <FileText size={20} />,
@@ -36,12 +50,6 @@ export default function ModeratorSidebar({ currentView, onViewChange }) {
       view: "rejected",
       active: currentView === "rejected"
     },
-    {
-      icon: <Bell size={20} />,
-      label: "Notifications",
-      view: "notifications",
-      active: currentView === "notifications"
-    }
   ];
 
   return (

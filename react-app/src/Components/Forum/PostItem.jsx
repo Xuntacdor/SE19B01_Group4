@@ -42,9 +42,9 @@ export default function PostItem({ post, onPostUpdated, isInClosedSection = fals
           {post.title}
         </h3>
         <p className="post-description">
-          {post.content.length > 150
+          {post.content && post.content.length > 150
             ? `${post.content.substring(0, 150)}...`
-            : post.content}
+            : post.content || ''}
         </p>
         
         {/* Tags Section */}
@@ -52,7 +52,7 @@ export default function PostItem({ post, onPostUpdated, isInClosedSection = fals
           <div className="post-tags">
             {post.tags.map((tag, index) => (
               <span key={index} className="post-tag">
-                {tag.tagName}
+                #{tag.tagName}
               </span>
             ))}
           </div>

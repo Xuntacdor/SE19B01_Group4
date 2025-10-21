@@ -4,6 +4,7 @@ import AppLayout from "../../Components/Layout/AppLayout";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import PostList from "../../Components/Forum/PostList";
 import RightSidebar from "../../Components/Forum/RightSidebar";
+import CreatePost from "../../Components/Forum/CreatePost";
 import { getPostsByFilter } from "../../Services/ForumApi";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -14,6 +15,7 @@ export default function Forum() {
   const [activeFilter, setActiveFilter] = useState("new");
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [showCreatePost, setShowCreatePost] = useState(false);
 
   const navigate = useNavigate();
 
@@ -62,6 +64,11 @@ export default function Forum() {
 
   const handlePostUpdated = () => loadPosts();
 
+  const handlePostCreated = (newPost) => {
+    setPosts(prevPosts => [newPost, ...prevPosts]);
+    setShowCreatePost(false);
+  };
+
   return (
     <AppLayout title="Forum" sidebar={<GeneralSidebar />}>
       <div className="forum-content">
@@ -70,7 +77,7 @@ export default function Forum() {
             <h1>FORUM</h1>
             <button
               className="ask-question-btn"
-              onClick={() => navigate("/create-post")}
+              onClick={() => setShowCreatePost(true)}
             >
               <Plus size={16} />
               Create a post
@@ -103,6 +110,12 @@ export default function Forum() {
 
         <RightSidebar />
       </div>
+
+      <CreatePost
+        isOpen={showCreatePost}
+        onClose={() => setShowCreatePost(false)}
+        onPostCreated={handlePostCreated}
+      />
     </AppLayout>
   );
 }

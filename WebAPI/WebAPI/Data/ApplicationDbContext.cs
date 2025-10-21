@@ -335,6 +335,10 @@ namespace WebAPI.Data
                 entity.Property(e => e.TagName)
                     .HasMaxLength(50)
                     .HasColumnName("tag_name");
+                entity.Property(e => e.CreatedAt)
+                    .HasPrecision(0)
+                    .HasDefaultValueSql("(sysdatetime())")
+                    .HasColumnName("created_at");
             });
 
             modelBuilder.Entity<Transaction>(entity =>

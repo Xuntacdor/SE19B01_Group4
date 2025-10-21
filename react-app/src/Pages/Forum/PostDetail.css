@@ -169,18 +169,25 @@
 
 .post-tags {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
 .post-tag {
   background-color: #e9ecef;
-  color: #666;
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 28px;
+  color: #495057;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: 500;
+  border: 1px solid #dee2e6;
+  transition: all 0.2s ease;
+}
+
+.post-tag:hover {
+  background-color: #e8e8e8;
+  transform: translateY(-1px);
 }
 
 .post-stats {
