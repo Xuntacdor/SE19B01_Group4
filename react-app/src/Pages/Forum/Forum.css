@@ -130,7 +130,7 @@
 }
 
 /* Table-like header for posts */
-.posts-header {
+.forum-main .posts-header {
   display: grid;
   grid-template-columns: 80px 1fr 80px 80px 120px;
   gap: 20px;
@@ -142,29 +142,48 @@
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  align-items: center;
 }
 
-.posts-header .header-author {
+.forum-main .posts-header .header-author {
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 80px;
 }
 
-.posts-header .header-topic {
+.forum-main .posts-header .header-topic {
   text-align: left;
+  display: flex;
+  align-items: center;
 }
 
-.posts-header .header-replies {
-  text-align: center;
+.forum-main .posts-header .header-replies {
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 80px;
+  padding-right: 0;
+  box-sizing: border-box;
 }
 
-.posts-header .header-views {
-  text-align: center;
+.forum-main .posts-header .header-views {
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 80px;
+  padding-right: 0;
+  box-sizing: border-box;
 }
 
-.posts-header .header-activity {
-  text-align: center;
+.forum-main .posts-header .header-activity {
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 120px;
 }
 
@@ -193,11 +212,12 @@
   align-items: center;
   justify-content: center;
   width: 80px;
+  min-width: 80px;
 }
 
 .post-author-avatar {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #f0f0f0;
@@ -251,6 +271,7 @@
   font-weight: 400;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -293,6 +314,9 @@
   font-weight: 600;
   color: #495057;
   font-size: 14px;
+  min-width: 80px;
+  padding-right: 0;
+  box-sizing: border-box;
 }
 
 .post-stats-views {
@@ -303,6 +327,9 @@
   font-weight: 600;
   color: #495057;
   font-size: 14px;
+  min-width: 80px;
+  padding-right: 0;
+  box-sizing: border-box;
 }
 
 .post-stats-activity {
@@ -313,6 +340,7 @@
   font-weight: 500;
   color: #6c757d;
   font-size: 13px;
+  min-width: 120px;
 }
 
 

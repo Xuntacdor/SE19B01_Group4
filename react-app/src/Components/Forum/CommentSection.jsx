@@ -114,13 +114,6 @@ export default function CommentSection({ postId, postOwnerId }) {
           />
           <div className="comment-actions">
             <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setNewComment("")}
-            >
-              Cancel
-            </button>
-            <button
               type="submit"
               className="btn btn-primary"
               disabled={submitting || !newComment.trim()}
