@@ -83,10 +83,10 @@
 }
 
 /* Post title and votes layout */
-.post-title {
+.sidebar-item .post-title {
   font-weight: 500;
   margin-bottom: 6px;
-  font-size: 16px;
+  font-size: 22px !important;
 }
 
 .post-votes {
