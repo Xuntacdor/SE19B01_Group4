@@ -249,15 +249,16 @@ export default function PostDetail() {
       <main className="main-content">
         <HeaderBar />
         <div className="post-detail-content">
-          <div className="post-detail-main">
-            <div className="post-detail-header">
-              <button className="back-btn" onClick={() => navigate("/forum")}>
-                <ArrowLeft size={16} />
-                Back to Forum
-              </button>
-            </div>
-
-            <div className="post-detail-card">
+          <div className="post-detail-header">
+            <button className="back-btn" onClick={() => navigate("/forum")}>
+              <ArrowLeft size={16} />
+              Back to Forum
+            </button>
+            <h2 className="post-detail-title">Post Details</h2>
+          </div>
+          <div className="post-detail-main-content">
+            <div className="post-detail-main">
+              <div className="post-detail-card">
               <div className="post-header">
                 <img
                   src={post.user?.avatar || "/default-avatar.png"}
@@ -349,11 +350,11 @@ export default function PostDetail() {
               </div>
             </div>
 
-            <CommentSection postId={postId} postOwnerId={post?.user?.userId} />
-          </div>
+              <CommentSection postId={postId} postOwnerId={post?.user?.userId} />
+            </div>
 
-          <div className="post-detail-sidebar">
-            <div className="user-profile-card">
+            <div className="post-detail-sidebar">
+              <div className="user-profile-card">
               <img
                 src={post.user?.avatar || "/default-avatar.png"}
                 alt={post.user?.username}
@@ -388,6 +389,7 @@ export default function PostDetail() {
             </div>
           </div>
         </div>
+      </div>
       </main>
 
       {showReportModal && (
