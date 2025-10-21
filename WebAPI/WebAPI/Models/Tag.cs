@@ -9,5 +9,7 @@ public partial class Tag
 
     public string TagName { get; set; } = null!;
 
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 }

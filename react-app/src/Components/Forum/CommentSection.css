@@ -203,7 +203,7 @@
 
 .comment-time {
   color: #666;
-  font-size: 22px;
+  font-size: 14px;
   margin: 0;
   display: block;
 }
@@ -213,7 +213,7 @@
   line-height: 1.4;
   margin-bottom: 0;
   white-space: pre-wrap;
-  font-size: 28px;
+  font-size: 22px;
   margin-top: 4px;
   word-wrap: break-word;
   overflow-wrap: break-word;
