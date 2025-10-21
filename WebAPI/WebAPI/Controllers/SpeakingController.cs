@@ -93,6 +93,7 @@ namespace WebAPI.Controllers
                 averageOverall = Math.Round(feedbacks.Average(f => f.Overall ?? 0), 1),
                 feedbacks = feedbacks.Select(f => new
                 {
+                    speakingId = f.SpeakingAttempt?.SpeakingId,
                     f.SpeakingAttemptId,
                     f.Pronunciation,
                     f.Fluency,
@@ -101,7 +102,9 @@ namespace WebAPI.Controllers
                     f.Coherence,
                     f.Overall,
                     f.AiAnalysisJson,
-                    f.CreatedAt
+                    f.CreatedAt,
+                    audioUrl = f.SpeakingAttempt?.AudioUrl,       // <<< ADDED
+                    transcript = f.SpeakingAttempt?.Transcript    // <<< ADDED
                 })
             };
 
