@@ -21,7 +21,6 @@ export default function Forum() {
 
   const filters = [
     { key: "new", label: "New" },
-    { key: "top", label: "Top" },
     { key: "hot", label: "Hot" },
     { key: "closed", label: "Closed" },
   ];
