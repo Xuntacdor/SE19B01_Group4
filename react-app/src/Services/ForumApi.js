@@ -5,6 +5,11 @@ const API = axios.create({
   withCredentials: true,
 });
 
+const TAG_API = axios.create({
+  baseURL: "/api/tag",
+  withCredentials: true,
+});
+
 // Posts API
 export function getPostsByFilter(filter, page = 1, limit = 10) {
   return API.get(`/posts/filter/${filter}?page=${page}&limit=${limit}`);
@@ -86,7 +91,7 @@ export function unlikeComment(commentId) {
 
 // Tags API
 export function getTags() {
-  return API.get("/tags");
+  return TAG_API.get("");
 }
 
 export function createTag(tagName) {

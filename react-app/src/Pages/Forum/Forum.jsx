@@ -5,7 +5,7 @@ import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import PostList from "../../Components/Forum/PostList";
 import RightSidebar from "../../Components/Forum/RightSidebar";
 import CreatePost from "../../Components/Forum/CreatePost";
-import { getPostsByFilter } from "../../Services/ForumApi";
+import { getPostsByFilter, getTags } from "../../Services/ForumApi";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 
@@ -16,6 +16,8 @@ export default function Forum() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [selectedTag, setSelectedTag] = useState("all");
+  const [tags, setTags] = useState([]);
 
   const navigate = useNavigate();
 
@@ -27,15 +29,38 @@ export default function Forum() {
 
   useEffect(() => {
     loadPosts();
-  }, [activeFilter]);
+  }, [activeFilter, selectedTag]);
+
+  useEffect(() => {
+    loadTags();
+  }, []);
+
+  const loadTags = () => {
+    getTags()
+      .then((response) => {
+        setTags(response.data || []);
+      })
+      .catch((error) => {
+        console.error("Error loading tags:", error);
+      });
+  };
 
   const loadPosts = () => {
     setLoading(true);
     getPostsByFilter(activeFilter, 1)
       .then((response) => {
-        setPosts(response.data);
+        let filteredPosts = response.data;
+        
+        // Filter by selected tag if not "all"
+        if (selectedTag !== "all") {
+          filteredPosts = response.data.filter(post => 
+            post.tags && post.tags.some(tag => tag.tagName === selectedTag)
+          );
+        }
+        
+        setPosts(filteredPosts);
         setCurrentPage(1);
-        setHasMore(response.data.length === 10);
+        setHasMore(filteredPosts.length === 10);
       })
       .catch((error) => {
         console.error("Error loading posts:", error);
@@ -49,9 +74,18 @@ export default function Forum() {
     setLoading(true);
     getPostsByFilter(activeFilter, currentPage + 1)
       .then((response) => {
-        setPosts((prev) => [...prev, ...response.data]);
+        let filteredPosts = response.data;
+        
+        // Filter by selected tag if not "all"
+        if (selectedTag !== "all") {
+          filteredPosts = response.data.filter(post => 
+            post.tags && post.tags.some(tag => tag.tagName === selectedTag)
+          );
+        }
+        
+        setPosts((prev) => [...prev, ...filteredPosts]);
         setCurrentPage((prev) => prev + 1);
-        setHasMore(response.data.length === 10);
+        setHasMore(filteredPosts.length === 10);
       })
       .catch((error) => console.error("Error loading more posts:", error))
       .finally(() => setLoading(false));
@@ -59,6 +93,10 @@ export default function Forum() {
 
   const handleFilterChange = (filter) => {
     setActiveFilter(filter);
+  };
+
+  const handleTagChange = (e) => {
+    setSelectedTag(e.target.value);
   };
 
   const handlePostUpdated = () => loadPosts();
@@ -73,7 +111,18 @@ export default function Forum() {
       <div className="forum-content">
         <div className="forum-main">
           <div className="forum-header">
-            <h1>FORUM</h1>
+            <select 
+              className="tag-filter-select"
+              value={selectedTag}
+              onChange={handleTagChange}
+            >
+              <option value="all">All Posts</option>
+              {tags.map((tag) => (
+                <option key={tag.tagId} value={tag.tagName}>
+                  #{tag.tagName}
+                </option>
+              ))}
+            </select>
             <button
               className="ask-question-btn"
               onClick={() => setShowCreatePost(true)}

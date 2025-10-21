@@ -42,6 +42,43 @@
   letter-spacing: -0.025em;
 }
 
+.tag-filter-select {
+  width: auto !important;
+  min-width: 200px;
+  max-width: 300px;
+  padding: 12px 16px !important;
+  font-size: 16px !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: white !important;
+  color: #374151;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px !important;
+}
+
+.tag-filter-select:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.tag-filter-select:focus {
+  outline: none !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.tag-filter-select option {
+  padding: 8px 12px;
+  font-weight: 500;
+}
+
 .ask-question-btn {
   display: flex;
   align-items: center;
