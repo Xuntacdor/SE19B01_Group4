@@ -5,6 +5,7 @@ import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as SpeakingApi from "../../Services/SpeakingApi";
 import * as UploadApi from "../../Services/UploadApi";
 import LoadingComponent from "../../Components/Exam/LoadingComponent";
+import useExamTimer from "../../Hook/useExamTimer";
 import {
   Mic,
   MicOff,
@@ -29,7 +30,6 @@ export default function SpeakingTest() {
   const [recordings, setRecordings] = useState({});
   const [audioUrls, setAudioUrls] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploading, setUploading] = useState({});
 
@@ -50,56 +50,33 @@ export default function SpeakingTest() {
     );
   }
 
-  const { exam, tasks, task, mode } = state;
+  const { exam, tasks, task, mode, duration } = state;
   const currentTask =
     mode === "full" && Array.isArray(tasks) ? tasks[currentIndex] : task;
   const currentId =
     mode === "full" ? currentTask?.speakingId : task?.speakingId;
 
   // Timer logic
-  useEffect(() => {
-    if (mode === "full") setTimeLeft(60 * 15); // 15 minutes for full test
-    else if (task?.speakingType === "Part 1") setTimeLeft(60 * 5); // 5 minutes
-    else if (task?.speakingType === "Part 2") setTimeLeft(60 * 4); // 4 minutes
-    else if (task?.speakingType === "Part 3") setTimeLeft(60 * 5); // 5 minutes
-  }, [mode, task]);
-
-  useEffect(() => {
-    if (timeLeft <= 0) return;
-    const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft]);
-
-  const formatTime = (sec) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
-
-  const formatRecordingTime = (sec) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
+  const { timeLeft, formatTime } = useExamTimer(duration || 15, submitting);
 
   // Recording functions
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+
       // Sử dụng MIME type được Whisper hỗ trợ, với fallback
       let options = {};
-      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        options = { mimeType: 'audio/webm;codecs=opus' };
-      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-        options = { mimeType: 'audio/webm' };
-      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-        options = { mimeType: 'audio/mp4' };
-      } else if (MediaRecorder.isTypeSupported('audio/wav')) {
-        options = { mimeType: 'audio/wav' };
+      if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+        options = { mimeType: "audio/webm;codecs=opus" };
+      } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+        options = { mimeType: "audio/webm" };
+      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+        options = { mimeType: "audio/mp4" };
+      } else if (MediaRecorder.isTypeSupported("audio/wav")) {
+        options = { mimeType: "audio/wav" };
       }
-      
-      console.log('Using MediaRecorder options:', options);
+
+      console.log("Using MediaRecorder options:", options);
       const mediaRecorder = new MediaRecorder(stream, options);
       const audioChunks = [];
 
@@ -109,14 +86,14 @@ export default function SpeakingTest() {
 
       mediaRecorder.onstop = async () => {
         // Tạo blob với format phù hợp
-        const mimeType = options.mimeType || 'audio/webm';
+        const mimeType = options.mimeType || "audio/webm";
         const audioBlob = new Blob(audioChunks, { type: mimeType });
         const audioUrl = URL.createObjectURL(audioBlob);
-        
-        console.log('Created audio blob:', { 
-          type: mimeType, 
+
+        console.log("Created audio blob:", {
+          type: mimeType,
           size: audioBlob.size,
-          chunks: audioChunks.length 
+          chunks: audioChunks.length,
         });
 
         setRecordings((prev) => ({
@@ -128,9 +105,9 @@ export default function SpeakingTest() {
           [currentId]: audioUrl,
         }));
 
-      // Auto-upload after recording (no transcription here)
-      console.log(`Auto-uploading audio for task ${currentId}`);
-      await uploadAudio(audioBlob, currentId);
+        // Auto-upload after recording (no transcription here)
+        console.log(`Auto-uploading audio for task ${currentId}`);
+        await uploadAudio(audioBlob, currentId);
 
         // Stop all tracks
         stream.getTracks().forEach((track) => track.stop());
@@ -177,13 +154,13 @@ export default function SpeakingTest() {
     setUploading((prev) => ({ ...prev, [taskId]: true }));
     try {
       const formData = new FormData();
-      
+
       // Xác định extension dựa trên MIME type
-      let extension = 'webm';
-      if (audioBlob.type.includes('mp4')) extension = 'mp4';
-      else if (audioBlob.type.includes('wav')) extension = 'wav';
-      else if (audioBlob.type.includes('ogg')) extension = 'ogg';
-      
+      let extension = "webm";
+      if (audioBlob.type.includes("mp4")) extension = "mp4";
+      else if (audioBlob.type.includes("wav")) extension = "wav";
+      else if (audioBlob.type.includes("ogg")) extension = "ogg";
+
       formData.append(
         "file",
         audioBlob,
@@ -246,13 +223,13 @@ export default function SpeakingTest() {
         // Nếu đang là blob: thì upload để lấy link Cloudinary
         if (!url || url.startsWith("blob:")) {
           const formData = new FormData();
-          
+
           // Xác định extension dựa trên MIME type
-          let extension = 'webm';
-          if (recordedBlob.type.includes('mp4')) extension = 'mp4';
-          else if (recordedBlob.type.includes('wav')) extension = 'wav';
-          else if (recordedBlob.type.includes('ogg')) extension = 'ogg';
-          
+          let extension = "webm";
+          if (recordedBlob.type.includes("mp4")) extension = "mp4";
+          else if (recordedBlob.type.includes("wav")) extension = "wav";
+          else if (recordedBlob.type.includes("ogg")) extension = "ogg";
+
           formData.append(
             "file",
             recordedBlob,
@@ -336,8 +313,7 @@ export default function SpeakingTest() {
             </h2>
           </div>
           <div className={styles.timer}>
-            <Clock size={20} />
-            {formatTime(timeLeft)}
+            <Clock size={20} /> {formatTime(timeLeft)}
           </div>
         </div>
 
