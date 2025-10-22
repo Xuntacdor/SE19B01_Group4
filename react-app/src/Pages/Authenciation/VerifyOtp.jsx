@@ -4,7 +4,7 @@ import { verifyOtp } from '../../Services/AuthApi';
 import BrandPanel from '../../Components/Layout/BrandPanel.jsx';
 import AuthLayout from '../../Components/Layout/AuthLayout';
 import Button from '../../Components/Auth/Button';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Clock, AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react';
 import './VerifyOtp.css';
 
 const VerifyOtp = () => {
@@ -118,20 +118,20 @@ const VerifyOtp = () => {
                   maxLength="6"
                   required
                   disabled={loading}
-                  className="otp-input"
+                  className="verify-otp-input"
                 />
               </div>
 
               {timeLeft > 0 && (
                 <div className="timer">
-                  <i className="fas fa-clock"></i>
+                  <Clock size={16} />
                   Code expires in {formatTime(timeLeft)}
                 </div>
               )}
 
               {timeLeft === 0 && (
                 <div className="expired-message">
-                  <i className="fas fa-exclamation-triangle"></i>
+                  <AlertTriangle size={16} />
                   Verification code has expired
                 </div>
               )}
@@ -139,7 +139,7 @@ const VerifyOtp = () => {
               {error && (
                 <div className="error-message">
                   <div className="error-icon">
-                    <i className="fas fa-exclamation-circle"></i>
+                    <AlertCircle size={16} />
                   </div>
                   <div className="error-text">{error}</div>
                 </div>
@@ -178,7 +178,7 @@ const VerifyOtp = () => {
             <div className="verify-otp-footer">
               <button 
                 type="button"
-                className="back-btn"
+                className="verify-otp-back-btn"
                 onClick={() => navigate('/login?mode=forgot')}
               >
                 <ArrowLeft size={16} />

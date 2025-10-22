@@ -1130,7 +1130,7 @@
   color: #333;
 }
 
-.form-group input {
+.moderator-dashboard .form-group input {
   width: 100%;
   padding: 12px;
   border: 1px solid #ddd;
@@ -1139,7 +1139,7 @@
   transition: border-color 0.2s ease;
 }
 
-.form-group input:focus {
+.moderator-dashboard .form-group input:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);

@@ -240,7 +240,7 @@
   color: #495057;
 }
 
-.form-group input {
+.tag-management .form-group input {
   width: 100%;
   padding: 12px 16px;
   border: 2px solid #e9ecef;
@@ -249,7 +249,7 @@
   transition: border-color 0.2s ease;
 }
 
-.form-group input:focus {
+.tag-management .form-group input:focus {
   outline: none;
   border-color: #007bff;
 }

@@ -21,7 +21,7 @@
 
 .input {
   width: 100%;
-  padding: 12px 16px 12px 44px; /* chừa khoảng trống icon bên trái */
+  padding: 12px 44px 12px 44px; /* Adjusted padding for toggle button */
   border: none;
   border-radius: 8px;
   background: #f3f4c2; /* vàng nhạt */
@@ -34,4 +34,63 @@
 
 .input:focus {
   box-shadow: 0 0 0 2px #a3a931;
+}
+
+.passwordInput {
+  width: 100%;
+  padding: 12px 44px 12px 16px; /* No left padding for icon, right padding for toggle */
+  border: none;
+  border-radius: 8px;
+  background: #f3f4c2; /* vàng nhạt */
+  font-size: 1rem;
+  color: #333;
+  outline: none;
+  transition: box-shadow 0.2s;
+  height: 50px;
+}
+
+.passwordInput:focus {
+  box-shadow: 0 0 0 2px #a3a931;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.passwordToggle:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.toggleIcon {
+  color: #666;
+  transition: color 0.2s;
+}
+
+.passwordToggle:hover .toggleIcon {
+  color: #333;
+}
+
+.passwordToggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.passwordToggle:disabled:hover {
+  background-color: transparent;
+}
+
+.passwordToggle:disabled .toggleIcon {
+  color: #999;
 }
