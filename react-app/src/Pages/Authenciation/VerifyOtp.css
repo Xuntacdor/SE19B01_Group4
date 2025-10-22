@@ -28,84 +28,75 @@
 /* Header */
 .verify-otp-header {
   text-align: center;
-  margin-bottom: 20px;
-}
-
-.verify-otp-header h2 {
-  color: #2c3e50;
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  font-family: "Dongle", sans-serif;
+  margin-bottom: 32px;
 }
 
 .verify-otp-header p {
-  color: #7f8c8d;
-  font-size: 24px;
-  line-height: 1.4;
-  margin: 4px 0;
-  font-family: "Dongle", sans-serif;
+  color: #6b7280;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 8px 0;
 }
 
 .email-address {
   color: #1e40af !important;
   font-weight: 600;
-  font-size: 26px !important;
-  font-family: "Dongle", sans-serif;
+  font-size: 18px !important;
 }
 
 /* Form */
 .verify-otp-form {
-  margin-bottom: 20px;
-  font-family: "Dongle", sans-serif;
+  margin-bottom: 32px;
 }
 
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .form-group label {
   display: block;
-  color: #2c3e50;
-  font-weight: 600;
-  margin-bottom: 8px;
-  font-size: 24px;
-  text-align: center;
-  font-family: "Dongle", sans-serif;
+  color: #374151;
+  font-weight: 500;
+  margin-bottom: 12px;
+  font-size: 16px;
+  text-align: left;
 }
 
-.otp-input {
+.verify-otp-input {
   width: 100%;
-  padding: 16px;
-  border: 2px solid #e1e8ed;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
   border-radius: 12px;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   text-align: center;
-  letter-spacing: 8px;
-  transition: all 0.3s ease;
+  letter-spacing: 16px;
+  transition: all 0.2s ease;
   box-sizing: border-box;
-  font-family: "Dongle", sans-serif;
+  background: #f9fafb;
+  height: 60px;
 }
 
-.otp-input:focus {
+.verify-otp-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #a3a931;
+  box-shadow: 0 0 0 2px rgba(163, 169, 49, 0.1);
+  background: #fff;
 }
 
-.otp-input:disabled {
-  background-color: #f8f9fa;
+.verify-otp-input:disabled {
+  background-color: #f3f4f6;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 /* Timer */
 .timer {
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   color: #92400e;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
   text-align: center;
   font-weight: 600;
   display: flex;
@@ -113,11 +104,10 @@
   justify-content: center;
   gap: 8px;
   border: 1px solid #fbbf24;
-  font-family: "Dongle", sans-serif;
-  font-size: 24px;
+  font-size: 16px;
 }
 
-.timer i {
+.timer svg {
   color: #f59e0b;
 }
 
@@ -128,17 +118,16 @@
   border-radius: 8px;
   margin-bottom: 16px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   border: 1px solid #fecaca;
-  font-family: "Dongle", sans-serif;
-  font-size: 24px;
+  font-size: 14px;
 }
 
-.expired-message i {
+.expired-message svg {
   color: #ef4444;
 }
 
@@ -149,52 +138,16 @@
   margin-top: 8px;
 }
 
-.verify-btn {
-  width: 100%;
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  color: white;
-  border: none;
-  padding: 16px 20px;
-  border-radius: 12px;
-  font-size: 24px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-family: "Dongle", sans-serif;
-}
-
-.verify-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.verify-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none !important;
-}
-
-.verify-btn:disabled:hover {
-  transform: none !important;
-}
-
 /* Loading content */
 .loading-content {
   display: flex;
   align-items: center;
   gap: 8px;
   justify-content: center;
-  font-family: "Dongle", sans-serif;
 }
 
 /* Loading spinner */
 .loading-spinner {
-  width: 10px;
-  height: 10px;
   animation: spin 1s linear infinite;
   color: currentColor;
 }
@@ -207,29 +160,27 @@
 /* Resend section */
 .resend-section {
   text-align: center;
-  margin-bottom: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #e1e8ed;
+  margin-bottom: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .resend-section p {
-  color: #7f8c8d;
-  margin-bottom: 12px;
-  font-size: 24px;
-  font-family: "Dongle", sans-serif;
+  color: #6b7280;
+  margin-bottom: 16px;
+  font-size: 16px;
 }
 
 .resend-btn {
   background: transparent;
   color: #1e40af;
   border: 2px solid #1e40af;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 24px;
-  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: "Dongle", sans-serif;
+  transition: all 0.2s ease;
 }
 
 .resend-btn:hover:not(:disabled) {
@@ -249,18 +200,26 @@
   text-align: center;
 }
 
-.back-btn {
+.verify-otp-back-btn {
   background: none;
   border: none;
-  color: #1e40af;
+  color: #6b7280;
   cursor: pointer;
-  font-size: 24px;
-  padding: 0;
-  font-family: "Dongle", sans-serif;
+  font-size: 16px;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 auto;
+  transition: color 0.2s ease;
 }
 
-.back-btn:hover {
-  text-decoration: underline;
+.verify-otp-back-btn:hover {
+  color: #374151;
+}
+
+.verify-otp-back-btn svg {
+  flex-shrink: 0;
 }
 
 /* Error Message Styles - matching Login page */
@@ -275,8 +234,7 @@
   border-left: 4px solid #ef4444;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
-  animation: slideIn 0.3s ease-out, pulse 2s ease-in-out 0.5s;
-  font-family: "Dongle", sans-serif;
+  animation: slideIn 0.3s ease-out;
 }
 
 .error-icon {
@@ -289,11 +247,10 @@
 
 .error-text {
   color: #dc2626;
-  font-size: 24px;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.4;
   flex: 1;
-  font-family: "Dongle", sans-serif;
 }
 
 /* Success Message Styles - matching Login page */
@@ -308,8 +265,7 @@
   border-left: 4px solid #22c55e;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(34, 197, 94, 0.1);
-  animation: slideIn 0.3s ease-out, pulse 2s ease-in-out 0.5s;
-  font-family: "Dongle", sans-serif;
+  animation: slideIn 0.3s ease-out;
 }
 
 .success-icon {
@@ -322,24 +278,13 @@
 
 .success-text {
   color: #16a34a;
-  font-size: 24px;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.4;
   flex: 1;
-  font-family: "Dongle", sans-serif;
 }
 
-/* Pulse animation for messages */
-@keyframes pulse {
-  0%, 100% { 
-    transform: scale(1);
-  }
-  50% { 
-    transform: scale(1.02);
-  }
-}
-
-/* Animation for error message */
+/* Animation for messages */
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -351,74 +296,38 @@
   }
 }
 
-/* Enhanced form interactions */
-.otp-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  border-color: #3b82f6;
-}
-
-/* Enhanced button hover effects */
-.verify-btn:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
-}
-
-.verify-btn:not(:disabled):active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
 /* Responsive Design */
 @media (max-width: 480px) {
-  .verify-otp-header h2 {
-    font-size: 28px;
-  }
-  
   .verify-otp-header p {
-    font-size: 20px;
+    font-size: 13px;
   }
   
   .email-address {
-    font-size: 22px !important;
+    font-size: 15px !important;
   }
   
-  .otp-input {
-    font-size: 24px;
-    letter-spacing: 6px;
-    padding: 12px;
-  }
   
   .timer {
-    font-size: 20px;
+    font-size: 13px;
   }
   
   .expired-message {
-    font-size: 20px;
-  }
-  
-  .verify-btn {
-    font-size: 20px;
+    font-size: 13px;
   }
   
   .resend-section p {
-    font-size: 20px;
+    font-size: 13px;
   }
   
   .resend-btn {
-    font-size: 20px;
-  }
-  
-  .back-btn {
-    font-size: 20px;
+    font-size: 13px;
   }
   
   .error-text {
-    font-size: 20px;
+    font-size: 13px;
   }
   
   .success-text {
-    font-size: 20px;
+    font-size: 13px;
   }
 }

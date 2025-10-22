@@ -335,6 +335,10 @@ namespace WebAPI.Data
                 entity.Property(e => e.TagName)
                     .HasMaxLength(50)
                     .HasColumnName("tag_name");
+                entity.Property(e => e.CreatedAt)
+                    .HasPrecision(0)
+                    .HasDefaultValueSql("(sysdatetime())")
+                    .HasColumnName("created_at");
             });
 
             modelBuilder.Entity<Transaction>(entity =>
@@ -588,13 +592,15 @@ namespace WebAPI.Data
                 entity.Property(e => e.ExamId).HasColumnName("exam_id");
                 entity.Property(e => e.WritingQuestion).HasColumnName("writing_question");
 
+                entity.Property(e => e.ImageUrl)
+                    .HasColumnName("image_url")
+                    .HasMaxLength(500);
 
                 entity.HasOne(d => d.Exam).WithMany(p => p.Writings)
                     .HasForeignKey(d => d.ExamId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK__Writing__exam_id__5FB337D6");
             });
-
 
             modelBuilder.Entity<WritingFeedback>(entity =>
             {

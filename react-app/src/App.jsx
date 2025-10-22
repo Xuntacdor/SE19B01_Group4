@@ -21,6 +21,8 @@ import AddListening from "./Pages/Admin/AddListening.jsx";
 import AddWriting from "./Pages/Admin/AddWriting.jsx";
 import AddSpeaking from "./Pages/Admin/AddSpeaking.jsx";
 import ModeratorDashboard from "./Pages/Moderator/ModeratorDashboard.jsx"; // ⚡ import moderator dashboard
+import ModeratorProfile from "./Pages/Moderator/ModeratorProfile.jsx";
+import TagManagement from "./Pages/Moderator/TagManagement.jsx";
 import WritingTestPage from "./Pages/Writing/WritingTestPage.jsx";
 import ReadingExamPage from "./Pages/Reading/ReadingExamPage.jsx";
 import ListeningExamPage from "./Pages/Listening/ListeningExamPage.jsx";
@@ -74,6 +76,8 @@ function App() {
         <Route path="/listening/test" element={<ListeningExamPage />} />
 
         <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
+        <Route path="/moderator/profile" element={<ModeratorProfile />} />
+        <Route path="/moderator/tags" element={<TagManagement />} />
         <Route path="/admin/transactions" element={<TransactionList />} />
         <Route path="/admin/transactions/:id" element={<TransactionDetail />} />
         <Route path="/transactions/plans" element={<VipPlans />} />

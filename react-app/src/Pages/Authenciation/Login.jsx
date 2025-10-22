@@ -1,6 +1,7 @@
   import React, { useState, useEffect } from "react";
   import AuthLayout from "../../Components/Layout/AuthLayout";
   import FormInput from "../../Components/Auth/InputField";
+  import PasswordInputField from "../../Components/Auth/PasswordInputField";
   import Button from "../../Components/Auth/Button";
   import { login, register, loginWithGoogle, forgotPassword } from "../../Services/AuthApi.js";
   import userIcon from "../../assets/auth_user.png";
@@ -264,24 +265,20 @@
                 />
 
                 {(mode === "login" || mode === "register") && (
-                  <FormInput
+                  <PasswordInputField
                     name="password"
-                    type="password"
                     placeholder="Password"
                     value={form.password}
                     onChange={handleChange}
-                    icon={lockIcon}
                   />
                 )}
 
                 {mode === "register" && (
-                  <FormInput
+                  <PasswordInputField
                     name="confirmPassword"
-                    type="password"
                     placeholder="Confirm Password"
                     value={form.confirmPassword}
                     onChange={handleChange}
-                    icon={lockIcon}
                   />
                 )}
 

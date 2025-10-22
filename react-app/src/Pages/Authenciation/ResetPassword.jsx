@@ -4,6 +4,8 @@ import { resetPassword } from '../../Services/AuthApi';
 import BrandPanel from '../../Components/Layout/BrandPanel.jsx';
 import AuthLayout from '../../Components/Layout/AuthLayout';
 import Button from '../../Components/Auth/Button';
+import PasswordInputField from '../../Components/Auth/PasswordInputField';
+import lockIcon from '../../assets/auth_lock.png';
 import { Loader2, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import './ResetPassword.css';
 
@@ -117,14 +119,11 @@ const ResetPassword = () => {
             <form onSubmit={handleSubmit} className="reset-password-form">
               <div className="form-group">
                 <label htmlFor="newPassword">New Password</label>
-                <input
-                  type="password"
-                  id="newPassword"
+                <PasswordInputField
                   name="newPassword"
+                  placeholder="Enter new password"
                   value={formData.newPassword}
                   onChange={handleInputChange}
-                  placeholder="Enter new password"
-                  required
                   disabled={loading}
                 />
                 {formData.newPassword && (
@@ -150,14 +149,11 @@ const ResetPassword = () => {
 
               <div className="form-group">
                 <label htmlFor="confirmPassword">Confirm Password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
+                <PasswordInputField
                   name="confirmPassword"
+                  placeholder="Confirm new password"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  placeholder="Confirm new password"
-                  required
                   disabled={loading}
                 />
                 {formData.confirmPassword && formData.newPassword !== formData.confirmPassword && (
@@ -186,35 +182,37 @@ const ResetPassword = () => {
                   <div className="error-text">{error}</div>
                 </div>
               )}
-
-              <div className="button-location">
-                <Button 
-                  type="submit" 
-                  variant="yellow"
-                  disabled={loading || formData.newPassword !== formData.confirmPassword || formData.newPassword.length < 6}
-                >
-                  {loading ? (
-                    <div className="loading-content">
-                      <Loader2 size={10} className="loading-spinner" />
-                      <span>Resetting Password...</span>
-                    </div>
-                  ) : (
-                    "Reset Password"
-                  )}
-                </Button>
-              </div>
             </form>
 
             <div className="reset-password-footer">
-              <button 
-                type="button"
-                className="back-btn"
-                onClick={() => navigate('/verify-otp', { state: { email } })}
-              >
-                <ArrowLeft size={16} />
-                Back to Verification
-              </button>
-            </div>
+                <div className="button-row">
+                  <Button 
+                    type="submit" 
+                    variant="yellow"
+                    disabled={loading || formData.newPassword !== formData.confirmPassword || formData.newPassword.length < 6}
+                    className="reset-btn"
+                  >
+                    {loading ? (
+                      <div className="loading-content">
+                        <Loader2 size={10} className="loading-spinner" />
+                        <span>Resetting Password...</span>
+                      </div>
+                    ) : (
+                      "Reset Password"
+                    )}
+                  </Button>
+                  
+                  <button 
+                    type="button"
+                    className="back-btn"
+                    onClick={() => navigate('/verify-otp', { state: { email } })}
+                  >
+                    <ArrowLeft size={16} />
+                    Back to Verification
+                  </button>
+                </div>
+              </div>
+
           </AuthLayout>
         </div>
       </div>

@@ -1,5 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Edit2 } from "lucide-react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+import { Edit2, Loader2 } from "lucide-react";
 import styles from "./ExamPopup.module.css";
 
 export default function ExamSkillModal({
@@ -7,74 +13,136 @@ export default function ExamSkillModal({
   tasks,
   loading,
   onClose,
-  onStartFullTest,     // ✅ new prop
-  onStartIndividual,   // ✅ new prop
+  onStartFullTest,
+  onStartIndividual,
+  skillType,
 }) {
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
-  const [duration, setDuration] = useState(60);
-  const [isEditingTime, setIsEditingTime] = useState(false);
   const dropdownRef = useRef(null);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [isEditingTime, setIsEditingTime] = useState(false);
 
-  // ======= handle click outside =======
+  // =========================
+  // == Dynamic duration logic
+  // =========================
+  const getDefaultDuration = useCallback((skill) => {
+    switch (skill) {
+      case "Speaking":
+        return 15;
+      case "Listening":
+        return 40;
+      case "Reading":
+      case "Writing":
+        return 60;
+      default:
+        return 60;
+    }
+  }, []);
+
+  const getDurationOptions = useCallback((skill) => {
+    switch (skill) {
+      case "Speaking":
+        return [10, 12, 15, 18, 20];
+      case "Listening":
+        return [30, 35, 40, 45];
+      case "Writing":
+        return [45, 55, 60, 65];
+      case "Reading":
+        return [50, 55, 60, 65];
+      default:
+        return [30, 40, 60];
+    }
+  }, []);
+
+  const [duration, setDuration] = useState(() => {
+    const saved = localStorage.getItem(`${skillType}_duration`);
+    return saved ? Number(saved) : getDefaultDuration(skillType);
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem(`${skillType}_duration`);
+    if (saved) setDuration(Number(saved));
+    else setDuration(getDefaultDuration(skillType));
+  }, [skillType, getDefaultDuration]);
+
+  const handleDurationChange = (min) => {
+    setDuration(min);
+    localStorage.setItem(`${skillType}_duration`, min);
+    setIsEditingTime(false);
+  };
+
+  // =========================
+  // == Handle click outside dropdown
+  // =========================
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsEditingTime(false);
       }
     };
-    if (isEditingTime) {
-      document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isEditingTime]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  const handleDurationChange = (min) => {
-    setDuration(min);
-    setIsEditingTime(false);
-  };
-
-  // ======= skill-agnostic helpers =======
+  // =========================
+  // == Helper functions
+  // =========================
   const totalTasks = Array.isArray(tasks) ? tasks.length : 0;
-  const taskTypes = Array.isArray(tasks)
-    ? Array.from(
-        new Set(
-          tasks.map(
-            (t) =>
-              t.readingType ||
-              t.listeningType ||
-              t.writingType ||
-              t.speakingType ||
-              "Unknown"
-          )
-        )
-      ).join(", ")
-    : "";
 
-  const getDisplayOrder = (t) => t.displayOrder ?? t.DisplayOrder ?? 0;
-  const getTaskId = (t) =>
-    t.readingId || t.listeningId || t.writingId || t.speakingId;
-  const getTaskLabel = (t) =>
-    t.readingType ||
-    t.listeningType ||
-    t.writingType ||
-    t.speakingType ||
-    "Task";
-  const getTaskDurationMinutes = (t) => {
-    const order = Number(getDisplayOrder(t));
-    if (order === 1) return 20;
-    if (order === 2) return 40;
-    return 30;
-  };
+  const taskTypes = useMemo(() => {
+    if (!Array.isArray(tasks)) return "";
+    const types = tasks.map(
+      (t) =>
+        t.readingType ||
+        t.listeningType ||
+        t.writingType ||
+        t.speakingType ||
+        "Unknown"
+    );
+    return [...new Set(types)].join(", ");
+  }, [tasks]);
 
-  // ======= start test actions =======
+  const getDisplayOrder = useCallback(
+    (t) => t.displayOrder ?? t.DisplayOrder ?? 0,
+    []
+  );
+  const getTaskId = useCallback(
+    (t) => t.readingId || t.listeningId || t.writingId || t.speakingId,
+    []
+  );
+  const getTaskLabel = useCallback(
+    (t) =>
+      t.readingType ||
+      t.listeningType ||
+      t.writingType ||
+      t.speakingType ||
+      "Task",
+    []
+  );
+
+  const getTaskDurationMinutes = useCallback(
+    (t) => {
+      const order = Number(getDisplayOrder(t));
+      if (skillType === "Speaking") {
+        // 3 phần Speaking: Part 1 (4-5'), Part 2 (3-4'), Part 3 (4-5')
+        if (order === 1) return 5;
+        if (order === 2) return 3;
+        if (order === 3) return 5;
+        return 4;
+      }
+      if (order === 1) return 20;
+      if (order === 2) return 40;
+      return 30;
+    },
+    [skillType, getDisplayOrder]
+  );
+
+  // =========================
+  // == Start handlers
+  // =========================
   const handleStartFullTest = () => {
     onClose();
     if (typeof onStartFullTest === "function") {
-      onStartFullTest(exam, duration); // ✅ pass data out
+      onStartFullTest(exam, duration);
     }
   };
 
@@ -84,19 +152,24 @@ export default function ExamSkillModal({
       : null;
     if (!task) return;
 
+    const duration = getTaskDurationMinutes(task); // ✅ Lấy thời lượng riêng
+
     onClose();
     if (typeof onStartIndividual === "function") {
-      onStartIndividual(exam, task); // ✅ pass data out
+      onStartIndividual(exam, task, duration); // ✅ Truyền thêm duration
     }
   };
 
-  // ======= render =======
+  // =========================
+  // == Render
+  // =========================
   return (
     <div
       className={styles.modalOverlay}
       role="dialog"
       aria-modal="true"
       aria-labelledby="examSkillModalTitle"
+      tabIndex="-1"
     >
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
@@ -114,7 +187,9 @@ export default function ExamSkillModal({
         </div>
 
         {loading ? (
-          <div className={styles.stateText}>Loading tasks...</div>
+          <div className={styles.stateText}>
+            <Loader2 size={18} className={styles.spin} /> Loading tasks...
+          </div>
         ) : (
           <div className={`${styles.modalContent} ${styles.modalGrid}`}>
             {/* ===== Left column: Full test ===== */}
@@ -140,7 +215,7 @@ export default function ExamSkillModal({
 
                         {isEditingTime && (
                           <div className={styles.dropdown}>
-                            {[50, 55, 60, 65, 70].map((min) => (
+                            {getDurationOptions(skillType).map((min) => (
                               <div
                                 key={min}
                                 className={styles.dropdownItem}
@@ -194,25 +269,29 @@ export default function ExamSkillModal({
                   <div className={styles.taskList}>
                     {Array.isArray(tasks) && tasks.length > 0 ? (
                       tasks
-                        .sort(
-                          (a, b) => getDisplayOrder(a) - getDisplayOrder(b)
-                        )
+                        .sort((a, b) => getDisplayOrder(a) - getDisplayOrder(b))
                         .map((t) => {
                           const id = getTaskId(t);
+                          const selected =
+                            String(selectedTaskId) === String(id);
                           return (
-                            <label key={id} className={styles.taskOption}>
+                            <label
+                              key={id}
+                              className={`${styles.taskOption} ${
+                                selected ? styles.selectedTask : ""
+                              }`}
+                            >
                               <input
                                 type="radio"
                                 name="task"
                                 value={id}
-                                checked={String(selectedTaskId) === String(id)}
+                                checked={selected}
                                 onChange={() => setSelectedTaskId(id)}
                               />
                               <div className={styles.taskMeta}>
                                 <div className={styles.taskTitle}>
-                                  {getTaskLabel(t)} — Task{" "}
-                                  {getDisplayOrder(t)} (
-                                  {getTaskDurationMinutes(t)} min)
+                                  {getTaskLabel(t)} — Task {getDisplayOrder(t)}{" "}
+                                  ({getTaskDurationMinutes(t)} min)
                                 </div>
                               </div>
                             </label>
@@ -225,6 +304,7 @@ export default function ExamSkillModal({
                     )}
                   </div>
                 </div>
+
                 <div
                   className={`${styles.blockActions} ${styles.centerActions}`}
                 >

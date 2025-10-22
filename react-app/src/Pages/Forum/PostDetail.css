@@ -8,20 +8,28 @@
   flex: 1;
   padding: 20px;
   display: flex;
-  gap: 20px;
-  max-width: 1200px;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
 
+.post-detail-main-content {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
 .post-detail-main {
-  flex: 1;
+  flex: 2;
   min-width: 0; /* Cho phép flex item co lại */
   width: 100%;
 }
 
 .post-detail-sidebar {
-  width: 300px;
+  flex: 1;
+  max-width: 350px;
   flex-shrink: 0;
   position: sticky;
   top: 20px;
@@ -29,20 +37,54 @@
 }
 
 .post-detail-header {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e9ecef;
 }
 
+
 .back-btn {
-  background: none;
-  border: none;
-  color: #007bff;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #495057;
   cursor: pointer;
-  font-size: 22px;
-  padding: 8px 0;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
 }
 
 .back-btn:hover {
-  text-decoration: underline;
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #212529;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn:active {
+  transform: translateY(0);
+}
+
+.post-detail-title {
+  color: #212529;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .post-detail-card {
@@ -82,7 +124,7 @@
 
 .post-time {
   color: #666;
-  font-size: 22px;
+  font-size: 20px;
   margin: 0;
 }
 
@@ -111,7 +153,7 @@
 }
 
 .post-title {
-  font-size: 28px;
+  font-size: 28px !important;
   font-weight: 600;
   color: #333;
   margin: 0 0 16px 0;
@@ -121,24 +163,31 @@
 .post-body {
   color: #333;
   line-height: 1.6;
-  font-size: 24px;
+  font-size: 22px;
   white-space: pre-wrap;
 }
 
 .post-tags {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
 .post-tag {
   background-color: #e9ecef;
-  color: #666;
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 28px;
+  color: #495057;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: 500;
+  border: 1px solid #dee2e6;
+  transition: all 0.2s ease;
+}
+
+.post-tag:hover {
+  background-color: #e8e8e8;
+  transform: translateY(-1px);
 }
 
 .post-stats {
@@ -265,9 +314,8 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   padding: 24px;
   text-align: center;
-  position: sticky;
-  top: 20px;
   border: 1px solid #e9ecef;
+  width: 100%;
 }
 
 .profile-avatar {
@@ -460,4 +508,97 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.1); }
   100% { transform: scale(1); }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .post-detail-content {
+    max-width: 100%;
+    padding: 16px;
+    gap: 20px;
+  }
+  
+  .post-detail-main-content {
+    gap: 20px;
+  }
+  
+  .post-detail-sidebar {
+    max-width: 300px;
+  }
+  
+  .post-detail-header {
+    padding: 12px 16px;
+  }
+  
+  .post-detail-title {
+    font-size: 20px;
+  }
+  
+  .back-btn {
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .post-detail-content {
+    padding: 12px;
+    gap: 16px;
+  }
+  
+  .post-detail-main-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .post-detail-main {
+    flex: none;
+    width: 100%;
+    order: 1;
+  }
+  
+  .post-detail-sidebar {
+    flex: none;
+    max-width: 100%;
+    position: static;
+    order: 2;
+  }
+  
+  .post-detail-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    padding: 16px;
+  }
+  
+  .post-detail-title {
+    font-size: 18px;
+  }
+  
+  .back-btn {
+    font-size: 14px;
+    padding: 10px 16px;
+    align-self: center;
+  }
+  
+  .user-profile-card {
+    margin-top: 0;
+  }
+  
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .profile-username {
+    font-size: 22px;
+  }
+  
+  .stat-label {
+    font-size: 14px;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+  }
 }

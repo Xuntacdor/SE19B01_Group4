@@ -5,7 +5,8 @@ import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import HeaderBar from "../../Components/Layout/HeaderBar";
 import RightSidebar from "../../Components/Forum/RightSidebar";
 import { getPost, updatePost } from "../../Services/ForumApi";
-import { Image, Send, X } from "lucide-react";
+import { getAllTags } from "../../Services/TagApi";
+import { Image, Send, X, Tag } from "lucide-react";
 
 export default function EditPost({ onNavigate }) {
   const { postId } = useParams();
@@ -15,11 +16,14 @@ export default function EditPost({ onNavigate }) {
     content: "",
     tagNames: []
   });
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [availableTags, setAvailableTags] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     loadPost();
+    loadTags();
   }, [postId]);
 
   const loadPost = () => {
@@ -31,6 +35,8 @@ export default function EditPost({ onNavigate }) {
           content: post.content || "",
           tagNames: post.tags ? post.tags.map(tag => tag.tagName) : []
         });
+        // Set selected tags for UI
+        setSelectedTags(post.tags || []);
       })
       .catch((error) => {
         console.error("Error loading post:", error);
@@ -40,6 +46,15 @@ export default function EditPost({ onNavigate }) {
       .finally(() => {
         setInitialLoading(false);
       });
+  };
+
+  const loadTags = async () => {
+    try {
+      const tags = await getAllTags();
+      setAvailableTags(tags);
+    } catch (error) {
+      console.error('Error loading tags:', error);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -58,7 +73,12 @@ export default function EditPost({ onNavigate }) {
     }
 
     setLoading(true);
-    updatePost(postId, formData)
+    const postData = {
+      ...formData,
+      tagNames: selectedTags.map(tag => tag.tagName)
+    };
+    
+    updatePost(postId, postData)
       .then((response) => {
         navigate(`/post/${postId}`);
       })
@@ -79,6 +99,16 @@ export default function EditPost({ onNavigate }) {
   const handleAddImage = () => {
     // TODO: Implement add image functionality
     console.log("Add image clicked");
+  };
+
+  const handleTagSelect = (tag) => {
+    if (!selectedTags.find(t => t.tagId === tag.tagId)) {
+      setSelectedTags([...selectedTags, tag]);
+    }
+  };
+
+  const handleTagRemove = (tagId) => {
+    setSelectedTags(selectedTags.filter(t => t.tagId !== tagId));
   };
 
   if (initialLoading) {
@@ -133,6 +163,47 @@ export default function EditPost({ onNavigate }) {
                   required
                   className="form-textarea"
                 />
+              </div>
+
+              <div className="form-group">
+                <label>Tags (Optional)</label>
+                <div className="tag-selection">
+                  <div className="selected-tags">
+                    {selectedTags.map(tag => (
+                      <span key={tag.tagId} className="selected-tag">
+                        #{tag.tagName}
+                        <button
+                          type="button"
+                          className="remove-tag"
+                          onClick={() => handleTagRemove(tag.tagId)}
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <div className="tag-dropdown">
+                    <div className="dropdown-header">
+                      <Tag size={16} />
+                      <span>Select tags</span>
+                    </div>
+                    <div className="dropdown-content">
+                      {availableTags
+                        .filter(tag => !selectedTags.find(t => t.tagId === tag.tagId))
+                        .map(tag => (
+                          <div
+                            key={tag.tagId}
+                            className="tag-option"
+                            onClick={() => handleTagSelect(tag)}
+                          >
+                            #{tag.tagName}
+                            <span className="tag-count">({tag.postCount})</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="form-actions">
