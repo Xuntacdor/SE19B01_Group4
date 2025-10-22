@@ -37,6 +37,7 @@ import SpeakingPage from "./Pages/Speaking/SpeakingPage.jsx";
 import SpeakingTestPage from "./Pages/Speaking/SpeakingTestPage.jsx";
 import SpeakingResultPage from "./Pages/Speaking/SpeakingResultPage.jsx";
 import ReadingResultPage from "./Pages/Reading/ReadingResultPage.jsx";
+import ListeningResultPage from "./Pages/Listening/ListeningResultPage.jsx";
 
 function App() {
   return (
@@ -71,6 +72,7 @@ function App() {
         <Route path="/speaking/test" element={<SpeakingTestPage />} />
         <Route path="/speaking/result" element={<SpeakingResultPage />} />
         <Route path="/reading/result" element={<ReadingResultPage />} />
+        <Route path="/listening/result" element={<ListeningResultPage />} />
 
         <Route path="/reading/test" element={<ReadingExamPage />} />
         <Route path="/listening/test" element={<ListeningExamPage />} />
