@@ -71,8 +71,7 @@ export default function SpeakingPage() {
     });
   };
 
-  const handleStartIndividual = (exam, task) => {
-    const duration = getTaskDuration(task.speakingType);
+  const handleStartIndividual = (exam, task, duration) => {
     navigate("/speaking/test", {
       state: {
         exam,
