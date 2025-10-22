@@ -55,13 +55,15 @@ marked.setOptions({
   headerIds: false,
 });
 
-function processQuestionBlock(lines, qIndex, showAnswers, readingId) {
+function processQuestionBlock(lines, qIndex, showAnswers, readingId = 0) {
   let text = lines.join("\n");
 
   // 🟢 Text inputs
   text = text.replace(/\[T\*([^\]]+)\]/g, (_, ans) =>
     showAnswers
-      ? `<input type="text" value="${escapeHtml(ans)}" readonly class="inlineTextbox answerFilled" />`
+      ? `<input type="text" value="${escapeHtml(
+          ans
+        )}" readonly class="inlineTextbox answerFilled" />`
       : `<input type="text" class="inlineTextbox" name="${readingId}_q${qIndex}_text" />`
   );
   text = text.replace(
@@ -69,7 +71,7 @@ function processQuestionBlock(lines, qIndex, showAnswers, readingId) {
     `<input type="text" class="inlineTextbox" name="${readingId}_q${qIndex}_text" />`
   );
 
-  // 🟢 Dropdowns
+  // 🟢 Dropdowns ([D] ... [/D])
   const choiceRegex = /\[([* ])\]\s*([^\n\[]+)/g;
   const dropdownRegex = /\[D\]([\s\S]*?)\[\/D\]/g;
   text = text.replace(dropdownRegex, (_, inner) => {
@@ -82,9 +84,10 @@ function processQuestionBlock(lines, qIndex, showAnswers, readingId) {
       30
     );
     const html =
-      `<select name="${readingId}_q${qIndex}" class="dropdownInline" style="width:${longest}ch" ${
-        showAnswers ? "disabled" : ""
-      }>` +
+  `<select name="${readingId}_q${qIndex}" class="dropdownInline" style="width:${longest}ch" ${
+    showAnswers ? "disabled" : ""
+  }>
+    <option value="" disabled selected hidden>Select...</option>` +
       options
         .map(
           (o) =>
@@ -97,7 +100,7 @@ function processQuestionBlock(lines, qIndex, showAnswers, readingId) {
     return html;
   });
 
-  // 🟢 Radio / Checkbox (exclude dropdown when deciding if multi)
+  // 🟢 Radio / Checkbox
   const choiceRegex2 = /\[([* ])\]\s*([^\n\[]+)/g;
   const outsideDropdown = text.replace(/\[D\][\s\S]*?\[\/D\]/g, "");
   const correctCount = (outsideDropdown.match(/\[\*\]/g) || []).length;
@@ -118,7 +121,7 @@ function processQuestionBlock(lines, qIndex, showAnswers, readingId) {
     </label>`;
   });
 
-  // 🟢 Question number marker
+  // 🟢 Question number
   text = text.replace(
     /\[!num\]/g,
     `<span class="numberIndex">Q${qIndex}.</span>`
@@ -132,7 +135,7 @@ export default function ExamMarkdownRenderer({
   showAnswers = false,
   userAnswers = [],
   correctAnswers = [],
-  readingId = 0, // ✅ accept readingId from props
+  readingId = 0,
 }) {
   const blocks = splitBlocks(markdown);
   let qCounter = 0;
@@ -142,11 +145,9 @@ export default function ExamMarkdownRenderer({
       if (b.type === "markdown") return marked.parse(b.text);
       if (b.type === "question") {
         qCounter++;
-        // ✅ pass readingId so input names are `${readingId}_q${qIndex}`
         let html = processQuestionBlock(b.lines, qCounter, showAnswers, readingId);
 
         if (showAnswers) {
-          // Inline highlighting for review mode
           const user = userAnswers[qCounter - 1] || "_";
           const correct = correctAnswers[qCounter - 1] || "_";
           const isCorrect =
@@ -161,6 +162,7 @@ export default function ExamMarkdownRenderer({
             }" readonly value="${user}" title="Correct: ${correct}" `
           );
         }
+
         return html;
       }
       return "";
@@ -170,8 +172,8 @@ export default function ExamMarkdownRenderer({
   return <div className="renderer" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-// 🟢 Extract correct answers exactly matching rendered values
-export function renderMarkdownToHtmlAndAnswers(markdown) {
+// 🟢 Export helper that generates HTML + correct answers list
+export function renderMarkdownToHtmlAndAnswers(markdown, readingId = 0) {
   const blocks = splitBlocks(markdown);
   let htmlOutput = "";
   let allAnswers = [];
@@ -185,6 +187,8 @@ export function renderMarkdownToHtmlAndAnswers(markdown) {
 
     qCounter++;
     const full = b.lines.join("\n");
+
+    // Extract correct answers
     const textAnswers = [...full.matchAll(/\[T\*([^\]]+)\]/g)].map((m) =>
       m[1].trim()
     );
@@ -196,8 +200,9 @@ export function renderMarkdownToHtmlAndAnswers(markdown) {
     const radioAnswers = [...outsideDropdown.matchAll(/\[\*\]\s*([^\n\[]+)/g)].map(
       (m) => m[1].trim()
     );
+
     allAnswers.push(...textAnswers, ...dropdownAnswers, ...radioAnswers);
-    htmlOutput += processQuestionBlock(b.lines, qCounter, false, 0);
+    htmlOutput += processQuestionBlock(b.lines, qCounter, false, readingId);
   });
 
   return { html: htmlOutput, answers: allAnswers };

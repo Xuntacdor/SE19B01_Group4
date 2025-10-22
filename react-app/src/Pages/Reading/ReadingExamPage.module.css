@@ -355,3 +355,97 @@
     font-size: 12px;
   }
 }
+
+.unanswered {
+  outline: 2px solid #ef4444;
+  background-color: #fee2e2;
+}
+
+.bottomNavigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  gap: 10px;
+}
+
+.navScrollContainer {
+  display: flex;
+  overflow-x: auto;
+  gap: 24px;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
+.navScrollContainer::-webkit-scrollbar {
+  height: 6px;
+}
+.navScrollContainer::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+
+.navSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.navSectionTitle {
+  font-weight: 600;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+
+.navQuestions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.navButton {
+  border: 1px solid #ccc;
+  background: white;
+  color: #333;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navButton:hover {
+  background: #f1f5f9;
+}
+
+.activeNavButton {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+.completeButton {
+  margin-left: 10px;
+  background: #16a34a;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.completeButton:hover {
+  background: #15803d;
+}

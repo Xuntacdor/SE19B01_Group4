@@ -28,55 +28,6 @@ export default function ReadingExamPage() {
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
 
-  // 🧩 Dynamic input capture (with checkbox limit enforcement)
-  useEffect(() => {
-    const form = formRef.current;
-    if (!form) return;
-
-    const handleInput = (e) => {
-      const { name, value, type, checked, dataset } = e.target;
-      if (!name) return;
-
-      // Handle multi-choice checkboxes with proper limit enforcement
-      if (type === "checkbox") {
-        const limit = parseInt(dataset.limit || "0", 10);
-        const allInGroup = form.querySelectorAll(`input[name="${name}"][type="checkbox"]`);
-        const checkedInGroup = Array.from(allInGroup).filter((el) => el.checked);
-
-        if (checked && limit && checkedInGroup.length > limit) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          e.target.checked = false;
-          alert(`You can only select ${limit} option${limit > 1 ? "s" : ""} for this question.`);
-          return;
-        }
-
-        const selected = Array.from(allInGroup)
-          .filter((el) => el.checked)
-          .map((el) => el.value);
-
-        setAnswers((prev) => ({ ...prev, [name]: selected }));
-        return;
-      }
-
-      // Handle radio
-      if (type === "radio") {
-        if (checked) setAnswers((prev) => ({ ...prev, [name]: [value] }));
-        return;
-      }
-
-      // Handle text & dropdown
-      setAnswers((prev) => ({ ...prev, [name]: [value] }));
-    };
-
-    form.addEventListener("input", handleInput);
-    form.addEventListener("change", handleInput);
-    return () => {
-      form.removeEventListener("input", handleInput);
-      form.removeEventListener("change", handleInput);
-    };
-  }, [currentTask]);
-
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -87,35 +38,135 @@ export default function ReadingExamPage() {
     setCurrentTask(questionNumber - 1);
   };
 
-  // 📝 Submit logic
+  // ✅ Single unified input handler
+  const handleChange = (e) => {
+    const { name, value, type, checked, multiple, options, dataset } = e.target;
+    if (!name) return;
+
+    // ✅ Checkbox (multi-answer MCQ)
+    if (type === "checkbox") {
+      const limit = parseInt(dataset.limit || "0", 10);
+      const group = formRef.current?.querySelectorAll(
+        `input[name="${name}"][type="checkbox"]`
+      );
+      const checkedInGroup = Array.from(group || []).filter((el) => el.checked);
+
+      // Enforce limit
+      if (checked && limit && checkedInGroup.length > limit) {
+        e.preventDefault();
+        e.target.checked = false;
+        alert(`You can only select ${limit} option${limit > 1 ? "s" : ""}.`);
+        return;
+      }
+
+      const selected = checkedInGroup.map((el) => el.value);
+      setAnswers((prev) => ({ ...prev, [name]: selected }));
+      return;
+    }
+
+    // ✅ Radio (single-answer MCQ)
+    if (type === "radio") {
+      if (checked) setAnswers((prev) => ({ ...prev, [name]: value }));
+      return;
+    }
+
+    // ✅ Dropdown (single or multi)
+    if (multiple) {
+      const selected = Array.from(options)
+        .filter((opt) => opt.selected)
+        .map((opt) => opt.value);
+      setAnswers((prev) => ({ ...prev, [name]: selected }));
+      return;
+    }
+
+    // ✅ Text input or normal <select>
+    setAnswers((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // 📝 Submit logic (correctly flattens all arrays)
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
-    setIsSubmitting(true);
 
+    // 🔧 Build structured answers
     const structuredAnswers = tasks.map((task) => {
+      const prefix = `${task.readingId}_q`;
+      const questionKeys = Object.keys(answers)
+        .filter((k) => k.startsWith(prefix))
+        .sort((a, b) => {
+          const na = parseInt(a.split("_q")[1]) || 0;
+          const nb = parseInt(b.split("_q")[1]) || 0;
+          return na - nb;
+        });
+
       const taskAnswers = [];
-      Object.keys(answers).forEach((key) => {
-        if (key.startsWith(`${task.readingId}_`)) {
-          const val = answers[key];
-          if (Array.isArray(val)) taskAnswers.push(...val);
-          else taskAnswers.push(val);
+      questionKeys.forEach((key) => {
+        const val = answers[key];
+        if (Array.isArray(val)) {
+          // ✅ Push each answer separately (no join)
+          if (val.length > 0) val.forEach((v) => taskAnswers.push(v));
+          else taskAnswers.push("_");
+        } else if (typeof val === "string" && val.trim() !== "") {
+          taskAnswers.push(val);
+        } else {
+          taskAnswers.push("_");
         }
       });
 
-      return {
-        SkillId: task.readingId,
-        Answers: taskAnswers.length > 0 ? taskAnswers : ["_"],
-      };
+      // ✅ Match expected question count if available
+      try {
+        const expected = JSON.parse(task.correctAnswer || "[]");
+        if (Array.isArray(expected) && taskAnswers.length < expected.length) {
+          while (taskAnswers.length < expected.length) taskAnswers.push("_");
+        }
+      } catch {
+        // ignore if not JSON
+      }
+
+      return { SkillId: task.readingId, Answers: taskAnswers };
     });
 
-    // ✅ Convert to exact JSON string format expected by backend
-    const jsonString = JSON.stringify(structuredAnswers);
+    // ✅ Completion check
+    const expectedTotal = tasks.reduce((sum, t) => {
+      try {
+        const arr = JSON.parse(t.correctAnswer || "[]");
+        return sum + (Array.isArray(arr) ? arr.length : 0);
+      } catch {
+        const markers = (t.readingQuestion?.match(/\[!num\]/g) || []).length;
+        return sum + markers;
+      }
+    }, 0);
 
+    const actualTotal = structuredAnswers.reduce(
+      (sum, g) => sum + (g.Answers?.filter((a) => a !== "_")?.length || 0),
+      0
+    );
+
+    if (expectedTotal > 0 && actualTotal < expectedTotal) {
+      alert(
+        `Please complete all questions before submitting. (${actualTotal}/${expectedTotal} answered)`
+      );
+      const form = formRef.current;
+      if (form) {
+        const inputs = form.querySelectorAll("input, select, textarea");
+        inputs.forEach((el) => {
+          const v = answers[el.name];
+          const has = Array.isArray(v)
+            ? v.length > 0
+            : typeof v === "string" && v.trim() !== "";
+          el.classList.toggle("unanswered", !has);
+        });
+      }
+      return;
+    }
+
+    // ✅ Submit
+    setIsSubmitting(true);
+    const jsonString = JSON.stringify(structuredAnswers);
     const attempt = {
       examId: exam.examId,
       startedAt: new Date().toISOString(),
-      answers: jsonString, // send as string
+      answers: jsonString,
     };
 
     submitReadingAttempt(attempt)
@@ -132,34 +183,15 @@ export default function ReadingExamPage() {
       })
       .catch((err) => {
         console.error("❌ Submit failed:", err);
-        alert(
-          `Failed to submit your reading attempt.\n\n${jsonString}`
-        );
+        alert(`Failed to submit your reading attempt.\n\n${jsonString}`);
       })
       .finally(() => setIsSubmitting(false));
   };
 
   const getQuestionCount = (readingQuestion) => {
     if (!readingQuestion) return 0;
-    const end = readingQuestion.match(/(\d+)\s*$/gm);
-    const numMarkers = readingQuestion.match(/\[!num\]\s*(\d+)/g);
-    const ranges = readingQuestion.match(/Questions?\s+(\d+)\s*-\s*(\d+)/gi);
-    let nums = [];
-    if (end) nums.push(...end.map(Number));
-    if (numMarkers)
-      nums.push(
-        ...numMarkers.map((m) => {
-          const n = m.match(/(\d+)/);
-          return n ? Number(n[1]) : 0;
-        })
-      );
-    if (ranges)
-      ranges.forEach((r) => {
-        const m = r.match(/(\d+)\s*-\s*(\d+)/i);
-        if (m) for (let i = Number(m[1]); i <= Number(m[2]); i++) nums.push(i);
-      });
-    const valid = nums.filter((n) => n >= 1 && n <= 50);
-    return valid.length > 0 ? Math.max(...valid) : 0;
+    const numMarkers = readingQuestion.match(/\[!num\]/g);
+    return numMarkers ? numMarkers.length : 0;
   };
 
   if (!exam)
@@ -188,6 +220,7 @@ export default function ReadingExamPage() {
 
   return (
     <div className={styles.examWrapper}>
+      {/* ===== Header ===== */}
       <div className={styles.topHeader}>
         <button className={styles.backBtn} onClick={() => navigate("/reading")}>
           ← Back
@@ -199,6 +232,7 @@ export default function ReadingExamPage() {
         </div>
       </div>
 
+      {/* ===== Main Content ===== */}
       <div className={styles.mainContent}>
         <div className={styles.leftPanel}>
           {currentTaskData?.passageTitle && (
@@ -208,12 +242,13 @@ export default function ReadingExamPage() {
               </h3>
             </div>
           )}
-          <p className={styles.passageContent}> 
+          <div className={styles.passageContent}>
             {currentTaskData?.readingContent || ""}
-          </p>
+          </div>
         </div>
+
         <div className={styles.rightPanel}>
-          <form ref={formRef}>
+          <form ref={formRef} onChange={handleChange} onInput={handleChange}>
             {currentTaskData?.readingQuestion ? (
               <ExamMarkdownRenderer
                 markdown={currentTaskData.readingQuestion}
@@ -222,9 +257,17 @@ export default function ReadingExamPage() {
               />
             ) : (
               <div className={styles.questionSection}>
-                <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
+                <div
+                  style={{
+                    padding: "40px",
+                    textAlign: "center",
+                    color: "#666",
+                  }}
+                >
                   <h3>No Questions Found</h3>
-                  <p>This reading test doesn't have any questions configured yet.</p>
+                  <p>
+                    This reading test doesn't have any questions configured yet.
+                  </p>
                 </div>
               </div>
             )}
@@ -232,18 +275,43 @@ export default function ReadingExamPage() {
         </div>
       </div>
 
+      {/* ===== Footer Navigation ===== */}
+      {/* ===== Footer Navigation ===== */}
       <div className={styles.bottomNavigation}>
-        {Array.from({ length: questionCount }, (_, i) => i + 1).map((num) => (
-          <button
-            key={num}
-            className={`${styles.navButton} ${
-              currentTask === num - 1 ? styles.activeNavButton : ""
-            }`}
-            onClick={() => handleQuestionNavigation(num)}
-          >
-            {num}
-          </button>
-        ))}
+        <div className={styles.navScrollContainer}>
+          {tasks.map((task, taskIndex) => {
+            const questionCount = getQuestionCount(task.readingQuestion);
+            return (
+              <div key={task.readingId} className={styles.navSection}>
+                <div className={styles.navSectionTitle}>
+                  Part {taskIndex + 1}
+                </div>
+                <div className={styles.navQuestions}>
+                  {Array.from({ length: questionCount }, (_, qIndex) => (
+                    <button
+                      key={`${taskIndex}-${qIndex}`}
+                      className={`${styles.navButton} ${
+                        currentTask === taskIndex && qIndex === 0
+                          ? styles.activeNavButton
+                          : ""
+                      }`}
+                      onClick={() => {
+                        setCurrentTask(taskIndex);
+                        // scroll into view for clarity
+                        document
+                          .querySelector(`.${styles.examWrapper}`)
+                          ?.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      {qIndex + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <button
           className={styles.completeButton}
           onClick={handleSubmit}
