@@ -4,6 +4,7 @@ using WebAPI.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 namespace WebAPI.Services
 {
@@ -21,23 +22,65 @@ namespace WebAPI.Services
             return _readingRepo.GetByExamId(examId);
         }
 
-        public decimal EvaluateReading(int examId, IDictionary<int, string> answers)
+        public decimal EvaluateReading(int examId, List<UserAnswerGroup> structuredAnswers)
         {
             var readings = _readingRepo.GetByExamId(examId);
             if (readings == null || readings.Count == 0) return 0m;
 
-            int correct = 0;
+            int totalQuestions = 0;
+            int correctAnswers = 0;
+
+            var answerMap = structuredAnswers
+                .Where(g => g.Answers != null)
+                .ToDictionary(g => g.SkillId, g => g.Answers!);
+
             foreach (var r in readings)
             {
-                if (answers.TryGetValue(r.ReadingId, out string? userAnswer) &&
-                    string.Equals(r.CorrectAnswer, userAnswer, StringComparison.OrdinalIgnoreCase))
+                if (!answerMap.TryGetValue(r.ReadingId, out var userAnswers) || userAnswers.Count == 0)
+                    continue;
+
+                // Parse DB correct answers (supports JSON or plain text)
+                List<string> correctAnswersList;
+                try
                 {
-                    correct++;
+                    if (r.CorrectAnswer?.TrimStart().StartsWith("[") == true)
+                    {
+                        correctAnswersList = JsonSerializer.Deserialize<List<string>>(r.CorrectAnswer!)?
+                            .Select(a => a.Trim().ToLower()).ToList() ?? new();
+                    }
+                    else
+                    {
+                        correctAnswersList = (r.CorrectAnswer ?? "")
+                            .Replace(" and ", ",")
+                            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => a.Trim().ToLower())
+                            .ToList();
+                    }
+                }
+                catch
+                {
+                    correctAnswersList = new();
+                }
+
+                // Ensure we count all subquestions
+                totalQuestions += correctAnswersList.Count;
+
+                // Compare element-by-element (same order)
+                for (int i = 0; i < correctAnswersList.Count; i++)
+                {
+                    if (i < userAnswers.Count &&
+                        string.Equals(userAnswers[i].Trim(), correctAnswersList[i], StringComparison.OrdinalIgnoreCase))
+                    {
+                        correctAnswers++;
+                    }
                 }
             }
 
-            return Math.Round((decimal)correct / readings.Count * 9, 1);
+            // Scale to IELTS band (9)
+            if (totalQuestions == 0) return 0m;
+            return Math.Round((decimal)correctAnswers / totalQuestions * 9, 1);
         }
+
 
         public IEnumerable<ReadingDto> GetAll()
         {

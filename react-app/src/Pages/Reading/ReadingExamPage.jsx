@@ -18,7 +18,7 @@ export default function ReadingExamPage() {
 
   const formRef = useRef(null);
 
-  // 🕒 Timer logic
+  // 🕒 Timer
   useEffect(() => {
     if (!timeLeft || submitted) return;
     const timer = setInterval(
@@ -34,112 +34,166 @@ export default function ReadingExamPage() {
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
-  const handleAnswerChange = (questionNumber, value) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionNumber]: value,
-    }));
-  };
-
   const handleQuestionNavigation = (questionNumber) => {
     setCurrentTask(questionNumber - 1);
   };
 
-  // 📝 Submission logic
+  // ✅ Single unified input handler
+  const handleChange = (e) => {
+    const { name, value, type, checked, multiple, options, dataset } = e.target;
+    if (!name) return;
+
+    // ✅ Checkbox (multi-answer MCQ)
+    if (type === "checkbox") {
+      const limit = parseInt(dataset.limit || "0", 10);
+      const group = formRef.current?.querySelectorAll(
+        `input[name="${name}"][type="checkbox"]`
+      );
+      const checkedInGroup = Array.from(group || []).filter((el) => el.checked);
+
+      // Enforce limit
+      if (checked && limit && checkedInGroup.length > limit) {
+        e.preventDefault();
+        e.target.checked = false;
+        alert(`You can only select ${limit} option${limit > 1 ? "s" : ""}.`);
+        return;
+      }
+
+      const selected = checkedInGroup.map((el) => el.value);
+      setAnswers((prev) => ({ ...prev, [name]: selected }));
+      return;
+    }
+
+    // ✅ Radio (single-answer MCQ)
+    if (type === "radio") {
+      if (checked) setAnswers((prev) => ({ ...prev, [name]: value }));
+      return;
+    }
+
+    // ✅ Dropdown (single or multi)
+    if (multiple) {
+      const selected = Array.from(options)
+        .filter((opt) => opt.selected)
+        .map((opt) => opt.value);
+      setAnswers((prev) => ({ ...prev, [name]: selected }));
+      return;
+    }
+
+    // ✅ Text input or normal <select>
+    setAnswers((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // 📝 Submit logic (correctly flattens all arrays)
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
-    setIsSubmitting(true);
 
-    const structuredAnswers = tasks.map((task, index) => {
+    // 🔧 Build structured answers
+    const structuredAnswers = tasks.map((task) => {
+      const prefix = `${task.readingId}_q`;
+      const questionKeys = Object.keys(answers)
+        .filter((k) => k.startsWith(prefix))
+        .sort((a, b) => {
+          const na = parseInt(a.split("_q")[1]) || 0;
+          const nb = parseInt(b.split("_q")[1]) || 0;
+          return na - nb;
+        });
+
       const taskAnswers = [];
-      // Extract answers for this task
-      Object.keys(answers).forEach((key) => {
-        if (key.startsWith(`${task.readingId}_`)) {
-          taskAnswers.push(answers[key]);
+      questionKeys.forEach((key) => {
+        const val = answers[key];
+        if (Array.isArray(val)) {
+          // ✅ Push each answer separately (no join)
+          if (val.length > 0) val.forEach((v) => taskAnswers.push(v));
+          else taskAnswers.push("_");
+        } else if (typeof val === "string" && val.trim() !== "") {
+          taskAnswers.push(val);
+        } else {
+          taskAnswers.push("_");
         }
       });
-      return { skillId: task.readingId, answers: taskAnswers };
+
+      // ✅ Match expected question count if available
+      try {
+        const expected = JSON.parse(task.correctAnswer || "[]");
+        if (Array.isArray(expected) && taskAnswers.length < expected.length) {
+          while (taskAnswers.length < expected.length) taskAnswers.push("_");
+        }
+      } catch {
+        // ignore if not JSON
+      }
+
+      return { SkillId: task.readingId, Answers: taskAnswers };
     });
 
-    const answerText = JSON.stringify(structuredAnswers);
+    // ✅ Completion check
+    const expectedTotal = tasks.reduce((sum, t) => {
+      try {
+        const arr = JSON.parse(t.correctAnswer || "[]");
+        return sum + (Array.isArray(arr) ? arr.length : 0);
+      } catch {
+        const markers = (t.readingQuestion?.match(/\[!num\]/g) || []).length;
+        return sum + markers;
+      }
+    }, 0);
+
+    const actualTotal = structuredAnswers.reduce(
+      (sum, g) => sum + (g.Answers?.filter((a) => a !== "_")?.length || 0),
+      0
+    );
+
+    if (expectedTotal > 0 && actualTotal < expectedTotal) {
+      alert(
+        `Please complete all questions before submitting. (${actualTotal}/${expectedTotal} answered)`
+      );
+      const form = formRef.current;
+      if (form) {
+        const inputs = form.querySelectorAll("input, select, textarea");
+        inputs.forEach((el) => {
+          const v = answers[el.name];
+          const has = Array.isArray(v)
+            ? v.length > 0
+            : typeof v === "string" && v.trim() !== "";
+          el.classList.toggle("unanswered", !has);
+        });
+      }
+      return;
+    }
+
+    // ✅ Submit
+    setIsSubmitting(true);
+    const jsonString = JSON.stringify(structuredAnswers);
     const attempt = {
       examId: exam.examId,
       startedAt: new Date().toISOString(),
-      answers: structuredAnswers, // ✅ send real JSON array, not string
+      answers: jsonString,
     };
 
     submitReadingAttempt(attempt)
       .then((res) => {
-        console.log(`✅ Reading submitted:`, res.data);
+        const attempt = res.data;
+        navigate("/reading/result", {
+          state: {
+            attemptId: attempt.attemptId,
+            examName: attempt.examName,
+            isWaiting: true,
+          },
+        });
         setSubmitted(true);
       })
       .catch((err) => {
         console.error("❌ Submit failed:", err);
-        alert(`Failed to submit your reading attempt.`);
+        alert(`Failed to submit your reading attempt.\n\n${jsonString}`);
       })
       .finally(() => setIsSubmitting(false));
   };
 
-  // Get question count for navigation - find actual question numbers
   const getQuestionCount = (readingQuestion) => {
     if (!readingQuestion) return 0;
-
-    // Look for question numbers that are likely to be actual questions
-    // Pattern 1: Numbers at the end of lines (like "9", "10", "11" at end of fill-in questions)
-    const endOfLineNumbers = readingQuestion.match(/(\d+)\s*$/gm);
-
-    // Pattern 2: Numbers after [!num] markers
-    const numMarkerNumbers = readingQuestion.match(/\[!num\]\s*(\d+)/g);
-
-    // Pattern 3: Numbers in question ranges like "Questions 9 - 13"
-    const rangeNumbers = readingQuestion.match(
-      /Questions?\s+(\d+)\s*-\s*(\d+)/gi
-    );
-
-    let allQuestionNumbers = [];
-
-    if (endOfLineNumbers) {
-      allQuestionNumbers.push(...endOfLineNumbers.map(Number));
-    }
-
-    if (numMarkerNumbers) {
-      allQuestionNumbers.push(
-        ...numMarkerNumbers.map((match) => {
-          const num = match.match(/(\d+)/);
-          return num ? Number(num[1]) : 0;
-        })
-      );
-    }
-
-    if (rangeNumbers) {
-      rangeNumbers.forEach((range) => {
-        const match = range.match(/(\d+)\s*-\s*(\d+)/i);
-        if (match) {
-          const start = Number(match[1]);
-          const end = Number(match[2]);
-          for (let i = start; i <= end; i++) {
-            allQuestionNumbers.push(i);
-          }
-        }
-      });
-    }
-
-    // Filter out unreasonable numbers (keep only 1-50 range for questions)
-    const validQuestionNumbers = allQuestionNumbers.filter(
-      (n) => n >= 1 && n <= 50
-    );
-    const maxQuestionNumber =
-      validQuestionNumbers.length > 0 ? Math.max(...validQuestionNumbers) : 0;
-
-    console.log("All numbers found:", allQuestionNumbers);
-    console.log("Valid question numbers:", validQuestionNumbers);
-    console.log("Max question number:", maxQuestionNumber);
-
-    return maxQuestionNumber;
+    const numMarkers = readingQuestion.match(/\[!num\]/g);
+    return numMarkers ? numMarkers.length : 0;
   };
 
-  // 🧭 Render
   if (!exam)
     return (
       <div className={styles.fullscreenCenter}>
@@ -164,15 +218,9 @@ export default function ReadingExamPage() {
   const currentTaskData = tasks[currentTask];
   const questionCount = getQuestionCount(currentTaskData?.readingQuestion);
 
-  // Debug logging
-  console.log("Current task data:", currentTaskData);
-  console.log("Reading question markdown:", currentTaskData?.readingQuestion);
-  console.log("Question count:", questionCount);
-  console.log("All tasks:", tasks);
-
   return (
     <div className={styles.examWrapper}>
-      {/* Top Header */}
+      {/* ===== Header ===== */}
       <div className={styles.topHeader}>
         <button className={styles.backBtn} onClick={() => navigate("/reading")}>
           ← Back
@@ -184,10 +232,9 @@ export default function ReadingExamPage() {
         </div>
       </div>
 
+      {/* ===== Main Content ===== */}
       <div className={styles.mainContent}>
-        {/* Left Panel - Reading Passage */}
         <div className={styles.leftPanel}>
-          {/* Passage Header - Only show if we have passage metadata */}
           {currentTaskData?.passageTitle && (
             <div className={styles.passageHeader}>
               <h3 className={styles.passageTitle}>
@@ -195,24 +242,18 @@ export default function ReadingExamPage() {
               </h3>
             </div>
           )}
-
-          {/* Passage Content */}
           <div className={styles.passageContent}>
-            <div
-              dangerouslySetInnerHTML={{
-                __html: currentTaskData?.readingContent || "",
-              }}
-            />
+            {currentTaskData?.readingContent || ""}
           </div>
         </div>
 
-        {/* Right Panel - Questions */}
         <div className={styles.rightPanel}>
-          <form ref={formRef}>
+          <form ref={formRef} onChange={handleChange} onInput={handleChange}>
             {currentTaskData?.readingQuestion ? (
               <ExamMarkdownRenderer
                 markdown={currentTaskData.readingQuestion}
                 showAnswers={false}
+                readingId={currentTaskData.readingId}
               />
             ) : (
               <div className={styles.questionSection}>
@@ -227,10 +268,6 @@ export default function ReadingExamPage() {
                   <p>
                     This reading test doesn't have any questions configured yet.
                   </p>
-                  <p>
-                    Please check the reading content format or contact the
-                    administrator.
-                  </p>
                 </div>
               </div>
             )}
@@ -238,20 +275,43 @@ export default function ReadingExamPage() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
+      {/* ===== Footer Navigation ===== */}
+      {/* ===== Footer Navigation ===== */}
       <div className={styles.bottomNavigation}>
-        {/* Show navigation for all questions */}
-        {Array.from({ length: questionCount }, (_, i) => i + 1).map((num) => (
-          <button
-            key={num}
-            className={`${styles.navButton} ${
-              currentTask === num - 1 ? styles.activeNavButton : ""
-            }`}
-            onClick={() => handleQuestionNavigation(num)}
-          >
-            {num}
-          </button>
-        ))}
+        <div className={styles.navScrollContainer}>
+          {tasks.map((task, taskIndex) => {
+            const questionCount = getQuestionCount(task.readingQuestion);
+            return (
+              <div key={task.readingId} className={styles.navSection}>
+                <div className={styles.navSectionTitle}>
+                  Part {taskIndex + 1}
+                </div>
+                <div className={styles.navQuestions}>
+                  {Array.from({ length: questionCount }, (_, qIndex) => (
+                    <button
+                      key={`${taskIndex}-${qIndex}`}
+                      className={`${styles.navButton} ${
+                        currentTask === taskIndex && qIndex === 0
+                          ? styles.activeNavButton
+                          : ""
+                      }`}
+                      onClick={() => {
+                        setCurrentTask(taskIndex);
+                        // scroll into view for clarity
+                        document
+                          .querySelector(`.${styles.examWrapper}`)
+                          ?.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      {qIndex + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <button
           className={styles.completeButton}
           onClick={handleSubmit}

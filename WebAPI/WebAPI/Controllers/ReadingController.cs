@@ -93,48 +93,15 @@ namespace WebAPI.Controllers
                 if (exam == null)
                     return NotFound("Exam not found.");
 
-                // Parse answers (handles both raw array or stringified JSON)
-                List<UserAnswerGroup>? structuredAnswers = null;
-
-                if (dto.Answers is JsonElement jsonElement)
-                {
-                    var raw = jsonElement.GetRawText();
-                    if (raw.StartsWith("\""))
-                    {
-                        var inner = JsonSerializer.Deserialize<string>(raw);
-                        structuredAnswers = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
-                            inner!, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    }
-                    else
-                    {
-                        structuredAnswers = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
-                            raw, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    }
-                }
-                else if (dto.Answers is string jsonString)
-                {
-                    if (jsonString.TrimStart().StartsWith("\""))
-                        jsonString = JsonSerializer.Deserialize<string>(jsonString)!;
-
-                    structuredAnswers = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
-                        jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-                else
-                {
-                    structuredAnswers = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
-                        dto.Answers.ToString() ?? "[]",
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-
+                // ✅ Parse answers (controller stays responsible for decoding payload)
+                var structuredAnswers = ParseAnswers(dto.Answers);
                 if (structuredAnswers == null || structuredAnswers.Count == 0)
                     return BadRequest("No answers found in payload.");
 
-                var answersDict = structuredAnswers
-                    .Where(g => g.Answers?.Count > 0)
-                    .ToDictionary(g => g.SkillId, g => g.Answers!.First());
+                // ✅ Evaluate score
+                var score = _readingService.EvaluateReading(dto.ExamId, structuredAnswers);
 
-                var score = _readingService.EvaluateReading(dto.ExamId, answersDict);
-
+                // ✅ Build attempt data for saving
                 var attemptDto = new SubmitAttemptDto
                 {
                     ExamId = dto.ExamId,
@@ -143,8 +110,10 @@ namespace WebAPI.Controllers
                     Score = score
                 };
 
+                // ✅ Save attempt
                 var attempt = _examService.SubmitAttempt(attemptDto, userId.Value);
 
+                // ✅ Return standardized result DTO
                 return Ok(new ExamAttemptDto
                 {
                     AttemptId = attempt.AttemptId,
@@ -165,6 +134,46 @@ namespace WebAPI.Controllers
                     Exception = ex.Message,
                     StackTrace = ex.StackTrace
                 });
+            }
+        }
+
+        /// <summary>
+        /// Safely parses the raw Answers object (string, JSON element, etc.)
+        /// </summary>
+        private List<UserAnswerGroup> ParseAnswers(object? raw)
+        {
+            if (raw == null) return new();
+
+            try
+            {
+                string jsonString;
+
+                if (raw is JsonElement el)
+                {
+                    var text = el.GetRawText();
+                    jsonString = text.StartsWith("\"")
+                        ? JsonSerializer.Deserialize<string>(text)!
+                        : text;
+                }
+                else if (raw is string s)
+                {
+                    jsonString = s.TrimStart().StartsWith("\"")
+                        ? JsonSerializer.Deserialize<string>(s)!
+                        : s;
+                }
+                else
+                {
+                    jsonString = raw.ToString() ?? "[]";
+                }
+
+                return JsonSerializer.Deserialize<List<UserAnswerGroup>>(
+                    jsonString,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                ) ?? new();
+            }
+            catch
+            {
+                return new();
             }
         }
     }

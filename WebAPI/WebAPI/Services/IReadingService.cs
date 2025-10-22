@@ -8,7 +8,7 @@ namespace WebAPI.Services
     {
         // Existing methods
         IReadOnlyList<Reading> GetReadingsByExam(int examId);
-        decimal EvaluateReading(int examId, IDictionary<int, string> answers);
+        decimal EvaluateReading(int examId, List<UserAnswerGroup> answers);
         
         // Missing methods that ReadingController needs
         IEnumerable<ReadingDto> GetAll();

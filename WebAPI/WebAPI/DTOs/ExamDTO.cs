@@ -69,5 +69,9 @@ namespace WebAPI.DTOs
         public DateTime StartedAt { get; set; }
         public decimal Score { get; set; }
     }
-    public record UserAnswerGroup(int SkillId, List<string> Answers);
+    public class UserAnswerGroup
+    {
+        public int SkillId { get; set; }
+        public List<string>? Answers { get; set; }
+    }
 }

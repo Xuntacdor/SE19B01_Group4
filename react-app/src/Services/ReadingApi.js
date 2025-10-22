@@ -35,3 +35,9 @@ export function submitReadingAttempt(attempt) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+export function getAttemptResult(examId, userId) {
+  return axios
+    .get(`/api/exam/attempt/${examId}/${userId}`, { withCredentials: true })
+    .then((res) => res.data);
+}
