@@ -18,7 +18,7 @@ export default function ReadingExamPage() {
 
   const formRef = useRef(null);
 
-  // 🕒 Timer logic
+  // 🕒 Timer
   useEffect(() => {
     if (!timeLeft || submitted) return;
     const timer = setInterval(
@@ -28,118 +28,140 @@ export default function ReadingExamPage() {
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
 
+  // 🧩 Dynamic input capture (with checkbox limit enforcement)
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+
+    const handleInput = (e) => {
+      const { name, value, type, checked, dataset } = e.target;
+      if (!name) return;
+
+      // Handle multi-choice checkboxes with proper limit enforcement
+      if (type === "checkbox") {
+        const limit = parseInt(dataset.limit || "0", 10);
+        const allInGroup = form.querySelectorAll(`input[name="${name}"][type="checkbox"]`);
+        const checkedInGroup = Array.from(allInGroup).filter((el) => el.checked);
+
+        if (checked && limit && checkedInGroup.length > limit) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          e.target.checked = false;
+          alert(`You can only select ${limit} option${limit > 1 ? "s" : ""} for this question.`);
+          return;
+        }
+
+        const selected = Array.from(allInGroup)
+          .filter((el) => el.checked)
+          .map((el) => el.value);
+
+        setAnswers((prev) => ({ ...prev, [name]: selected }));
+        return;
+      }
+
+      // Handle radio
+      if (type === "radio") {
+        if (checked) setAnswers((prev) => ({ ...prev, [name]: [value] }));
+        return;
+      }
+
+      // Handle text & dropdown
+      setAnswers((prev) => ({ ...prev, [name]: [value] }));
+    };
+
+    form.addEventListener("input", handleInput);
+    form.addEventListener("change", handleInput);
+    return () => {
+      form.removeEventListener("input", handleInput);
+      form.removeEventListener("change", handleInput);
+    };
+  }, [currentTask]);
+
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
-  const handleAnswerChange = (questionNumber, value) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionNumber]: value,
-    }));
-  };
-
   const handleQuestionNavigation = (questionNumber) => {
     setCurrentTask(questionNumber - 1);
   };
 
-  // 📝 Submission logic
+  // 📝 Submit logic
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    const structuredAnswers = tasks.map((task, index) => {
+    const structuredAnswers = tasks.map((task) => {
       const taskAnswers = [];
-      // Extract answers for this task
       Object.keys(answers).forEach((key) => {
         if (key.startsWith(`${task.readingId}_`)) {
-          taskAnswers.push(answers[key]);
+          const val = answers[key];
+          if (Array.isArray(val)) taskAnswers.push(...val);
+          else taskAnswers.push(val);
         }
       });
-      return { skillId: task.readingId, answers: taskAnswers };
+
+      return {
+        SkillId: task.readingId,
+        Answers: taskAnswers.length > 0 ? taskAnswers : ["_"],
+      };
     });
 
-    const answerText = JSON.stringify(structuredAnswers);
+    // ✅ Convert to exact JSON string format expected by backend
+    const jsonString = JSON.stringify(structuredAnswers);
+
     const attempt = {
       examId: exam.examId,
       startedAt: new Date().toISOString(),
-      answers: structuredAnswers, // ✅ send real JSON array, not string
+      answers: jsonString, // send as string
     };
 
     submitReadingAttempt(attempt)
       .then((res) => {
-        console.log(`✅ Reading submitted:`, res.data);
+        const attempt = res.data;
+        navigate("/reading/result", {
+          state: {
+            attemptId: attempt.attemptId,
+            examName: attempt.examName,
+            isWaiting: true,
+          },
+        });
         setSubmitted(true);
       })
       .catch((err) => {
         console.error("❌ Submit failed:", err);
-        alert(`Failed to submit your reading attempt.`);
+        alert(
+          `Failed to submit your reading attempt.\n\n${jsonString}`
+        );
       })
       .finally(() => setIsSubmitting(false));
   };
 
-  // Get question count for navigation - find actual question numbers
   const getQuestionCount = (readingQuestion) => {
     if (!readingQuestion) return 0;
-
-    // Look for question numbers that are likely to be actual questions
-    // Pattern 1: Numbers at the end of lines (like "9", "10", "11" at end of fill-in questions)
-    const endOfLineNumbers = readingQuestion.match(/(\d+)\s*$/gm);
-
-    // Pattern 2: Numbers after [!num] markers
-    const numMarkerNumbers = readingQuestion.match(/\[!num\]\s*(\d+)/g);
-
-    // Pattern 3: Numbers in question ranges like "Questions 9 - 13"
-    const rangeNumbers = readingQuestion.match(
-      /Questions?\s+(\d+)\s*-\s*(\d+)/gi
-    );
-
-    let allQuestionNumbers = [];
-
-    if (endOfLineNumbers) {
-      allQuestionNumbers.push(...endOfLineNumbers.map(Number));
-    }
-
-    if (numMarkerNumbers) {
-      allQuestionNumbers.push(
-        ...numMarkerNumbers.map((match) => {
-          const num = match.match(/(\d+)/);
-          return num ? Number(num[1]) : 0;
+    const end = readingQuestion.match(/(\d+)\s*$/gm);
+    const numMarkers = readingQuestion.match(/\[!num\]\s*(\d+)/g);
+    const ranges = readingQuestion.match(/Questions?\s+(\d+)\s*-\s*(\d+)/gi);
+    let nums = [];
+    if (end) nums.push(...end.map(Number));
+    if (numMarkers)
+      nums.push(
+        ...numMarkers.map((m) => {
+          const n = m.match(/(\d+)/);
+          return n ? Number(n[1]) : 0;
         })
       );
-    }
-
-    if (rangeNumbers) {
-      rangeNumbers.forEach((range) => {
-        const match = range.match(/(\d+)\s*-\s*(\d+)/i);
-        if (match) {
-          const start = Number(match[1]);
-          const end = Number(match[2]);
-          for (let i = start; i <= end; i++) {
-            allQuestionNumbers.push(i);
-          }
-        }
+    if (ranges)
+      ranges.forEach((r) => {
+        const m = r.match(/(\d+)\s*-\s*(\d+)/i);
+        if (m) for (let i = Number(m[1]); i <= Number(m[2]); i++) nums.push(i);
       });
-    }
-
-    // Filter out unreasonable numbers (keep only 1-50 range for questions)
-    const validQuestionNumbers = allQuestionNumbers.filter(
-      (n) => n >= 1 && n <= 50
-    );
-    const maxQuestionNumber =
-      validQuestionNumbers.length > 0 ? Math.max(...validQuestionNumbers) : 0;
-
-    console.log("All numbers found:", allQuestionNumbers);
-    console.log("Valid question numbers:", validQuestionNumbers);
-    console.log("Max question number:", maxQuestionNumber);
-
-    return maxQuestionNumber;
+    const valid = nums.filter((n) => n >= 1 && n <= 50);
+    return valid.length > 0 ? Math.max(...valid) : 0;
   };
 
-  // 🧭 Render
   if (!exam)
     return (
       <div className={styles.fullscreenCenter}>
@@ -164,15 +186,8 @@ export default function ReadingExamPage() {
   const currentTaskData = tasks[currentTask];
   const questionCount = getQuestionCount(currentTaskData?.readingQuestion);
 
-  // Debug logging
-  console.log("Current task data:", currentTaskData);
-  console.log("Reading question markdown:", currentTaskData?.readingQuestion);
-  console.log("Question count:", questionCount);
-  console.log("All tasks:", tasks);
-
   return (
     <div className={styles.examWrapper}>
-      {/* Top Header */}
       <div className={styles.topHeader}>
         <button className={styles.backBtn} onClick={() => navigate("/reading")}>
           ← Back
@@ -185,9 +200,7 @@ export default function ReadingExamPage() {
       </div>
 
       <div className={styles.mainContent}>
-        {/* Left Panel - Reading Passage */}
         <div className={styles.leftPanel}>
-          {/* Passage Header - Only show if we have passage metadata */}
           {currentTaskData?.passageTitle && (
             <div className={styles.passageHeader}>
               <h3 className={styles.passageTitle}>
@@ -195,42 +208,23 @@ export default function ReadingExamPage() {
               </h3>
             </div>
           )}
-
-          {/* Passage Content */}
-          <div className={styles.passageContent}>
-            <div
-              dangerouslySetInnerHTML={{
-                __html: currentTaskData?.readingContent || "",
-              }}
-            />
-          </div>
+          <p className={styles.passageContent}> 
+            {currentTaskData?.readingContent || ""}
+          </p>
         </div>
-
-        {/* Right Panel - Questions */}
         <div className={styles.rightPanel}>
           <form ref={formRef}>
             {currentTaskData?.readingQuestion ? (
               <ExamMarkdownRenderer
                 markdown={currentTaskData.readingQuestion}
                 showAnswers={false}
+                readingId={currentTaskData.readingId}
               />
             ) : (
               <div className={styles.questionSection}>
-                <div
-                  style={{
-                    padding: "40px",
-                    textAlign: "center",
-                    color: "#666",
-                  }}
-                >
+                <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
                   <h3>No Questions Found</h3>
-                  <p>
-                    This reading test doesn't have any questions configured yet.
-                  </p>
-                  <p>
-                    Please check the reading content format or contact the
-                    administrator.
-                  </p>
+                  <p>This reading test doesn't have any questions configured yet.</p>
                 </div>
               </div>
             )}
@@ -238,9 +232,7 @@ export default function ReadingExamPage() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
       <div className={styles.bottomNavigation}>
-        {/* Show navigation for all questions */}
         {Array.from({ length: questionCount }, (_, i) => i + 1).map((num) => (
           <button
             key={num}
