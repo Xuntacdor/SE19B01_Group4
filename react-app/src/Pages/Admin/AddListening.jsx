@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import * as listeningService from "../../Services/ListeningApi";
-import { uploadAudio } from "../../Services/UploadApi"; // your provided function
+import { uploadAudio } from "../../Services/UploadApi";
 import ExamMarkdownRenderer, {
   renderMarkdownToHtmlAndAnswers,
 } from "../../Components/Exam/ExamMarkdownRenderer.jsx";
@@ -11,12 +11,12 @@ import {
   Upload,
   Pencil,
   PlusCircle,
-  FileAudio,
   CheckCircle,
   XCircle,
   ArrowLeft,
   Eye,
   EyeOff,
+  FileAudio,
 } from "lucide-react";
 
 export default function AddListening() {
@@ -25,13 +25,13 @@ export default function AddListening() {
   const exam = location.state?.exam;
   const skill = location.state?.skill;
 
-  const [audioUrl, setAudioUrl] = useState(skill?.audioUrl || "");
+  const [audioUrl, setAudioUrl] = useState("");
   const [listeningQuestion, setListeningQuestion] = useState("");
   const [status, setStatus] = useState({ icon: null, message: "" });
   const [showAnswers, setShowAnswers] = useState(true);
   const [uploading, setUploading] = useState(false);
 
-  // Load data if editing
+  // Load existing data if editing
   useEffect(() => {
     if (skill) {
       setAudioUrl(skill.audioUrl || "");
@@ -39,11 +39,10 @@ export default function AddListening() {
     }
   }, [skill]);
 
-  // ====== Upload Audio ======
+  // ===== Upload Audio File =====
   const handleUploadAudio = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setUploading(true);
     setStatus({ icon: <Upload size={16} />, message: "Uploading audio..." });
 
@@ -55,7 +54,7 @@ export default function AddListening() {
         message: "Audio uploaded successfully!",
       });
     } catch (err) {
-      console.error(err);
+      console.error("Upload failed:", err);
       setStatus({
         icon: <XCircle color="red" size={16} />,
         message: "Failed to upload audio.",
@@ -65,12 +64,13 @@ export default function AddListening() {
     }
   };
 
-  // ====== Submit Listening Question ======
+  // ===== Submit Listening =====
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus({ icon: <FileAudio size={16} />, message: "Processing..." });
 
     try {
+      // 1️⃣ Generate initial HTML + answers
       const { html, answers } = renderMarkdownToHtmlAndAnswers(listeningQuestion);
       const payload = {
         examId: exam.examId,
@@ -82,26 +82,43 @@ export default function AddListening() {
         questionHtml: html,
       };
 
+      let saved;
       if (skill) {
+        // Update existing listening
         await listeningService.update(skill.listeningId, payload);
+        saved = { listeningId: skill.listeningId };
         setStatus({
           icon: <CheckCircle color="green" size={16} />,
           message: "Updated successfully!",
         });
       } else {
-        await listeningService.add(payload);
+        // Create new listening
+        saved = await listeningService.add(payload);
         setStatus({
           icon: <CheckCircle color="green" size={16} />,
           message: "Added successfully!",
         });
       }
 
+      // 2️⃣ Regenerate HTML using the real listeningId
+      const newId = saved?.listeningId;
+      if (newId) {
+        const { html: fixedHtml } = renderMarkdownToHtmlAndAnswers(
+          listeningQuestion,
+          newId
+        );
+        await listeningService.update(newId, {
+          ...payload,
+          questionHtml: fixedHtml,
+        });
+      }
+
       setTimeout(() => navigate(-1), 1000);
     } catch (err) {
-      console.error(err);
+      console.error("Save failed:", err);
       setStatus({
         icon: <XCircle color="red" size={16} />,
-        message: "Failed to save question.",
+        message: "Failed to save listening question.",
       });
     }
   };
@@ -126,10 +143,11 @@ export default function AddListening() {
         </h2>
       </header>
 
-      {/* ===== Grid Layout ===== */}
+      {/* ===== Layout Grid ===== */}
       <div className={styles.grid}>
         {/* ===== Left: Form ===== */}
         <form onSubmit={handleSubmit} className={styles.form}>
+          {/* Upload Audio */}
           <div className={styles.group}>
             <label>Upload Audio File</label>
             <label className={styles.uploadBox}>
@@ -152,6 +170,7 @@ export default function AddListening() {
             )}
           </div>
 
+          {/* Question Input */}
           <div className={styles.group}>
             <label>Question (Markdown)</label>
             <textarea
@@ -162,6 +181,7 @@ export default function AddListening() {
             />
           </div>
 
+          {/* Buttons */}
           <div className={styles.buttons}>
             <button type="submit" className={styles.btnPrimary}>
               {skill ? (

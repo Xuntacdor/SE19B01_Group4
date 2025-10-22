@@ -4,45 +4,87 @@ using WebAPI.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 namespace WebAPI.Services
 {
     public class ListeningService : IListeningService
     {
-        private readonly IListeningRepository _ListeningRepo;
+        private readonly IListeningRepository _listeningRepo;
 
-        public ListeningService(IListeningRepository ListeningRepo)
+        public ListeningService(IListeningRepository listeningRepo)
         {
-            _ListeningRepo = ListeningRepo;
+            _listeningRepo = listeningRepo;
         }
 
         public IReadOnlyList<Listening> GetListeningsByExam(int examId)
         {
-            return _ListeningRepo.GetByExamId(examId);
+            return _listeningRepo.GetByExamId(examId);
         }
 
-        public decimal EvaluateListening(int examId, IDictionary<int, string> answers)
+        public decimal EvaluateListening(int examId, List<UserAnswerGroup> structuredAnswers)
         {
-            var Listenings = _ListeningRepo.GetByExamId(examId);
-            if (Listenings == null || Listenings.Count == 0) return 0m;
+            var listenings = _listeningRepo.GetByExamId(examId);
+            if (listenings == null || listenings.Count == 0) return 0m;
 
-            int correct = 0;
-            foreach (var r in Listenings)
+            int totalQuestions = 0;
+            int correctAnswers = 0;
+
+            var answerMap = structuredAnswers
+                .Where(g => g.Answers != null)
+                .ToDictionary(g => g.SkillId, g => g.Answers!);
+
+            foreach (var r in listenings)
             {
-                if (answers.TryGetValue(r.ListeningId, out string? userAnswer) &&
-                    string.Equals(r.CorrectAnswer, userAnswer, StringComparison.OrdinalIgnoreCase))
+                if (!answerMap.TryGetValue(r.ListeningId, out var userAnswers) || userAnswers.Count == 0)
+                    continue;
+
+                // Parse DB correct answers (supports JSON or plain text)
+                List<string> correctAnswersList;
+                try
                 {
-                    correct++;
+                    if (r.CorrectAnswer?.TrimStart().StartsWith("[") == true)
+                    {
+                        correctAnswersList = JsonSerializer.Deserialize<List<string>>(r.CorrectAnswer!)?
+                            .Select(a => a.Trim().ToLower()).ToList() ?? new();
+                    }
+                    else
+                    {
+                        correctAnswersList = (r.CorrectAnswer ?? "")
+                            .Replace(" and ", ",")
+                            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(a => a.Trim().ToLower())
+                            .ToList();
+                    }
+                }
+                catch
+                {
+                    correctAnswersList = new();
+                }
+
+                // Ensure we count all subquestions
+                totalQuestions += correctAnswersList.Count;
+
+                // Compare element-by-element (same order)
+                for (int i = 0; i < correctAnswersList.Count; i++)
+                {
+                    if (i < userAnswers.Count &&
+                        string.Equals(userAnswers[i].Trim(), correctAnswersList[i], StringComparison.OrdinalIgnoreCase))
+                    {
+                        correctAnswers++;
+                    }
                 }
             }
 
-            return Math.Round((decimal)correct / Listenings.Count * 9, 1);
+            // Scale to IELTS band (9)
+            if (totalQuestions == 0) return 0m;
+            return Math.Round((decimal)correctAnswers / totalQuestions * 9, 1);
         }
 
         public IEnumerable<ListeningDto> GetAll()
         {
-            var Listenings = _ListeningRepo.GetAll();
-            return Listenings.Select(r => new ListeningDto
+            var listenings = _listeningRepo.GetAll();
+            return listenings.Select(r => new ListeningDto
             {
                 ListeningId = r.ListeningId,
                 ExamId = r.ExamId,
@@ -58,26 +100,26 @@ namespace WebAPI.Services
 
         public ListeningDto? GetById(int id)
         {
-            var Listening = _ListeningRepo.GetById(id);
-            if (Listening == null) return null;
+            var listening = _listeningRepo.GetById(id);
+            if (listening == null) return null;
 
             return new ListeningDto
             {
-                ListeningId = Listening.ListeningId,
-                ExamId = Listening.ExamId,
-                ListeningContent = Listening.ListeningContent,
-                ListeningQuestion = Listening.ListeningQuestion,
-                ListeningType = Listening.ListeningType,
-                DisplayOrder = Listening.DisplayOrder,
-                CorrectAnswer = Listening.CorrectAnswer,
-                QuestionHtml = Listening.QuestionHtml,
-                CreatedAt = Listening.CreatedAt
+                ListeningId = listening.ListeningId,
+                ExamId = listening.ExamId,
+                ListeningContent = listening.ListeningContent,
+                ListeningQuestion = listening.ListeningQuestion,
+                ListeningType = listening.ListeningType,
+                DisplayOrder = listening.DisplayOrder,
+                CorrectAnswer = listening.CorrectAnswer,
+                QuestionHtml = listening.QuestionHtml,
+                CreatedAt = listening.CreatedAt
             };
         }
 
         public ListeningDto? Add(CreateListeningDto dto)
         {
-            var Listening = new Listening
+            var listening = new Listening
             {
                 ExamId = dto.ExamId,
                 ListeningContent = dto.ListeningContent,
@@ -89,53 +131,53 @@ namespace WebAPI.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ListeningRepo.Add(Listening);
-            _ListeningRepo.SaveChanges();
+            _listeningRepo.Add(listening);
+            _listeningRepo.SaveChanges();
 
             return new ListeningDto
             {
-                ListeningId = Listening.ListeningId,
-                ExamId = Listening.ExamId,
-                ListeningContent = Listening.ListeningContent,
-                ListeningQuestion = Listening.ListeningQuestion,
-                ListeningType = Listening.ListeningType,
-                DisplayOrder = Listening.DisplayOrder,
-                CorrectAnswer = Listening.CorrectAnswer,
-                QuestionHtml = Listening.QuestionHtml,
-                CreatedAt = Listening.CreatedAt
+                ListeningId = listening.ListeningId,
+                ExamId = listening.ExamId,
+                ListeningContent = listening.ListeningContent,
+                ListeningQuestion = listening.ListeningQuestion,
+                ListeningType = listening.ListeningType,
+                DisplayOrder = listening.DisplayOrder,
+                CorrectAnswer = listening.CorrectAnswer,
+                QuestionHtml = listening.QuestionHtml,
+                CreatedAt = listening.CreatedAt
             };
         }
 
         public bool Update(int id, UpdateListeningDto dto)
         {
-            var Listening = _ListeningRepo.GetById(id);
-            if (Listening == null) return false;
+            var listening = _listeningRepo.GetById(id);
+            if (listening == null) return false;
 
             if (dto.ListeningContent != null)
-                Listening.ListeningContent = dto.ListeningContent;
+                listening.ListeningContent = dto.ListeningContent;
             if (dto.ListeningQuestion != null)
-                Listening.ListeningQuestion = dto.ListeningQuestion;
+                listening.ListeningQuestion = dto.ListeningQuestion;
             if (dto.ListeningType != null)
-                Listening.ListeningType = dto.ListeningType;
+                listening.ListeningType = dto.ListeningType;
             if (dto.DisplayOrder.HasValue)
-                Listening.DisplayOrder = dto.DisplayOrder.Value;
+                listening.DisplayOrder = dto.DisplayOrder.Value;
             if (dto.CorrectAnswer != null)
-                Listening.CorrectAnswer = dto.CorrectAnswer;
+                listening.CorrectAnswer = dto.CorrectAnswer;
             if (dto.QuestionHtml != null)
-                Listening.QuestionHtml = dto.QuestionHtml;
+                listening.QuestionHtml = dto.QuestionHtml;
 
-            _ListeningRepo.Update(Listening);
-            _ListeningRepo.SaveChanges();
+            _listeningRepo.Update(listening);
+            _listeningRepo.SaveChanges();
             return true;
         }
 
         public bool Delete(int id)
         {
-            var Listening = _ListeningRepo.GetById(id);
-            if (Listening == null) return false;
+            var listening = _listeningRepo.GetById(id);
+            if (listening == null) return false;
 
-            _ListeningRepo.Delete(Listening);
-            _ListeningRepo.SaveChanges();
+            _listeningRepo.Delete(listening);
+            _listeningRepo.SaveChanges();
             return true;
         }
     }

@@ -27,7 +27,6 @@ export default function AddReading() {
   const [status, setStatus] = useState({ icon: null, message: "" });
   const [showAnswers, setShowAnswers] = useState(true);
 
-  // Load data if editing
   useEffect(() => {
     if (skill) {
       setReadingContent(skill.readingContent || "");
@@ -40,7 +39,9 @@ export default function AddReading() {
     setStatus({ icon: <FileText size={16} />, message: "Processing..." });
 
     try {
+      // 1️⃣ Temporary render (no readingId yet)
       const { html, answers } = renderMarkdownToHtmlAndAnswers(readingQuestion);
+
       const payload = {
         examId: exam.examId,
         readingContent,
@@ -51,17 +52,35 @@ export default function AddReading() {
         questionHtml: html,
       };
 
+      let saved;
       if (skill) {
+        // Update existing reading
         await readingService.update(skill.readingId, payload);
+        saved = { readingId: skill.readingId };
         setStatus({
           icon: <CheckCircle color="green" size={16} />,
           message: "Updated successfully!",
         });
       } else {
-        await readingService.add(payload);
+        // Add new reading and wait for backend to return ID
+        saved = await readingService.add(payload);
         setStatus({
           icon: <CheckCircle color="green" size={16} />,
           message: "Added successfully!",
+        });
+      }
+
+      // 2️⃣ Regenerate with actual readingId
+      const newId = saved?.readingId;
+      if (newId) {
+        const { html: fixedHtml } = renderMarkdownToHtmlAndAnswers(
+          readingQuestion,
+          newId
+        );
+
+        await readingService.update(newId, {
+          ...payload,
+          questionHtml: fixedHtml,
         });
       }
 
@@ -88,14 +107,14 @@ export default function AddReading() {
             </>
           ) : (
             <>
-              <PlusCircle size={18} style={{ marginRight: 6 }} /> Add Reading for{" "}
-              {exam?.examName}
+              <PlusCircle size={18} style={{ marginRight: 6 }} /> Add Reading
+              for {exam?.examName}
             </>
           )}
         </h2>
       </header>
 
-      {/* ===== Grid Layout ===== */}
+      {/* ===== Layout ===== */}
       <div className={styles.grid}>
         {/* ===== Left: Form ===== */}
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -123,11 +142,13 @@ export default function AddReading() {
             <button type="submit" className={styles.btnPrimary}>
               {skill ? (
                 <>
-                  <Pencil size={16} style={{ marginRight: 6 }} /> Update Question
+                  <Pencil size={16} style={{ marginRight: 6 }} /> Update
+                  Question
                 </>
               ) : (
                 <>
-                  <PlusCircle size={16} style={{ marginRight: 6 }} /> Add Question
+                  <PlusCircle size={16} style={{ marginRight: 6 }} /> Add
+                  Question
                 </>
               )}
             </button>
@@ -148,6 +169,7 @@ export default function AddReading() {
           )}
         </form>
 
+        {/* ===== Right: Preview ===== */}
         <div className={styles.preview}>
           <div className={styles.previewHeader}>
             <h3>Live Preview</h3>

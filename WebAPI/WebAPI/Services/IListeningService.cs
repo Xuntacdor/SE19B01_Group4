@@ -6,11 +6,8 @@ namespace WebAPI.Services
 {
     public interface IListeningService
     {
-        // Existing methods
         IReadOnlyList<Listening> GetListeningsByExam(int examId);
-        decimal EvaluateListening(int examId, IDictionary<int, string> answers);
-
-        // Missing methods that ListeningController needs
+        decimal EvaluateListening(int examId, List<UserAnswerGroup> structuredAnswers);
         IEnumerable<ListeningDto> GetAll();
         ListeningDto? GetById(int id);
         ListeningDto? Add(CreateListeningDto dto);

@@ -18,7 +18,7 @@ export default function ListeningExamPage() {
 
   const formRef = useRef(null);
 
-  // Timer
+  // 🕒 Timer
   useEffect(() => {
     if (!timeLeft || submitted) return;
     const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
@@ -31,36 +31,114 @@ export default function ListeningExamPage() {
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
-  // Submit
+  // ✅ Unified input handler
+  const handleChange = (e) => {
+    const { name, value, type, checked, multiple, options, dataset } = e.target;
+    if (!name) return;
+
+    if (type === "checkbox") {
+      const limit = parseInt(dataset.limit || "0", 10);
+      const group = formRef.current?.querySelectorAll(
+        `input[name="${name}"][type="checkbox"]`
+      );
+      const checkedInGroup = Array.from(group || []).filter((el) => el.checked);
+      if (checked && limit && checkedInGroup.length > limit) {
+        e.preventDefault();
+        e.target.checked = false;
+        alert(`You can only select ${limit} option${limit > 1 ? "s" : ""}.`);
+        return;
+      }
+      const selected = checkedInGroup.map((el) => el.value);
+      setAnswers((prev) => ({ ...prev, [name]: selected }));
+      return;
+    }
+
+    if (type === "radio") {
+      if (checked) setAnswers((prev) => ({ ...prev, [name]: value }));
+      return;
+    }
+
+    if (multiple) {
+      const selected = Array.from(options)
+        .filter((opt) => opt.selected)
+        .map((opt) => opt.value);
+      setAnswers((prev) => ({ ...prev, [name]: selected }));
+      return;
+    }
+
+    setAnswers((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ✅ Helper to count questions
+  const getQuestionCount = (questionText) => {
+    if (!questionText) return 0;
+    const matches = questionText.match(/\[!num\]/g);
+    return matches ? matches.length : 0;
+  };
+
+  // ✅ Submit logic
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
-    setIsSubmitting(true);
 
     const structuredAnswers = tasks.map((task) => {
-      const taskAnswers = [];
-      Object.keys(answers).forEach((key) => {
-        if (key.startsWith(`${task.listeningId}_`)) {
-          taskAnswers.push(answers[key]);
-        }
+      const prefix = `${task.listeningId}_q`;
+      const questionKeys = Object.keys(answers)
+        .filter((k) => k.startsWith(prefix))
+        .sort((a, b) => {
+          const na = parseInt(a.split("_q")[1]) || 0;
+          const nb = parseInt(b.split("_q")[1]) || 0;
+          return na - nb;
+        });
+
+      const taskAnswers = questionKeys.map((key) => {
+        const val = answers[key];
+        if (Array.isArray(val)) return val.join(", ");
+        return val?.trim() || "_";
       });
-      return { skillId: task.listeningId, answers: taskAnswers };
+
+      return { SkillId: task.listeningId, Answers: taskAnswers };
     });
 
+    const expectedTotal = tasks.reduce(
+      (sum, t) => sum + getQuestionCount(t.listeningQuestion),
+      0
+    );
+
+    const actualTotal = Object.values(answers).filter(
+      (v) => (Array.isArray(v) ? v.length > 0 : v?.trim?.() !== "")
+    ).length;
+
+    if (actualTotal < expectedTotal) {
+      alert(
+        `Please complete all questions before submitting. (${actualTotal}/${expectedTotal} answered)`
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    const jsonString = JSON.stringify(structuredAnswers);
     const attempt = {
       examId: exam.examId,
       startedAt: new Date().toISOString(),
-      answers: structuredAnswers,
+      answers: jsonString,
     };
 
     submitListeningAttempt(attempt)
       .then((res) => {
-        console.log("✅ Listening submitted:", res.data);
+        const attempt = res.data;
+        navigate("/listening/result", {
+          state: {
+            attemptId: attempt.attemptId,
+            examName: attempt.examName,
+            isWaiting: true,
+          },
+        });
         setSubmitted(true);
       })
       .catch((err) => {
         console.error("❌ Submit failed:", err);
-        alert("Failed to submit your listening attempt.");
+        alert(`Failed to submit your listening attempt.\n\n${jsonString}`);
       })
       .finally(() => setIsSubmitting(false));
   };
@@ -86,17 +164,12 @@ export default function ListeningExamPage() {
       </div>
     );
 
-  const task = tasks[currentTask];
-  const getQuestionCount = (q) => {
-    if (!q) return 0;
-    const matches = q.match(/\b\d+\b/g);
-    return matches ? Math.min(Math.max(...matches), 40) : 0;
-  };
-  const questionCount = getQuestionCount(task?.listeningQuestion);
+  const currentTaskData = tasks[currentTask];
+  const questionCount = getQuestionCount(currentTaskData?.listeningQuestion);
 
   return (
     <div className={styles.examWrapper}>
-      {/* === Header === */}
+      {/* ===== Header ===== */}
       <div className={styles.topHeader}>
         <button className={styles.backBtn} onClick={() => navigate("/listening")}>
           ← Back
@@ -109,15 +182,14 @@ export default function ListeningExamPage() {
         </div>
       </div>
 
-      {/* === Main === */}
+      {/* ===== Main Content ===== */}
       <div className={styles.mainContent}>
-        {/* Left panel: only audio */}
         <div className={styles.leftPanel}>
-          {task?.audioUrl ? (
+          {currentTaskData?.audioUrl ? (
             <div className={styles.audioContainer}>
               <h3 className={styles.audioTitle}>Audio Track</h3>
               <audio controls className={styles.audioPlayer}>
-                <source src={task.audioUrl} type="audio/mpeg" />
+                <source src={currentTaskData.audioUrl} type="audio/mpeg" />
                 Your browser does not support the audio element.
               </audio>
             </div>
@@ -126,11 +198,14 @@ export default function ListeningExamPage() {
           )}
         </div>
 
-        {/* Right panel: Questions */}
         <div className={styles.rightPanel}>
-          <form ref={formRef}>
-            {task?.listeningQuestion ? (
-              <ExamMarkdownRenderer markdown={task.listeningQuestion} showAnswers={false} />
+          <form ref={formRef} onChange={handleChange} onInput={handleChange}>
+            {currentTaskData?.listeningQuestion ? (
+              <ExamMarkdownRenderer
+                markdown={currentTaskData.listeningQuestion}
+                showAnswers={false}
+                readingId={currentTaskData.listeningId}
+              />
             ) : (
               <div className={styles.noQuestionBox}>
                 <h3>No Questions Found</h3>
@@ -141,10 +216,34 @@ export default function ListeningExamPage() {
         </div>
       </div>
 
-      {/* === Submit Section === */}
-      <div className={styles.submitSection}>
+      {/* ===== Footer Navigation ===== */}
+      <div className={styles.bottomNavigation}>
+        <div className={styles.navScrollContainer}>
+          {tasks.map((task, taskIndex) => {
+            const count = getQuestionCount(task.listeningQuestion);
+            return (
+              <div key={task.listeningId} className={styles.navSection}>
+                <div className={styles.navSectionTitle}>Part {taskIndex + 1}</div>
+                <div className={styles.navQuestions}>
+                  {Array.from({ length: count }, (_, qIndex) => (
+                    <button
+                      key={`${taskIndex}-${qIndex}`}
+                      className={`${styles.navButton} ${
+                        currentTask === taskIndex ? styles.activeNavButton : ""
+                      }`}
+                      onClick={() => setCurrentTask(taskIndex)}
+                    >
+                      {qIndex + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <button
-          className={styles.submitButton}
+          className={styles.completeButton}
           onClick={handleSubmit}
           disabled={isSubmitting}
         >
