@@ -36,6 +36,7 @@ import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend } from "chart.js";
 import * as ModeratorApi from "../../Services/ModeratorApi";
 import { getPostsByFilter } from "../../Services/ForumApi";
+import NotificationPopup from "../../Components/Forum/NotificationPopup";
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
@@ -75,6 +76,14 @@ export default function ModeratorDashboard() {
   // User states
   const [user, setUser] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  // Notification state
+  const [notification, setNotification] = useState({
+    isOpen: false,
+    type: "success",
+    title: "",
+    message: ""
+  });
 
   // Load data from API
   useEffect(() => {
@@ -99,6 +108,19 @@ export default function ModeratorDashboard() {
       console.error('Error logging out:', error);
       navigate('/login');
     }
+  };
+
+  const showNotification = (type, title, message) => {
+    setNotification({
+      isOpen: true,
+      type,
+      title,
+      message
+    });
+  };
+
+  const closeNotification = () => {
+    setNotification(prev => ({ ...prev, isOpen: false }));
   };
 
   // Load forum posts when overview is selected
@@ -258,10 +280,18 @@ export default function ModeratorDashboard() {
       setPendingPosts(prev => prev.filter(post => (post.postId || post.id) !== postId));
       setStats(prev => ({ ...prev, pending: prev.pending - 1, total: prev.total + 1 }));
       setShowPostDetail(false);
-      alert("Post approved successfully!");
+      showNotification(
+        "success",
+        "Post approved successfully!",
+        "Post has been approved and is now visible on the forum."
+      );
     } catch (error) {
       console.error("Error approving post:", error);
-      alert("Error approving post. Please try again.");
+      showNotification(
+        "error",
+        "Error approving post",
+        "An error occurred while approving the post. Please try again."
+      );
     }
   };
 
@@ -273,10 +303,18 @@ export default function ModeratorDashboard() {
       setStats(prev => ({ ...prev, pending: prev.pending - 1, rejected: prev.rejected + 1 }));
       setShowPostDetail(false);
       setRejectReason("");
-      alert("Post rejected successfully!");
+      showNotification(
+        "success",
+        "Post rejected successfully!",
+        "Post has been rejected and will not be visible on the forum."
+      );  
     } catch (error) {
       console.error("Error rejecting post:", error);
-      alert("Error rejecting post. Please try again.");
+      showNotification(
+        "error",
+        "Error rejecting post",
+        "An error occurred while rejecting the post. Please try again."
+      );
     }
   };
 
@@ -1040,6 +1078,14 @@ export default function ModeratorDashboard() {
           </div>
         </div>
       )}
+
+      <NotificationPopup
+        isOpen={notification.isOpen}
+        onClose={closeNotification}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+      />
     </div>
   );
 }

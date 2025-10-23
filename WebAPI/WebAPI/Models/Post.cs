@@ -33,6 +33,8 @@ public partial class Post
 
     public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
 
+    public virtual ICollection<PostAttachment> Attachments { get; set; } = new List<PostAttachment>();
+
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();

@@ -23,6 +23,7 @@ namespace WebAPI.Services
                 .Include(p => p.User)
                 .Include(p => p.Comments)
                 .Include(p => p.PostLikes)
+                .Include(p => p.Attachments)
                 .Where(p => !p.IsHidden && p.Status == "approved") // Chỉ hiển thị posts đã được duyệt
                 .OrderByDescending(p => p.IsPinned) // Pinned posts lên đầu
                 .ThenByDescending(p => p.CreatedAt) // Sau đó sắp xếp theo thời gian
@@ -47,6 +48,7 @@ namespace WebAPI.Services
                 .Include(p => p.User)
                 .Include(p => p.Comments)
                 .Include(p => p.PostLikes)
+                .Include(p => p.Attachments)
                 .AsQueryable();
 
             query = filter.ToLower() switch
@@ -80,6 +82,7 @@ namespace WebAPI.Services
                 .Include(p => p.User)
                 .Include(p => p.Comments)
                 .Include(p => p.PostLikes)
+                .Include(p => p.Attachments)
                 .FirstOrDefault(p => p.PostId == id);
 
             if (post == null) return null;
@@ -110,9 +113,16 @@ namespace WebAPI.Services
             _context.Post.Add(post);
             _context.SaveChanges();
 
+            // Add tags to post
             if (dto.TagNames.Any())
             {
                 AddTagsToPost(post.PostId, dto.TagNames);
+            }
+
+            // Add attachments to post
+            if (dto.Attachments.Any())
+            {
+                AddAttachmentsToPost(post.PostId, dto.Attachments);
             }
 
             return GetPostById(post.PostId) ?? throw new InvalidOperationException("Failed to create post");
@@ -277,6 +287,27 @@ namespace WebAPI.Services
             _context.SaveChanges();
         }
 
+        private void AddAttachmentsToPost(int postId, List<CreatePostAttachmentDTO> attachments)
+        {
+            foreach (var attachment in attachments)
+            {
+                var postAttachment = new PostAttachment
+                {
+                    PostId = postId,
+                    FileName = attachment.FileName,
+                    FileUrl = attachment.FileUrl,
+                    FileType = attachment.FileType,
+                    FileExtension = attachment.FileExtension,
+                    FileSize = attachment.FileSize,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.PostAttachment.Add(postAttachment);
+            }
+
+            _context.SaveChanges();
+        }
+
         public bool IsPostVotedByUser(int postId, int userId)
         {
             return _context.PostLike
@@ -312,6 +343,17 @@ namespace WebAPI.Services
                 {
                     TagId = t.TagId,
                     TagName = t.TagName
+                }).ToList(),
+                Attachments = post.Attachments.Select(a => new PostAttachmentDTO
+                {
+                    AttachmentId = a.AttachmentId,
+                    PostId = a.PostId,
+                    FileName = a.FileName,
+                    FileUrl = a.FileUrl,
+                    FileType = a.FileType,
+                    FileExtension = a.FileExtension,
+                    FileSize = a.FileSize,
+                    CreatedAt = a.CreatedAt
                 }).ToList()
             };
         }

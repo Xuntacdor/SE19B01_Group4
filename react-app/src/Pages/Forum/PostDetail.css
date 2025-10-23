@@ -64,6 +64,8 @@
   align-items: center;
   gap: 8px;
   transition: all 0.3s ease;
+  width: none !important;
+  flex: none !important;
 }
 
 .back-btn:hover {
@@ -537,6 +539,8 @@
   .back-btn {
     font-size: 14px;
     padding: 10px 16px;
+    width: none !important;
+  flex: none !important;
   }
 }
 
@@ -579,6 +583,8 @@
     font-size: 14px;
     padding: 10px 16px;
     align-self: center;
+    width: none !important;
+  flex: none !important;
   }
   
   .user-profile-card {
@@ -600,5 +606,107 @@
   
   .stat-value {
     font-size: 18px;
+  }
+}
+
+/* Attachments Styles */
+.post-attachments {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.attachments-title {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.attachment-item {
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+}
+
+.attachment-item:hover {
+  transform: translateY(-2px);
+}
+
+.attachment-image {
+  position: relative;
+}
+
+.attachment-img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 6px 6px 0 0;
+}
+
+.attachment-file {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  gap: 10px;
+}
+
+.attachment-icon {
+  color: #6c757d;
+  flex-shrink: 0;
+}
+
+.attachment-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attachment-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachment-size {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.download-btn {
+  color: #007bff;
+  text-decoration: none;
+  padding: 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.download-btn:hover {
+  background-color: #e3f2fd;
+  color: #0056b3;
+}
+
+@media (max-width: 768px) {
+  .attachments-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .attachment-img {
+    height: 120px;
   }
 }

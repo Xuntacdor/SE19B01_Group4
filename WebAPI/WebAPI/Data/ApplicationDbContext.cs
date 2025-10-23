@@ -23,6 +23,7 @@ namespace WebAPI.Data
         public virtual DbSet<Transaction> Transactions { get; set; }
         public virtual DbSet<Notification> Notification { get; set; }
         public virtual DbSet<Post> Post { get; set; }
+        public virtual DbSet<PostAttachment> PostAttachment { get; set; }
         public virtual DbSet<Comment> Comment { get; set; }
         public virtual DbSet<Tag> Tag { get; set; }
         public virtual DbSet<PostLike> PostLike { get; set; }
@@ -216,6 +217,38 @@ namespace WebAPI.Data
                             j.IndexerProperty<int>("post_id").HasColumnName("post_id");
                             j.IndexerProperty<int>("tag_id").HasColumnName("tag_id");
                         });
+            });
+
+            modelBuilder.Entity<PostAttachment>(entity =>
+            {
+                entity.HasKey(e => e.AttachmentId).HasName("PK__PostAttachment__AttachmentId");
+
+                entity.ToTable("PostAttachment");
+
+                entity.Property(e => e.AttachmentId).HasColumnName("attachment_id");
+                entity.Property(e => e.PostId).HasColumnName("post_id");
+                entity.Property(e => e.FileName)
+                    .HasMaxLength(255)
+                    .HasColumnName("file_name");
+                entity.Property(e => e.FileUrl)
+                    .HasMaxLength(500)
+                    .HasColumnName("file_url");
+                entity.Property(e => e.FileType)
+                    .HasMaxLength(50)
+                    .HasColumnName("file_type");
+                entity.Property(e => e.FileExtension)
+                    .HasMaxLength(10)
+                    .HasColumnName("file_extension");
+                entity.Property(e => e.FileSize).HasColumnName("file_size");
+                entity.Property(e => e.CreatedAt)
+                    .HasPrecision(0)
+                    .HasDefaultValueSql("(sysdatetime())")
+                    .HasColumnName("created_at");
+
+                entity.HasOne(d => d.Post).WithMany(p => p.Attachments)
+                    .HasForeignKey(d => d.PostId)
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .HasConstraintName("FK__PostAttachment__post_id");
             });
 
             modelBuilder.Entity<PostLike>(entity =>
