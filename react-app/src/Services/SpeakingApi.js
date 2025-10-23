@@ -44,7 +44,9 @@ export const gradeSpeaking = (gradeData) =>
   API.post("/grade", gradeData)
     .then((r) => r.data)
     .catch((err) => {
-      console.error("Grading API failed:", err.response?.data || err.message);
+      const msg = err.response?.data?.error || err.message;
+      console.error("Grading API failed:", msg);
+      alert(msg); // or use toast notification
       throw err;
     });
 
