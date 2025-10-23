@@ -1,10 +1,16 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Stripe;
+using WebAPI.Authorization;
 using WebAPI.Data;
 using WebAPI.ExternalServices;
 using WebAPI.Repositories;
 using WebAPI.Services;
+using WebAPI.Services.Authorization;
+//using WebAPI.Services.Payments;
+//using WebAPI.Services.Webhooks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,6 +95,23 @@ builder.Services.AddScoped<ITagService, TagService>();
 
 // Speech to Text
 builder.Services.AddScoped<SpeechToTextService>();
+//cấu hình Stripe secret key
+//StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
+//builder.Services.AddScoped<IPaymentService, StripePaymentService>();
+//builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
+//cấu hình Vip authorize
+
+builder.Services.AddScoped<IVipAuthorizationService, VipAuthorizationService>();
+builder.Services.AddScoped<IAuthorizationHandler, VIPAuthorizationHandler>();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("VIPOnly", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new VIPRequirement());
+    });
+});
 
 // ======================================
 // CORS (must allow credentials)
@@ -113,13 +136,43 @@ builder.Services.AddCors(options =>
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = "Google";
+    options.DefaultChallengeScheme = "Google"; // Google login challenge
 })
 .AddCookie(options =>
 {
+    options.Cookie.Name = "IELTSPhobicAuth";
     options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.LoginPath = "/api/auth/google/login";
+    options.Cookie.HttpOnly = true;
+    options.LoginPath = "/api/auth/login";
+    options.LogoutPath = "/api/auth/logout";
+
+    // ✅ Trả JSON thay vì redirect
+    options.Events = new CookieAuthenticationEvents
+    {
+        OnRedirectToLogin = ctx =>
+        {
+            if (ctx.Request.Path.StartsWithSegments("/api"))
+            {
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                ctx.Response.ContentType = "application/json";
+                return ctx.Response.WriteAsync("{\"error\":\"Unauthorized - Please log in.\"}");
+            }
+            ctx.Response.Redirect(ctx.RedirectUri);
+            return Task.CompletedTask;
+        },
+        OnRedirectToAccessDenied = ctx =>
+        {
+            if (ctx.Request.Path.StartsWithSegments("/api"))
+            {
+                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                ctx.Response.ContentType = "application/json";
+                return ctx.Response.WriteAsync("{\"error\":\"Access denied - VIP only feature.\"}");
+            }
+            ctx.Response.Redirect(ctx.RedirectUri);
+            return Task.CompletedTask;
+        }
+    };
 })
 .AddGoogle("Google", options =>
 {
@@ -128,6 +181,7 @@ builder.Services.AddAuthentication(options =>
     options.CallbackPath = "/api/auth/google/response";
     options.SaveTokens = true;
 });
+
 
 // ======================================
 // Cookie Policy
@@ -153,7 +207,22 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+// Handle 401 / 403 as JSON instead of redirect or 404
+app.UseStatusCodePages(async context =>
+{
+    var response = context.HttpContext.Response;
 
+    if (response.StatusCode == StatusCodes.Status401Unauthorized)
+    {
+        response.ContentType = "application/json";
+        await response.WriteAsync("{\"error\":\"Unauthorized - Please log in.\"}");
+    }
+    else if (response.StatusCode == StatusCodes.Status403Forbidden)
+    {
+        response.ContentType = "application/json";
+        await response.WriteAsync("{\"error\":\"Access denied - VIP only feature.\"}");
+    }
+});
 app.UseCors("AllowReactApp");
 
 // Must be before Authentication

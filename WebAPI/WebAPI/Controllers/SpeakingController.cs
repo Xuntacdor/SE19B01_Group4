@@ -221,6 +221,7 @@ namespace WebAPI.Controllers
         // ==========================================
         // === GRADE SPEAKING (AI EVALUATION) ===
         // ==========================================
+        [Authorize(Policy = "VIPOnly")]
         [HttpPost("grade")]
         [Authorize(Roles = "user,admin")]
         public IActionResult GradeSpeaking([FromBody] SpeakingGradeRequestDTO dto)

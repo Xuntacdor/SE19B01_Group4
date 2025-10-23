@@ -94,7 +94,7 @@ namespace WebAPI.Controllers
 
             return Ok(response);
         }
-
+        [Authorize(Policy = "VIPOnly")]
         [HttpPost("grade")]
         [Authorize(Roles = "user")]
         public IActionResult GradeWriting([FromBody] WritingGradeRequestDTO dto)

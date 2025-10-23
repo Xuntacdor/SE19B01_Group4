@@ -299,6 +299,11 @@ export default function SpeakingTest() {
 
   const hasRecording = recordings[currentId];
   const isUploading = uploading[currentId];
+  const formatRecordingTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   return (
     <AppLayout title="Speaking Test" sidebar={<GeneralSidebar />}>
