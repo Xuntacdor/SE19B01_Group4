@@ -36,7 +36,6 @@ namespace WebAPI.Repositories
         public Transaction? GetByReference(string reference)
         {
             return _context.Transactions
-                           .AsNoTracking()
                            .FirstOrDefault(t => t.ProviderTxnId == reference);
         }
 
