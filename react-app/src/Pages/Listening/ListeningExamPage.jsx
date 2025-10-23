@@ -18,7 +18,6 @@ export default function ListeningExamPage() {
 
   const formRef = useRef(null);
 
-  // 🕒 Timer
   useEffect(() => {
     if (!timeLeft || submitted) return;
     const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
@@ -31,7 +30,6 @@ export default function ListeningExamPage() {
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
-  // ✅ Unified input handler
   const handleChange = (e) => {
     const { name, value, type, checked, multiple, options, dataset } = e.target;
     if (!name) return;

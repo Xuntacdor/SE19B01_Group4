@@ -18,12 +18,10 @@ namespace WebAPI.Controllers
             _examService = examService;
         }
 
-        // ✅ GET all Listenings
         [HttpGet]
         public ActionResult<IEnumerable<ListeningDto>> GetAll()
             => Ok(_ListeningService.GetAll());
 
-        // ✅ GET Listening by ID (restrict to numeric ID)
         [HttpGet("{id:int}")]
         public ActionResult<ListeningDto> GetById(int id)
         {
@@ -31,7 +29,6 @@ namespace WebAPI.Controllers
             return Listening == null ? NotFound() : Ok(Listening);
         }
 
-        // ✅ GET Listenings by Exam
         [HttpGet("exam/{examId:int}")]
         public ActionResult<IEnumerable<ListeningDto>> GetByExam(int examId)
         {

@@ -593,7 +593,7 @@ namespace WebAPI.Data
                 entity.Property(e => e.WritingQuestion).HasColumnName("writing_question");
 
                 entity.Property(e => e.ImageUrl)
-                    .HasColumnName("image_url")
+                    .HasColumnName("ImageUrl")
                     .HasMaxLength(500);
 
                 entity.HasOne(d => d.Exam).WithMany(p => p.Writings)

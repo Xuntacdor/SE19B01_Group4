@@ -18,7 +18,6 @@ namespace WebAPI.Controllers
             _examService = examService;
         }
 
-        // ✅ GET all readings
         [HttpGet]
         public ActionResult<IEnumerable<ReadingDto>> GetAll()
             => Ok(_readingService.GetAll());

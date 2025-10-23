@@ -39,7 +39,6 @@ namespace WebAPI.Services
                 if (!answerMap.TryGetValue(r.ListeningId, out var userAnswers) || userAnswers.Count == 0)
                     continue;
 
-                // Parse DB correct answers (supports JSON or plain text)
                 List<string> correctAnswersList;
                 try
                 {

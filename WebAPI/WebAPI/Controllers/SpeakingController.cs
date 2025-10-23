@@ -28,9 +28,6 @@ namespace WebAPI.Controllers
             _logger = logger;
         }
 
-        // ==========================================
-        // === CRUD ENDPOINTS ===
-        // ==========================================
 
         [HttpPost]
         [Authorize(Roles = "admin")]
@@ -73,9 +70,7 @@ namespace WebAPI.Controllers
             return deleted ? NoContent() : NotFound();
         }
 
-        // ==========================================
-        // === GET FEEDBACK ===
-        // ==========================================
+
         [HttpGet("feedback/{examId}/{userId}")]
         [Authorize(Roles = "user,admin")]
         public IActionResult GetFeedbackByExam(int examId, int userId)
@@ -167,9 +162,6 @@ namespace WebAPI.Controllers
             }
         }
 
-        // ==========================================
-        // === TRANSCRIBE AUDIO FROM FRONTEND ===
-        // ==========================================
         [HttpPost("transcribe-audio")]
         [Authorize(Roles = "user,admin")]
         [Consumes("multipart/form-data")]
@@ -236,7 +228,7 @@ namespace WebAPI.Controllers
             if (dto == null || dto.Answers == null || dto.Answers.Count == 0)
                 return BadRequest("Invalid or empty answers.");
 
-            int userId = 0; // Initialize outside try block
+            int userId = 0; 
             try
             {
                 var userIdStr = User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value

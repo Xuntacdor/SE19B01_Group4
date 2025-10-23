@@ -18,14 +18,9 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.OperationFilter<WebAPI.Swagger.FileUploadOperationFilter>();
-});
+builder.Services.AddSwaggerGen();
 
-// ======================================
-// Session (must allow cross-site cookies)
-// ======================================
+
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>

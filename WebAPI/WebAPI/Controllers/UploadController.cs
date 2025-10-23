@@ -48,17 +48,28 @@ namespace WebAPI.Controllers
             if (dto.File == null || dto.File.Length == 0)
                 return BadRequest("No audio uploaded.");
 
-            var uploadParams = new RawUploadParams
+            var uploadParams = new VideoUploadParams
             {
                 File = new FileDescription(dto.File.FileName, dto.File.OpenReadStream()),
                 Folder = "ieltsphobic/audio",
                 UseFilename = true,
                 UniqueFilename = true,
-                Overwrite = false
+                Overwrite = false,
             };
 
-            var result = _cloudinary.Upload(uploadParams);
+            var result = _cloudinary.Upload(uploadParams, "video");
+
+            if (result.Error != null)
+            {
+                Console.WriteLine($"Cloudinary Error: {result.Error.Message}");
+                return BadRequest($"Cloudinary error: {result.Error.Message}");
+            }
+
+            if (result.SecureUrl == null)
+                return BadRequest("Audio upload failed. Cloudinary did not return a URL.");
+
             return Ok(new { url = result.SecureUrl.ToString() });
         }
+
     }
 }
