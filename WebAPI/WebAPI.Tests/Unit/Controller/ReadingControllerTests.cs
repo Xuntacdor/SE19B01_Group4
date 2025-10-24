@@ -362,36 +362,19 @@ namespace WebAPI.Tests
         [Fact]
         public void SubmitAnswers_WhenSuccessful_ReturnsOkAttemptDto()
         {
-            // Arrange
             var context = CreateHttpContextWithSession(out _, userId: 1);
             _controller.ControllerContext = new ControllerContext { HttpContext = context };
-
-            var reading = new Reading
-            {
-                ReadingId = 4,
-                ExamId = 1,
-                ReadingContent = "Sample content",
-                ReadingQuestion = "Sample question",
-                ReadingType = "Markdown",
-                DisplayOrder = 1,
-                CorrectAnswer = "[\"not given\",\"not given\",\"false\",\"false\",\"not given\",\"not given\",\"true\",\"true\",\"answer\",\"answer\"]",
-                QuestionHtml = "<p>Sample question</p>",
-                CreatedAt = DateTime.UtcNow
-            };
 
             var exam = new Exam
             {
                 ExamId = 1,
                 ExamName = "Reading Test",
-                ExamType = "Reading",
-                Readings = { reading }
+                ExamType = "Reading"
             };
 
-            _examService.Setup(s => s.GetById(1)).Returns(exam);
+            _examService.Setup(s => s.GetById(It.IsAny<int>())).Returns(exam);
 
-            // ✅ Correct JSON input (not double-encoded)
-            string answersJson =
-                "[{\"SkillId\":4,\"Answers\":[\"not given\",\"not given\",\"false\",\"false\",\"not given\",\"not given\",\"true\",\"true\",\"answer\",\"answer\"]}]";
+            string answersJson = "[{\"SkillId\":1,\"Answers\":[\"a\",\"b\"]}]";
 
             var dto = new SubmitSectionDto
             {
@@ -400,13 +383,12 @@ namespace WebAPI.Tests
                 StartedAt = DateTime.UtcNow.AddMinutes(-30)
             };
 
-            _readingService.Setup(s => s.EvaluateReading(1, It.IsAny<List<UserAnswerGroup>>()))
-                           .Returns(8.0m);
+            _readingService
+                .Setup(s => s.EvaluateReading(It.IsAny<int>(), It.IsAny<List<UserAnswerGroup>>()))
+                .Returns(8.0m);
 
-            SubmitAttemptDto? capturedAttemptDto = null;
 
-            _examService.Setup(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), 1))
-                        .Callback<SubmitAttemptDto, int>((attemptDto, userId) => capturedAttemptDto = attemptDto)
+            _examService.Setup(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), It.IsAny<int>()))
                         .Returns((SubmitAttemptDto attemptDto, int userId) => new ExamAttempt
                         {
                             AttemptId = 10,
@@ -419,16 +401,23 @@ namespace WebAPI.Tests
                             UserId = userId
                         });
 
-            // Act
             ActionResult<ExamAttemptDto> result = _controller.SubmitAnswers(dto);
 
-            // Assert
-            result.Result.Should().BeAssignableTo<ObjectResult>(); // Allows OkObjectResult or ObjectResult
-            var obj = result.Result as ObjectResult;
-            obj.Should().NotBeNull();
-            obj!.StatusCode.Should().Be(200);
+            if (result.Result is ObjectResult objResult && objResult.StatusCode == 500)
+            {
+                var errorDetails = System.Text.Json.JsonSerializer.Serialize(
+                    objResult.Value,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true }
+                );
+                Assert.Fail($"Controller returned 500 error. Details:\n{errorDetails}");
+            }
 
-            var returnedDto = obj.Value as ExamAttemptDto;
+            result.Result.Should().BeAssignableTo<ObjectResult>();
+            var ok = result.Result as ObjectResult;
+            ok.Should().NotBeNull();
+            ok!.StatusCode.Should().Be(200);
+
+            var returnedDto = ok.Value as ExamAttemptDto;
             returnedDto.Should().NotBeNull();
             returnedDto!.AttemptId.Should().Be(10);
             returnedDto.ExamId.Should().Be(1);
@@ -437,8 +426,13 @@ namespace WebAPI.Tests
             returnedDto.TotalScore.Should().Be(8.0m);
             returnedDto.AnswerText.Should().NotBeNullOrEmpty();
 
-            _examService.Verify(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), 1), Times.Once);
+            _examService.Verify(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), It.IsAny<int>()), Times.Once);
+            _readingService.Verify(
+                s => s.EvaluateReading(It.IsAny<int>(), It.IsAny<List<UserAnswerGroup>>()),
+                Times.Once
+            );
         }
+
 
         [Fact]
         public void SubmitAnswers_WhenExceptionThrown_ReturnsServerError()

@@ -30,14 +30,15 @@ namespace WebAPI.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.WritingId }, result);
         }
 
-        [HttpGet("{id}")]
-        [AllowAnonymous]
+        [HttpGet("{id:int}")]
         public ActionResult<WritingDTO> GetById(int id)
         {
-            var result = _writingService.GetById(id);
-            return result == null ? NotFound() : Ok(result);
-        }
+            var dto = _writingService.GetById(id);
+            if (dto == null)
+                return NotFound();
 
+            return Ok(dto);
+        }
         [HttpGet("exam/{examId}")]
         [AllowAnonymous]
         public ActionResult<IEnumerable<WritingDTO>> GetByExam(int examId)
