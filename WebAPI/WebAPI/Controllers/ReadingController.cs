@@ -22,7 +22,6 @@ namespace WebAPI.Controllers
         public ActionResult<IEnumerable<ReadingDto>> GetAll()
             => Ok(_readingService.GetAll());
 
-        // ✅ GET reading by ID (restrict to numeric ID)
         [HttpGet("{id:int}")]
         public ActionResult<ReadingDto> GetById(int id)
         {
@@ -50,7 +49,6 @@ namespace WebAPI.Controllers
             return Ok(result);
         }
 
-        // ✅ CREATE new reading
         [HttpPost]
         public ActionResult<ReadingDto> Add([FromBody] CreateReadingDto dto)
         {
@@ -62,7 +60,6 @@ namespace WebAPI.Controllers
             return CreatedAtAction(nameof(GetById), new { id = created.ReadingId }, created);
         }
 
-        // ✅ UPDATE existing reading
         [HttpPut("{id:int}")]
         public IActionResult Update(int id, [FromBody] UpdateReadingDto dto)
         {
@@ -112,13 +109,13 @@ namespace WebAPI.Controllers
                 // ✅ Save attempt
                 var attempt = _examService.SubmitAttempt(attemptDto, userId.Value);
 
-                // ✅ Return standardized result DTO
+                // Use the 'exam' object that was fetched and validated earlier in the method.
                 return Ok(new ExamAttemptDto
                 {
                     AttemptId = attempt.AttemptId,
                     ExamId = attempt.ExamId,
-                    ExamName = attempt.Exam?.ExamName ?? "",
-                    ExamType = attempt.Exam?.ExamType ?? "",
+                    ExamName = exam.ExamName,
+                    ExamType = exam.ExamType,
                     StartedAt = attempt.StartedAt,
                     SubmittedAt = attempt.SubmittedAt,
                     TotalScore = attempt.Score ?? 0,
@@ -127,11 +124,13 @@ namespace WebAPI.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine("=== SubmitAnswers exception ===");
+                Console.WriteLine(ex.GetType().Name + ": " + ex.Message);
+                Console.WriteLine(ex.StackTrace);
                 return StatusCode(500, new
                 {
                     Message = "Error submitting reading answers.",
-                    Exception = ex.Message,
-                    StackTrace = ex.StackTrace
+                    Exception = ex.Message
                 });
             }
         }

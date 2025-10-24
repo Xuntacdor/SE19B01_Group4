@@ -22,7 +22,6 @@ import {
   Filler,
 } from "chart.js";
 
-// ✅ Đăng ký plugin cho Chart.js
 ChartJS.register(
   LineElement,
   CategoryScale,
@@ -108,7 +107,7 @@ export default function AdminDashboard() {
     <AppLayout title="Admin Dashboard" sidebar={<AdminNavbar />}>
       <div className="admin-main">
         <h1 className="admin-title">
-          <LayoutDashboard size={28} style={{ marginRight: "8px" }} />
+          <LayoutDashboard size={28} style={{ marginLeft: "8px" }} />
           Admin Dashboard
         </h1>
 

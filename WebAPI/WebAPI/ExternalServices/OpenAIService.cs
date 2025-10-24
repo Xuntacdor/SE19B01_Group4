@@ -6,6 +6,8 @@ using System;
 using System.ClientModel;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+
 namespace WebAPI.ExternalServices
 {
     public class OpenAIService : IOpenAIService
@@ -13,13 +15,9 @@ namespace WebAPI.ExternalServices
         private readonly OpenAIClient _client;
         private readonly ILogger<OpenAIService> _logger;
 
-        public OpenAIService(IConfiguration config, ILogger<OpenAIService> logger)
+        public OpenAIService(OpenAIClient client, ILogger<OpenAIService> logger)
         {
-            var apiKey = config["OpenAI:ApiKey"];
-            if (string.IsNullOrEmpty(apiKey))
-                throw new ArgumentException("OpenAI API key is not configured.");
-
-            _client = new OpenAIClient(apiKey);
+            _client = client;
             _logger = logger;
         }
 
@@ -131,13 +129,24 @@ Essay Answer:
                     ? raw.Substring(first, last - first + 1)
                     : "{}";
 
-                _logger.LogInformation("[OpenAIService] Writing JSON feedback generated successfully:\n{Json}", jsonText);
+                // FIX: Remove all newlines and normalize whitespace
+                jsonText = Regex.Replace(jsonText, @"\r\n|\r|\n", " ");
+                jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
+
+                _logger.LogInformation("[OpenAIService] Writing JSON feedback generated successfully");
+
                 return JsonDocument.Parse(jsonText);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "[OpenAIService] Failed to parse JSON from Writing output.");
+                return JsonDocument.Parse(@"{ ""error"": ""Invalid JSON returned from OpenAI"" }");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[OpenAIService] Writing grading failed.");
-                return JsonDocument.Parse($@"{{ ""error"": ""{ex.Message}"" }}");
+                var errorMessage = ex.Message.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
+                return JsonDocument.Parse($@"{{ ""error"": ""{errorMessage}"" }}");
             }
         }
 
@@ -227,8 +236,14 @@ Transcript:
                     ? raw.Substring(first, last - first + 1)
                     : "{}";
 
-                _logger.LogInformation("[OpenAIService] Speaking JSON feedback generated successfully:\n{Json}", jsonText);
+                // FIX: Remove all newlines and normalize whitespace
+                jsonText = Regex.Replace(jsonText, @"\r\n|\r|\n", " ");
+                jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
+
+                _logger.LogInformation("[OpenAIService] Speaking JSON feedback generated successfully");
+
                 return JsonDocument.Parse(jsonText);
+
             }
             catch (JsonException ex)
             {
@@ -238,7 +253,8 @@ Transcript:
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[OpenAIService] Speaking grading failed.");
-                return JsonDocument.Parse($@"{{ ""error"": ""{ex.Message}"" }}");
+                var errorMessage = ex.Message.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
+                return JsonDocument.Parse($@"{{ ""error"": ""{errorMessage}"" }}");
             }
         }
     }

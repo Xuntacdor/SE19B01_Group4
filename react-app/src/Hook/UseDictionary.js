@@ -13,7 +13,6 @@ export function useDictionary(user) {
   const [errorMessage, setErrorMessage] = useState("");
   const [refreshGroups, setRefreshGroups] = useState(0); 
 
-  // Load groups by user
   useEffect(() => {
     if (!user) return;
     VocabGroupApi.getByUser(user.userId).then((res) => {
@@ -61,7 +60,6 @@ export function useDictionary(user) {
     }
   };
 
-  // Add word
   const handleAddToGroup = () => {
     if (!selectedGroupId || !searchResult) {
       alert("Please select a group to add this word.");

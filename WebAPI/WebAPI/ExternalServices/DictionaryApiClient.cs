@@ -1,33 +1,23 @@
 ﻿using System.Net.Http;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using WebAPI.Models;
 
 namespace WebAPI.ExternalServices
 {
     public class DictionaryApiClient
     {
+        const string BaseUrl = "https://api.dictionaryapi.dev/api/v2/entries/en/";
         private readonly HttpClient _httpClient;
-        private readonly string _baseUrl;
 
-        public DictionaryApiClient(HttpClient httpClient, IConfiguration config)
+        public DictionaryApiClient(HttpClient httpClient)
         {
             _httpClient = httpClient;
-
-            _baseUrl = config["ExternalAPIs:ApiNinjas:BaseUrl"]
-                       ?? "https://api.api-ninjas.com/v1/dictionary?word=";
-
-            var apiKey = config["ExternalAPIs:ApiNinjas:ApiKey"];
-            if (string.IsNullOrEmpty(apiKey))
-                throw new ArgumentException("API Ninjas key not configured.");
-
-            _httpClient.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+            _httpClient.BaseAddress = new Uri(BaseUrl);
         }
 
         public Word? GetWord(string term)
         {
-            var url = _baseUrl + term;
-
+            var url = BaseUrl + term;
             var response = _httpClient.GetAsync(url).Result;
             if (!response.IsSuccessStatusCode)
                 return null;
@@ -36,30 +26,52 @@ namespace WebAPI.ExternalServices
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("definition", out var def))
+            if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() == 0)
                 return null;
 
-            string? definition = def.GetString();
+            var entry = root[0];
+            string wordText = entry.GetProperty("word").GetString() ?? term;
 
-            if (!string.IsNullOrEmpty(definition))
+            string? meaning = null;
+            string? example = null;
+
+            // ✅ Lấy nghĩa đầu tiên duy nhất
+            if (entry.TryGetProperty("meanings", out var meanings) && meanings.GetArrayLength() > 0)
             {
-                // ✅ Lấy nghĩa đầu tiên trước “2.”, “3.” hoặc xuống dòng
-                var match = Regex.Match(definition, @"^(.*?)(?:\s+\d+\.)");
-                if (match.Success)
-                    definition = match.Groups[1].Value.Trim();
-                else
-                    definition = definition.Split('\n')[0].Trim();
+                var firstMeaning = meanings[0];
 
-                // ✅ Loại bỏ phần [Obs.], [Colloq.], v.v.
-                definition = Regex.Replace(definition, @"\[[^\]]+\]", "").Trim();
+                if (firstMeaning.TryGetProperty("definitions", out var definitions) && definitions.GetArrayLength() > 0)
+                {
+                    var firstDef = definitions[0];
+
+                    if (firstDef.TryGetProperty("definition", out var defProp))
+                        meaning = defProp.GetString();
+
+                    if (firstDef.TryGetProperty("example", out var exProp))
+                        example = exProp.GetString();
+                }
+            }
+
+            // ✅ Lấy audio (nếu có)
+            string? audio = null;
+            if (entry.TryGetProperty("phonetics", out var phonetics) && phonetics.GetArrayLength() > 0)
+            {
+                foreach (var phonetic in phonetics.EnumerateArray())
+                {
+                    if (phonetic.TryGetProperty("audio", out var audioProp) && !string.IsNullOrWhiteSpace(audioProp.GetString()))
+                    {
+                        audio = audioProp.GetString();
+                        break;
+                    }
+                }
             }
 
             return new Word
             {
-                Term = term,
-                Meaning = definition,
-                Example = null,
-                Audio = null
+                Term = wordText,
+                Meaning = meaning,
+                Example = example,
+                Audio = audio
             };
         }
     }

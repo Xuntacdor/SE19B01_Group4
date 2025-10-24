@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import AppLayout from "../../Components/Layout/AppLayout";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as WritingApi from "../../Services/WritingApi";
-import LoadingComponent from "../../Components/Exam/LoadingComponent"; // ✅ import here
+import LoadingComponent from "../../Components/Exam/LoadingComponent";
 import styles from "./WritingTestPage.module.css";
 
 export default function WritingTest() {
