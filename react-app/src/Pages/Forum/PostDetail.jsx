@@ -338,6 +338,51 @@ export default function PostDetail() {
                 </div>
               )}
 
+              {/* Attachments Section */}
+              {post.attachments && post.attachments.length > 0 && (
+                <div className="post-attachments">
+                  <h4 className="attachments-title">Attachments:</h4>
+                  <div className="attachments-grid">
+                    {post.attachments.map((attachment, index) => (
+                      <div key={index} className="attachment-item">
+                        {attachment.fileType === 'image' ? (
+                          <div className="attachment-image">
+                            <img 
+                              src={attachment.fileUrl} 
+                              alt={attachment.fileName}
+                              className="attachment-img"
+                            />
+                            <div className="attachment-info">
+                              <span className="attachment-name">{attachment.fileName}</span>
+                              <span className="attachment-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="attachment-file">
+                            <div className="attachment-icon">
+                              <Download size={20} />
+                            </div>
+                            <div className="attachment-info">
+                              <span className="attachment-name">{attachment.fileName}</span>
+                              <span className="attachment-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
+                            </div>
+                            <a 
+                              href={attachment.fileUrl} 
+                              download={attachment.fileName}
+                              className="download-btn"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Download size={16} />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="post-stats">
                 <button
                   className={`vote-btn ${isVoted ? "voted" : ""}`}
