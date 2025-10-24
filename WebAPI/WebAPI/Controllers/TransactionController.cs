@@ -55,23 +55,23 @@ namespace WebAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        //Cancel method is commented out
+        //[HttpPost("{id:int}/cancel")]
+        //public IActionResult Cancel(int id)
+        //{
+        //    var user = GetCurrentUser();
+        //    if (user == null) return Unauthorized();
 
-        [HttpPost("{id:int}/cancel")]
-        public IActionResult Cancel(int id)
-        {
-            var user = GetCurrentUser();
-            if (user == null) return Unauthorized();
-
-            try
-            {
-                var updated = _service.Cancel(id, user.UserId, user.IsAdmin);
-                return Ok(updated);
-            }
-            catch (Exception ex)
-            {
-                return Conflict(ex.Message);
-            }
-        }
+        //    try
+        //    {
+        //        var updated = _service.Cancel(id, user.UserId, user.IsAdmin);
+        //        return Ok(updated);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return Conflict(ex.Message);
+        //    }
+        //}
 
         [HttpPost("{id:int}/refund")]
         public IActionResult Refund(int id)
@@ -89,24 +89,24 @@ namespace WebAPI.Controllers
                 return Conflict(ex.Message);
             }
         }
+        //Approve method is commented out
+        //[HttpPost("{id:int}/approve")]
+        //[Authorize(Roles = "admin")]
+        //public IActionResult Approve(int id)
+        //{
+        //    var user = GetCurrentUser();
+        //    if (user == null) return Unauthorized();
 
-        [HttpPost("{id:int}/approve")]
-        [Authorize(Roles = "admin")]
-        public IActionResult Approve(int id)
-        {
-            var user = GetCurrentUser();
-            if (user == null) return Unauthorized();
-
-            try
-            {
-                var updated = _service.Approve(id, user.UserId, user.IsAdmin);
-                return Ok(updated);
-            }
-            catch (Exception ex)
-            {
-                return Conflict(ex.Message);
-            }
-        }
+        //    try
+        //    {
+        //        var updated = _service.Approve(id, user.UserId, user.IsAdmin);
+        //        return Ok(updated);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return Conflict(ex.Message);
+        //    }
+        //}
         [HttpPost("create")]
         [Authorize]
         public IActionResult CreateTransaction([FromBody] TransactionDTO dto)

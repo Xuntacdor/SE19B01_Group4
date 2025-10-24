@@ -9,6 +9,8 @@ using WebAPI.ExternalServices;
 using WebAPI.Repositories;
 using WebAPI.Services;
 using WebAPI.Services.Authorization;
+using WebAPI.Services.Payments;
+using WebAPI.Services.Webhooks;
 //using WebAPI.Services.Payments;
 //using WebAPI.Services.Webhooks;
 
@@ -96,9 +98,9 @@ builder.Services.AddScoped<ITagService, TagService>();
 // Speech to Text
 builder.Services.AddScoped<SpeechToTextService>();
 //cấu hình Stripe secret key
-//StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
-//builder.Services.AddScoped<IPaymentService, StripePaymentService>();
-//builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
+builder.Services.AddScoped<IPaymentService, StripePaymentService>();
+builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 //cấu hình Vip authorize
 
 builder.Services.AddScoped<IVipAuthorizationService, VipAuthorizationService>();

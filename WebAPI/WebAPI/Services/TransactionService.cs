@@ -88,22 +88,22 @@ namespace WebAPI.Services
         }
 
         // ===================== CANCEL =====================
-        public TransactionDTO Cancel(int id, int currentUserId, bool isAdmin)
-        {
-            var tx = _repo.GetById(id);
-            if (tx == null) throw new KeyNotFoundException("Transaction not found.");
-            if (!isAdmin && tx.UserId != currentUserId)
-                throw new UnauthorizedAccessException("Forbidden.");
+        //public TransactionDTO Cancel(int id, int currentUserId, bool isAdmin)
+        //{
+        //    var tx = _repo.GetById(id);
+        //    if (tx == null) throw new KeyNotFoundException("Transaction not found.");
+        //    if (!isAdmin && tx.UserId != currentUserId)
+        //        throw new UnauthorizedAccessException("Forbidden.");
 
-            if (!tx.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only pending transactions can be canceled.");
+        //    if (!tx.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
+        //        throw new InvalidOperationException("Only pending transactions can be canceled.");
 
-            tx.Status = "FAILED";
-            _repo.Update(tx);
-            _repo.SaveChanges();
+        //    tx.Status = "FAILED";
+        //    _repo.Update(tx);
+        //    _repo.SaveChanges();
 
-            return MapToDto(tx);
-        }
+        //    return MapToDto(tx);
+        //}
 
         // ===================== REFUND =====================
         public TransactionDTO Refund(int id, int currentUserId, bool isAdmin)
@@ -124,41 +124,41 @@ namespace WebAPI.Services
         }
 
         // ===================== APPROVE =====================
-        public TransactionDTO Approve(int id, int currentUserId, bool isAdmin)
-        {
-            if (!isAdmin)
-                throw new UnauthorizedAccessException("Only admin can approve.");
+        //public TransactionDTO Approve(int id, int currentUserId, bool isAdmin)
+        //{
+        //    if (!isAdmin)
+        //        throw new UnauthorizedAccessException("Only admin can approve.");
 
-            var tx = _repo.GetById(id);
-            if (tx == null)
-                throw new KeyNotFoundException("Transaction not found.");
+        //    var tx = _repo.GetById(id);
+        //    if (tx == null)
+        //        throw new KeyNotFoundException("Transaction not found.");
 
-            if (!tx.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only pending transactions can be approved.");
+        //    if (!tx.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
+        //        throw new InvalidOperationException("Only pending transactions can be approved.");
 
-            tx.Status = "PAID";
-            _repo.Update(tx);
-            _repo.SaveChanges();
+        //    tx.Status = "PAID";
+        //    _repo.Update(tx);
+        //    _repo.SaveChanges();
 
-            if (tx.PlanId.HasValue && tx.Plan != null)
-            {
-                var user = _userRepo.GetById(tx.UserId);
-                var plan = _vipRepo.GetById(tx.PlanId.Value);
-                if (user != null && plan != null)
-                {
-                    var now = DateTime.UtcNow;
-                    var baseDate = user.VipExpireAt.HasValue && user.VipExpireAt > now
-                        ? user.VipExpireAt.Value
-                        : now;
+        //    if (tx.PlanId.HasValue && tx.Plan != null)
+        //    {
+        //        var user = _userRepo.GetById(tx.UserId);
+        //        var plan = _vipRepo.GetById(tx.PlanId.Value);
+        //        if (user != null && plan != null)
+        //        {
+        //            var now = DateTime.UtcNow;
+        //            var baseDate = user.VipExpireAt.HasValue && user.VipExpireAt > now
+        //                ? user.VipExpireAt.Value
+        //                : now;
 
-                    user.VipExpireAt = baseDate.AddDays(plan.DurationDays);
-                    _userRepo.Update(user);
-                    _userRepo.SaveChanges();
-                }
-            }
+        //            user.VipExpireAt = baseDate.AddDays(plan.DurationDays);
+        //            _userRepo.Update(user);
+        //            _userRepo.SaveChanges();
+        //        }
+        //    }
 
-            return MapToDto(tx);
-        }
+        //    return MapToDto(tx);
+        //}
 
         // ===================== CREATE VIP Transaction =====================
         public TransactionDTO CreateVipTransaction(TransactionDTO dto, int currentUserId)
