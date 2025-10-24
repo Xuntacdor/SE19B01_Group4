@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using WebAPI.Data;
+﻿using WebAPI.Data;
 using WebAPI.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace WebAPI.Repositories
 {
@@ -13,20 +14,31 @@ namespace WebAPI.Repositories
             _db = db;
         }
 
-        public Listening? GetById(int id) =>
-            _db.Listening.FirstOrDefault(r => r.ListeningId == id);
+        public Listening? GetById(int id) => _db.Listening.FirstOrDefault(r => r.ListeningId == id);
 
-        public List<Listening> GetAll() =>
-            _db.Listening.OrderBy(r => r.ListeningId).ToList();
+        public List<Listening> GetAll() => _db.Listening.ToList();
 
         public List<Listening> GetByExamId(int examId) =>
-            _db.Listening.Where(r => r.ExamId == examId)
-                       .OrderBy(r => r.DisplayOrder)
-                       .ToList();
+            _db.Listening.Where(r => r.ExamId == examId).ToList();
 
-        public void Add(Listening Listening) => _db.Listening.Add(Listening);
-        public void Update(Listening Listening) => _db.Listening.Update(Listening);
-        public void Delete(Listening Listening) => _db.Listening.Remove(Listening);
+        public void Add(Listening reading)
+        {
+            _db.Listening.Add(reading);
+            SaveChanges();
+        }
+
+        public void Update(Listening reading)
+        {
+            _db.Listening.Update(reading);
+            SaveChanges();
+        }
+
+        public void Delete(Listening reading)
+        {
+            _db.Listening.Remove(reading);
+            SaveChanges();
+        }
+
         public void SaveChanges() => _db.SaveChanges();
     }
 }

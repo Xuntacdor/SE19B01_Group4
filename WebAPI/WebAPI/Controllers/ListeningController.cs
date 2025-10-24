@@ -96,7 +96,7 @@ namespace WebAPI.Controllers
                     return BadRequest("No answers found in payload.");
 
                 // ✅ Evaluate score
-                var score = _ListeningService.EvaluateListening(dto.ExamId,structuredAnswers);
+                var score = _ListeningService.EvaluateListening(dto.ExamId, structuredAnswers);
 
                 // ✅ Build attempt data for saving
                 var attemptDto = new SubmitAttemptDto
@@ -107,14 +107,16 @@ namespace WebAPI.Controllers
                     Score = score
                 };
 
+                // ✅ Save attempt
                 var attempt = _examService.SubmitAttempt(attemptDto, userId.Value);
 
+                // Use the 'exam' object that was fetched and validated earlier in the method.
                 return Ok(new ExamAttemptDto
                 {
                     AttemptId = attempt.AttemptId,
                     ExamId = attempt.ExamId,
-                    ExamName = attempt.Exam?.ExamName ?? "",
-                    ExamType = attempt.Exam?.ExamType ?? "",
+                    ExamName = exam.ExamName,
+                    ExamType = exam.ExamType,
                     StartedAt = attempt.StartedAt,
                     SubmittedAt = attempt.SubmittedAt,
                     TotalScore = attempt.Score ?? 0,
@@ -123,11 +125,13 @@ namespace WebAPI.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine("=== SubmitAnswers exception ===");
+                Console.WriteLine(ex.GetType().Name + ": " + ex.Message);
+                Console.WriteLine(ex.StackTrace);
                 return StatusCode(500, new
                 {
-                    Message = "Error submitting Listening answers.",
-                    Exception = ex.Message,
-                    StackTrace = ex.StackTrace
+                    Message = "Error submitting listening answers.",
+                    Exception = ex.Message
                 });
             }
         }
