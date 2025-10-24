@@ -27,7 +27,7 @@ jobs:
 
     - name: Run tests with coverage
       run: |
-        dotnet test WebAPI.Tests/WebAPI.Tests.csproj \
+        dotnet test WebAPI/WebAPI.Tests/WebAPI.Tests.csproj \
           --configuration Release \
           --collect:"XPlat Code Coverage" \
           --results-directory ./TestResults
