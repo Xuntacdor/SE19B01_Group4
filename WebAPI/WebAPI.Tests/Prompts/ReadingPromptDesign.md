@@ -1,37 +1,28 @@
 ﻿
 `Prompt1`
-Context: This source code belongs to the IELTSPhobic web application — specifically, the Reading module, which manages reading exams, question retrieval, user submissions, scoring, and feedback storage.
-The system follows a multi-layer architecture:
-Controller → Service → Repository → Database 
-Your goal is to identify all **public or business-logic methods** that require **unit or integration testing** for this feature.
+**Context:**  
+This code belongs to the IELTSPhobic Reading module (.NET 8 WebAPI), handling reading exams, submissions, scoring, and feedback.  
+Architecture: Controller → Service → Repository → Database.
+**Role:**  
+You are an expert software test engineer and prompt engineer.
 
-Requirements:
+**Goal:**  
+Identify all public or business-logic methods that require unit or integration tests (>80% coverage).
 
-* You are an **expert software test engineer and prompt engineer**.
-* The analysis must be **comprehensive enough to achieve >80% code and branch coverage**.
-* Automatically analyze the given source code (you already have GitHub access).
-* Ignore trivial getters/setters or mapping helpers without logic.
-* Include both controller and service layers if they contain logic, validation, or exception handling.
-Output format (strictly use markdown):
+**Requirements:**  
+- Ignore trivial getters/setters.  
+- Include controller + service layers with logic, validation, or exception handling.  
+- List dependencies to mock (e.g., IReadingRepository, IExamRepository).  
+- Mention edge cases (nulls, exceptions, unauthorized, invalid input).  
+**Output Format (Markdown):**
 ### Functions to Test
-1. **FunctionName(parameters)**
-   - **Main Purpose:**  
-     Brief one-line summary of what it does.
-   - **Inputs:**  
-     List each parameter (type + meaning).
-   - **Returns:**  
-     Data type and meaning of the return value.
+1. **FunctionName(params)**
+   - **Main Purpose:** one-line summary  
+   - **Inputs:** list type + meaning  
+   - **Returns:** type + purpose  
    - **Dependencies to Mock:**  
-     Services, repositories, or APIs used in this function.
    - **Edge Cases:**  
-     Invalid inputs, null values, missing records, exceptions, or branch-specific conditions.
-   - **Suggested Test Names:**  
-     List of test names following the Given_When_Then convention.
-Additional Notes:
-*Focus on public and internal business-logic methods (e.g., controller endpoints, service logic like SubmitReadingAttempt, CalculateScore, SaveResult if they contain exception branches). 
-*Identify mockable dependencies like IReadingRepository, IReadingAttemptRepository, IExamRepository, IUserRepository, etc. 
-*Include authorization and validation logic in controllers, since these affect coverage (e.g., Unauthorized, BadRequest, NotFound, 500 branches). 
-*Suggest test cases for both happy-path and failure branches (e.g., null DTO, invalid answers, missing exam attempt, database exception, double submission). 
+   - **Suggested Test Names:** Given_When_Then...
 *Keep each method entry concise but complete enough for automated test generation tools. 
 `Promp 2`
 **Prompt:**
@@ -63,33 +54,25 @@ Analyze the following source code from my GitHub repository (IELTSPhobic project
 **Output title:**
 `### AI Output: Test Cases Matrix for ReadingService`
 `Prompt 3`
-You are an expert .NET test engineer. Generate fully compilable xUnit test code (C#) for the ReadingService class in the IELTSPhobic web application.
-Do not create or save any file — only output the full C# source code as markdown.
+**Context:**  
+IELTSPhobic ReadingService (.NET 8, xUnit, Moq, FluentAssertions).
 
-Requirements:
+**Role:**  
+Expert .NET test engineer.
 
-Namespace: WebAPI.Tests
+**Goal:**  
+Generate fully compilable unit test code covering: GetById, GetByExam, GetAll, Add, Update, Delete, EvaluateReading.
 
-Use xUnit, Moq, and FluentAssertions.
+**Requirements:**  
+- Namespace: WebAPI.Tests  
+- Mock: IReadingRepository, IExamService  
+- Include helpers: CreateSampleReading(), SetupMockRepository()  
+- Each [Fact] = standalone test  
+- Output = single C# markdown block (no comments)
 
-Mock dependencies: IReadingRepository, IExamService.
+**Output Format:**
+// full C# source code here
 
-Test all main public methods:
-GetById, GetByExam, GetAll, Add, Update, Delete, and EvaluateReading.
-
-Include helper methods like CreateSampleReading() and SetupMockRepository().
-
-Use realistic data and assertions that fully compile under .NET 8.
-
-Ensure all JSON strings are properly escaped.
-
-Each [Fact] must be a standalone public test method.
-
-The output must be a single C# code block wrapped in
-csharp ...
-with no extra commentary.
-
-Goal: Produce clean, syntactically correct test code that compiles and covers all ReadingService logic.
 `promp4`
 You are an expert .NET test engineer.
 Generate fully compilable **xUnit test code (C#)** for the **ReadingController** and **ReadingRepository** classes in the IELTSPhobic web application.

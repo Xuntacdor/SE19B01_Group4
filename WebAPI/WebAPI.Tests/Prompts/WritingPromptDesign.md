@@ -1,91 +1,67 @@
-﻿`Phase 1`
-**Prompt 1:**
+﻿## 🧩 Phase 1 – Tetsting specification 
 
-Context: This source code belongs to the IELTSPhobic web application — specifically, the AI Writing Grading module that interacts with OpenAI for essay evaluation. The system follows a multi-layer architecture: Controller → Service -> External AI (OpenAI)→ Repository 
+**Context:**  
+IELTSPhobic AI Writing Grading module (.NET 8, xUnit, Moq, FluentAssertions) — integrates OpenAI for essay evaluation.  
+Architecture: Controller → Service → External AI (OpenAI) → Repository.
 
-Your goal is to identify all **public or business-logic methods** that require **unit or integration testing** for this feature.
+**Role:**  
+Expert software test engineer and prompt engineer.
 
-Requirements:
+**Goal:**  
+Identify all **public/business-logic** methods that need **unit or integration testing** (>80% coverage).
 
-* You are an **expert software test engineer and prompt engineer**.
-* The analysis must be **comprehensive enough to achieve >80% code and branch coverage**.
-* Automatically analyze the given source code (you already have GitHub access).
-* Ignore trivial getters/setters or mapping helpers without logic.
-* Include both controller and service layers if they contain logic, validation, or exception handling.
-Output format (strictly use markdown):
+**Requirements:**  
+- Ignore trivial getters/setters or mapping helpers.  
+- Include Controller + Service methods with validation, AI interaction, or exception handling.  
+- List mockable dependencies (e.g., `IWritingRepository`, `IWritingFeedbackRepository`, `OpenAIService`, `IExamService`).  
+- Mention edge cases (null inputs, invalid data, exceptions, unauthorized, 500 errors).  
+- Suggest both **happy-path** and **failure** test cases.
+
+**Output Format (Markdown):**
+```markdown```
 ### Functions to Test
-1. **FunctionName(parameters)**
-   - **Main Purpose:**  
-     Brief one-line summary of what it does.
-   - **Inputs:**  
-     List each parameter (type + meaning).
-   - **Returns:**  
-     Data type and meaning of the return value.
+1. **FunctionName(params)**
+   - **Main Purpose:** one-line summary  
+   - **Inputs:** type + meaning  
+   - **Returns:** type + purpose  
    - **Dependencies to Mock:**  
-     Services, repositories, or APIs used in this function.
    - **Edge Cases:**  
-     Invalid inputs, null values, missing records, exceptions, or branch-specific conditions.
-   - **Suggested Test Names:**  
-     List of test names following the Given_When_Then convention.
-Additional Notes:
-* Focus on **public** and **internal business-logic** methods (e.g., controller endpoints, service logic like GradeWriting, SaveFeedback if it contains exception branches).
-* Identify **mockable dependencies** like IWritingRepository, IWritingFeedbackRepository, OpenAIService, IExamService, etc.
-* Include **authorization and validation logic** in controllers, since these affect coverage (e.g., Unauthorized, BadRequest, NotFound, 500 branches).
-* Suggest test cases for **both happy-path and failure branches** (e.g., null DTO, invalid answers, exception in AI call, missing exam attempt).
-* Keep each method entry concise but complete enough for automated test generation tools.
+   - **Suggested Test Names:** Given_When_Then...
 
-`Phase 2`
-**Prompt 2:**
+## 🧩 Phase 2 – Test Case Matrix (AI Writing Grading)
 
+**Context:**  
+IELTSPhobic AI Writing Grading (.NET 8 WebAPI + xUnit) — uses OpenAI for essay scoring and feedback.
 
-Analyze the following source code from my GitHub repository (IELTSPhobic project).
-This code belongs to the **AI Writing Grading** feature built with **.NET 8 WebAPI + xUnit**.
+**Role:**  
+Expert .NET test engineer.
 
-**Goal:** Automatically generate a full **Test Case Matrix** table for every public method found in the class.
+**Goal:**  
+Generate a **Test Case Matrix** (>80% coverage) for all public methods.
 
----
+**Instructions:**  
+1. Analyze one class (`WritingService`, `WritingController`, or `OpenAIService`).  
+2. List **4–6 test cases** per method:  
+   - Happy Path  
+   - Edge Case  
+   - Error  
+   - Integration (mocked deps)  
+3. Use **Given–When–Then** format.  
+4. Show output as a Markdown table.  
+5. Mention mocks (e.g., `OpenAIService`, `IWritingRepository`).
 
-### Instructions:
+**Output Format:**
+| Category | Test Case | Input | Expected |
+|-----------|------------|--------|-----------|
+| Happy Path | Given valid essay When submitted | dto={examId:1, text:"Sample"} | Returns JSON feedback |
+| Edge Case | Given null essay When submitted | dto=null | Returns BadRequest |
+| Error | Given AI throws error | mock throws | Returns 500 |
+| Integration | Given valid essay When graded | mocks active | Calls services once |
 
-1. Read and analyze the target class/function from the repository (e.g. `WritingService`, `WritingController`, or `OpenAIService`).
-2. Identify all **testable functions** that contain logic (ignore trivial getters/setters).
-3. For each function, create **4–6 comprehensive test cases** categorized into:
-
-   * **Happy Path** — Normal behavior
-   * **Edge Case** — Boundary conditions or nulls
-   * **Error** — Exceptions or invalid inputs
-   * **Integration** — Interaction with mocks/dependencies
-4. Use the **Given–When–Then** format for clarity of scenario logic.
-5. Present the results as a **Markdown table** with these columns:
-   | Category | Test Case | Input | Expected |
-6. Ensure at least **3–4 test cases per function** to achieve high coverage (>80% line & branch).
-7. If the method interacts with other services or repositories, include notes for which dependencies will be mocked.
+**Output Title:**  
+`### AI Output: Test Cases Matrix for WritingService`
 
 
-### Example Output Format:
-
-```markdown
-| Category   | Test Case                                    | Input                                  | Expected                          |
-|-------------|----------------------------------------------|----------------------------------------|------------------------------------|
-| Happy Path  | Add new item                                 | product={id:1, price:100}, qty=2       | items.length = 1                   |
-| Happy Path  | Add existing item                            | same product, qty=3                    | quantity updated to 5              |
-| Edge Case   | Quantity = 0                                 | product={...}, qty=0                   | throws Error                       |
-| Edge Case   | Negative quantity                            | product={...}, qty=-5                  | throws Error                       |
-| Error       | Null product                                 | product=null, qty=1                    | throws Error                       |
-| Error       | Undefined product                            | product=undefined, qty=1               | throws Error                       |
-```
-
----
-
-**Deliverables:**
-
-* Output must be in Markdown table format.
-* Categorize clearly (Happy Path / Edge Case / Error / Integration).
-* The goal is to design test cases **before** writing actual xUnit code.
-* Keep it concise but sufficient to ensure full branch coverage.
-
-**Output title:**
-`### AI Output: Test Cases Matrix for <ClassName>`
 `Phase 3 :`
 `Prompt 1 – WritingService`
 You are an expert .NET test engineer.
@@ -202,3 +178,14 @@ Show corrected code for the test and/or controller so the test passes.
 
 Keep the fix realistic and consistent with dependency injection and DTO mapping patterns.
 `OpenAIServices test fix bug`
+`Not enough code coverage fix`
+I'm testing the WritingService class in an ASP.NET Core WebAPI project using xUnit and Moq.  
+Currently, the WritingServiceTests.cs file passes all 14 test cases, but the code coverage is only around 75%.  
+Please analyze all logical branches in WritingService (GetById, Delete, Update, GradeWriting, GradeSingle, GradeFull, and SaveFeedback) and generate 5–7 additional test cases to raise the coverage above 80%.  
+
+The new tests should:
+- Cover untested branches, exceptions, skipped conditions, and defaults.
+- Not duplicate existing test cases.
+- Follow xUnit and Moq style (Fact + Arrange–Act–Assert).
+- Mock all dependencies (no real database or API calls).
+- Output complete C# test methods that I can directly add to WritingServiceTests.cs.
