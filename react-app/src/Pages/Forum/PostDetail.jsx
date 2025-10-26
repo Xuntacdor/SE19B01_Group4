@@ -7,8 +7,9 @@ import CommentSection from "../../Components/Forum/CommentSection";
 import { getPost, votePost, unvotePost, reportPost, deletePost, pinPost, unpinPost, hidePost } from "../../Services/ForumApi";
 import { getUserProfileStats } from "../../Services/UserApi";
 import useAuth from "../../Hook/UseAuth";
-import { MoreVertical, Trash2, Pin, EyeOff, Flag, ArrowLeft, MessageCircle, Image, Share, Download, ThumbsUp, Edit } from "lucide-react";
+import { MoreVertical, Trash2, Pin, EyeOff, Flag, ArrowLeft, MessageCircle, Image as ImageIcon, Share, Download, ThumbsUp, Edit } from "lucide-react";
 import { formatFullDateVietnam } from "../../utils/date";
+import { marked } from "marked";
 
 // Không cần helper functions nữa - để view count tăng mỗi lần vào post
 
@@ -219,6 +220,28 @@ export default function PostDetail() {
     return formatFullDateVietnam(dateString);
   };
 
+  const renderContent = (content) => {
+    if (!content) return null;
+    
+    try {
+      // Log content to debug
+      console.log("Rendering content:", content);
+      
+      // Configure marked to allow HTML
+      const html = marked.parse(content, {
+        breaks: true,
+        gfm: true
+      });
+      
+      console.log("Parsed HTML:", html);
+      
+      return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    } catch (error) {
+      console.error("Error parsing markdown:", error);
+      return <div>{content}</div>;
+    }
+  };
+
   if (loading) {
     return (
       <div className="post-detail-container">
@@ -325,46 +348,37 @@ export default function PostDetail() {
                   )}
                   {post.title}
                 </h1>
-                <div className="post-body">{post.content}</div>
+
+                {/* Tags Section - Moved directly below title */}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="post-tags">
+                    {post.tags.map((tag, index) => (
+                      <span key={index} className="post-tag">
+                        #{tag.tagName}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="post-body">{renderContent(post.content)}</div>
               </div>
 
-              {post.tags && post.tags.length > 0 && (
-                <div className="post-tags">
-                  {post.tags.map((tag, index) => (
-                    <span key={index} className="post-tag">
-                      #{tag.tagName}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Attachments Section */}
-              {post.attachments && post.attachments.length > 0 && (
+              {/* File attachments section (non-image files) */}
+              {post.attachments && post.attachments.filter(a => a.fileType !== 'image').length > 0 && (
                 <div className="post-attachments">
                   <h4 className="attachments-title">Attachments:</h4>
                   <div className="attachments-grid">
-                    {post.attachments.map((attachment, index) => (
-                      <div key={index} className="attachment-item">
-                        {attachment.fileType === 'image' ? (
-                          <div className="attachment-image">
-                            <img 
-                              src={attachment.fileUrl} 
-                              alt={attachment.fileName}
-                              className="attachment-img"
-                            />
-                            <div className="attachment-info">
-                              <span className="attachment-name">{attachment.fileName}</span>
-                              <span className="attachment-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
-                            </div>
-                          </div>
-                        ) : (
+                    {post.attachments
+                      .filter(attachment => attachment.fileType !== 'image')
+                      .map((attachment, index) => (
+                        <div key={index} className="attachment-item">
                           <div className="attachment-file">
                             <div className="attachment-icon">
                               <Download size={20} />
                             </div>
-                            <div className="attachment-info">
-                              <span className="attachment-name">{attachment.fileName}</span>
-                              <span className="attachment-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
+                            <div className="attachment-file-info">
+                              <span className="attachment-file-name">{attachment.fileName}</span>
+                              <span className="attachment-file-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
                             </div>
                             <a 
                               href={attachment.fileUrl} 
@@ -376,9 +390,8 @@ export default function PostDetail() {
                               <Download size={16} />
                             </a>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}

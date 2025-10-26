@@ -341,6 +341,29 @@
   font-family: 'Inter', sans-serif;
 }
 
+.file-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-insert-image {
+  background: #28a745;
+  color: white;
+  border: 1px solid #28a745;
+  padding: 8px;
+  border-radius: 6px;
+  min-width: auto;
+  min-height: auto;
+}
+
+.btn-insert-image:hover:not(:disabled) {
+  background: #218838;
+  border-color: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.2);
+}
+
 .btn-remove-file {
   background: #dc3545;
   color: white;
@@ -371,6 +394,18 @@
 
 /* Tag Selection Styles */
 
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  min-height: 40px;
+  padding: 8px;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
 .selected-tag {
   background: #007bff;
   color: white;
@@ -399,6 +434,19 @@
 
 .remove-tag:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.tag-selection {
+  background: white;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.tag-selection:focus-within {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
 .dropdown-header {

@@ -37,6 +37,8 @@ import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement
 import * as ModeratorApi from "../../Services/ModeratorApi";
 import { getPostsByFilter } from "../../Services/ForumApi";
 import NotificationPopup from "../../Components/Forum/NotificationPopup";
+import CommentSection from "../../Components/Forum/CommentSection";
+import { marked } from "marked";
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
@@ -321,6 +323,21 @@ export default function ModeratorDashboard() {
   const handleViewPost = (post) => {
     setSelectedPost(post);
     setShowPostDetail(true);
+  };
+
+  const renderContent = (content) => {
+    if (!content) return null;
+    
+    try {
+      const html = marked.parse(content, {
+        breaks: true,
+        gfm: true
+      });
+      return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    } catch (error) {
+      console.error("Error parsing markdown:", error);
+      return <div>{content}</div>;
+    }
   };
 
   const chartConfig = {
@@ -1025,15 +1042,45 @@ export default function ModeratorDashboard() {
               </button>
             </div>
             
-            <div className="modal-body">
+            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
               <div className="post-meta">
-                <span>Author: {selectedPost.author}</span>
-                <span>Date: {formatTimeVietnam(selectedPost.createdAt)}</span>
+                <div className="post-author">
+                  <User size={16} />
+                  <span>Author: {selectedPost.user?.username || selectedPost.author || 'Unknown'}</span>
+                </div>
+                <div className="post-time">
+                  <Clock size={16} />
+                  <span>Date: {formatTimeVietnam(selectedPost.createdAt)}</span>
+                </div>
+                {selectedPost.viewCount !== undefined && (
+                  <div className="post-stats">
+                    <Eye size={16} />
+                    <span>{selectedPost.viewCount} views</span>
+                  </div>
+                )}
               </div>
               
-              <div className="post-content-full">
-                {selectedPost.content}
+              <div className="post-title-detail">
+                <h3>{selectedPost.title}</h3>
               </div>
+
+              <div className="post-content-full" style={{ 
+                lineHeight: '1.6',
+                fontSize: '16px',
+                color: '#333'
+              }}>
+                {renderContent(selectedPost.content)}
+              </div>
+
+              {selectedPost.tags && selectedPost.tags.length > 0 && (
+                <div className="post-tags-detail">
+                  {selectedPost.tags.map((tag, index) => (
+                    <span key={index} className="post-tag-detail">
+                      #{tag.tagName}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {selectedPost.reportReason && (
                 <div className="report-info">
@@ -1041,6 +1088,15 @@ export default function ModeratorDashboard() {
                   <p>{selectedPost.reportReason}</p>
                 </div>
               )}
+
+              {/* Comments Section */}
+              <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e9ecef' }}>
+                <h4 style={{ marginBottom: '20px' }}>Comments</h4>
+                <CommentSection 
+                  postId={selectedPost.postId || selectedPost.id} 
+                  postOwnerId={selectedPost.user?.userId}
+                />
+              </div>
             </div>
 
             <div className="modal-footer">

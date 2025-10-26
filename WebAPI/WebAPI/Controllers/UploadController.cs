@@ -134,9 +134,14 @@ namespace WebAPI.Controllers
                     Overwrite = false
                 };
                 var result = _cloudinary.Upload(uploadParams);
+                
+                var secureUrl = result.SecureUrl?.ToString() ?? result.Url?.ToString();
+                
+                Console.WriteLine($"Uploaded image URL: {secureUrl}");
+                
                 return Ok(new
                 {
-                    url = result.SecureUrl.ToString(),
+                    url = secureUrl,
                     fileName = fileName,
                     fileSize = fileSize,
                     fileType = fileExtension,
