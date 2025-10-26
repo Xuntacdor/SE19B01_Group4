@@ -38,7 +38,13 @@ export function uploadFile(file) {
 
   return API.post("/file", formData, {
     headers: { "Content-Type": "multipart/form-data" },
-  }).then((res) => res.data);
+  }).then((res) => {
+    console.log("Upload response:", res.data);
+    return res.data;
+  }).catch((error) => {
+    console.error("Upload error:", error);
+    throw error;
+  });
 }
 
 // Utility functions for file validation
@@ -110,4 +116,44 @@ export function formatFileSize(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Validate Cloudinary URL format
+export function validateCloudinaryUrl(url) {
+  console.log("🔍 Validating URL:", url);
+  
+  if (!url || typeof url !== 'string') {
+    console.error("❌ Invalid URL (not a string):", url);
+    return false;
+  }
+
+  // Check if URL starts with http
+  if (!url.startsWith('http')) {
+    console.error("❌ URL must start with http:", url);
+    return false;
+  }
+
+  // Check if URL contains cloudinary domain
+  if (!url.includes('res.cloudinary.com')) {
+    console.error("❌ URL is not a Cloudinary URL:", url);
+    return false;
+  }
+
+  // Check if URL has correct format with cloud name
+  // Pattern: https://res.cloudinary.com/{cloud_name}/image/upload/{version}/... or /upload/{transformation}/...
+  const cloudinaryPattern = /https:\/\/res\.cloudinary\.com\/[^/]+/;
+  if (!cloudinaryPattern.test(url)) {
+    console.error("❌ Cloudinary URL format is invalid:", url);
+    console.log("Expected format: https://res.cloudinary.com/{cloud_name}/...");
+    return false;
+  }
+
+  // Additional check: must have image/upload or raw/upload
+  if (!url.includes('/upload/')) {
+    console.error("❌ Cloudinary URL missing /upload/ path:", url);
+    return false;
+  }
+
+  console.log("✅ Valid Cloudinary URL:", url);
+  return true;
 }

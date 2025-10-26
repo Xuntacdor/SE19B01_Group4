@@ -42,6 +42,8 @@ namespace WebAPI.DTOs
         public string? Content { get; set; }
 
         public List<string>? TagNames { get; set; }
+
+        public List<CreatePostAttachmentDTO>? Attachments { get; set; }
     }
 
     public class ReportPostDTO
