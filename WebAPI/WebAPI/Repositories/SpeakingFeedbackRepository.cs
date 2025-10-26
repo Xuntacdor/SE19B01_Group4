@@ -44,6 +44,19 @@ namespace WebAPI.Repositories
                 .ToList();
         }
 
+        public SpeakingFeedback? GetBySpeakingAndUser(int speakingId, int userId)
+        {
+            return _context.SpeakingFeedbacks
+                .Include(f => f.SpeakingAttempt)
+                    .ThenInclude(sa => sa.ExamAttempt)
+                .FirstOrDefault(f =>
+                    f.SpeakingAttempt != null &&
+                    f.SpeakingAttempt.ExamAttempt != null &&
+                    f.SpeakingAttempt.SpeakingId == speakingId &&
+                    f.SpeakingAttempt.ExamAttempt.UserId == userId);
+        }
+
+
         public void Add(SpeakingFeedback entity)
         {
             _context.SpeakingFeedbacks.Add(entity);
