@@ -325,46 +325,54 @@ export default function PostDetail() {
                   )}
                   {post.title}
                 </h1>
+
+                {/* Tags Section - Moved directly below title */}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="post-tags">
+                    {post.tags.map((tag, index) => (
+                      <span key={index} className="post-tag">
+                        #{tag.tagName}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 <div className="post-body">{post.content}</div>
+
+                {/* Images inline with content */}
+                {post.attachments && post.attachments.filter(a => a.fileType === 'image').length > 0 && (
+                  <div className="post-images">
+                    {post.attachments
+                      .filter(attachment => attachment.fileType === 'image')
+                      .map((attachment, index) => (
+                        <div key={index} className="post-image-wrapper">
+                          <img 
+                            src={attachment.fileUrl} 
+                            alt={attachment.fileName}
+                            className="post-image"
+                          />
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
 
-              {post.tags && post.tags.length > 0 && (
-                <div className="post-tags">
-                  {post.tags.map((tag, index) => (
-                    <span key={index} className="post-tag">
-                      #{tag.tagName}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Attachments Section */}
-              {post.attachments && post.attachments.length > 0 && (
+              {/* File attachments section (non-image files) */}
+              {post.attachments && post.attachments.filter(a => a.fileType !== 'image').length > 0 && (
                 <div className="post-attachments">
                   <h4 className="attachments-title">Attachments:</h4>
                   <div className="attachments-grid">
-                    {post.attachments.map((attachment, index) => (
-                      <div key={index} className="attachment-item">
-                        {attachment.fileType === 'image' ? (
-                          <div className="attachment-image">
-                            <img 
-                              src={attachment.fileUrl} 
-                              alt={attachment.fileName}
-                              className="attachment-img"
-                            />
-                            <div className="attachment-info">
-                              <span className="attachment-name">{attachment.fileName}</span>
-                              <span className="attachment-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
-                            </div>
-                          </div>
-                        ) : (
+                    {post.attachments
+                      .filter(attachment => attachment.fileType !== 'image')
+                      .map((attachment, index) => (
+                        <div key={index} className="attachment-item">
                           <div className="attachment-file">
                             <div className="attachment-icon">
                               <Download size={20} />
                             </div>
-                            <div className="attachment-info">
-                              <span className="attachment-name">{attachment.fileName}</span>
-                              <span className="attachment-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
+                            <div className="attachment-file-info">
+                              <span className="attachment-file-name">{attachment.fileName}</span>
+                              <span className="attachment-file-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
                             </div>
                             <a 
                               href={attachment.fileUrl} 
@@ -376,9 +384,8 @@ export default function PostDetail() {
                               <Download size={16} />
                             </a>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}

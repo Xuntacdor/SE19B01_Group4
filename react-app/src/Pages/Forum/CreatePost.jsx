@@ -237,20 +237,7 @@ export default function CreatePost() {
                 />
               </div>
 
-              <div className="form-group">
-                <textarea
-                  id="content"
-                  name="content"
-                  value={formData.content}
-                  onChange={handleInputChange}
-                  placeholder="Type whatever you want to describe"
-                  rows={12}
-                  required
-                  className="form-textarea"
-                />
-              </div>
-
-              {/* Tag Selection Section */}
+              {/* Tag Selection Section - Moved below title */}
               <div className="form-group">
                 <label htmlFor="tags">Tags (Optional)</label>
                 <div className="tag-selection">
@@ -290,6 +277,19 @@ export default function CreatePost() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="form-group">
+                <textarea
+                  id="content"
+                  name="content"
+                  value={formData.content}
+                  onChange={handleInputChange}
+                  placeholder="Type whatever you want to describe"
+                  rows={12}
+                  required
+                  className="form-textarea"
+                />
               </div>
 
               {/* File Upload Section */}
