@@ -7,8 +7,9 @@ import CommentSection from "../../Components/Forum/CommentSection";
 import { getPost, votePost, unvotePost, reportPost, deletePost, pinPost, unpinPost, hidePost } from "../../Services/ForumApi";
 import { getUserProfileStats } from "../../Services/UserApi";
 import useAuth from "../../Hook/UseAuth";
-import { MoreVertical, Trash2, Pin, EyeOff, Flag, ArrowLeft, MessageCircle, Image, Share, Download, ThumbsUp, Edit } from "lucide-react";
+import { MoreVertical, Trash2, Pin, EyeOff, Flag, ArrowLeft, MessageCircle, Image as ImageIcon, Share, Download, ThumbsUp, Edit } from "lucide-react";
 import { formatFullDateVietnam } from "../../utils/date";
+import { marked } from "marked";
 
 // Không cần helper functions nữa - để view count tăng mỗi lần vào post
 
@@ -219,6 +220,28 @@ export default function PostDetail() {
     return formatFullDateVietnam(dateString);
   };
 
+  const renderContent = (content) => {
+    if (!content) return null;
+    
+    try {
+      // Log content to debug
+      console.log("Rendering content:", content);
+      
+      // Configure marked to allow HTML
+      const html = marked.parse(content, {
+        breaks: true,
+        gfm: true
+      });
+      
+      console.log("Parsed HTML:", html);
+      
+      return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    } catch (error) {
+      console.error("Error parsing markdown:", error);
+      return <div>{content}</div>;
+    }
+  };
+
   if (loading) {
     return (
       <div className="post-detail-container">
@@ -337,24 +360,7 @@ export default function PostDetail() {
                   </div>
                 )}
 
-                <div className="post-body">{post.content}</div>
-
-                {/* Images inline with content */}
-                {post.attachments && post.attachments.filter(a => a.fileType === 'image').length > 0 && (
-                  <div className="post-images">
-                    {post.attachments
-                      .filter(attachment => attachment.fileType === 'image')
-                      .map((attachment, index) => (
-                        <div key={index} className="post-image-wrapper">
-                          <img 
-                            src={attachment.fileUrl} 
-                            alt={attachment.fileName}
-                            className="post-image"
-                          />
-                        </div>
-                      ))}
-                  </div>
-                )}
+                <div className="post-body">{renderContent(post.content)}</div>
               </div>
 
               {/* File attachments section (non-image files) */}

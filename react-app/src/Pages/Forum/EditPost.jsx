@@ -6,8 +6,9 @@ import HeaderBar from "../../Components/Layout/HeaderBar";
 import RightSidebar from "../../Components/Forum/RightSidebar";
 import { getPost, updatePost } from "../../Services/ForumApi";
 import { getAllTags } from "../../Services/TagApi";
-import { uploadFile, validateImageFile, validateDocumentFile, getFileIcon, formatFileSize } from "../../Services/UploadApi";
-import { Image, Send, X, Tag, Upload, Trash2 } from "lucide-react";
+import { uploadFile, validateImageFile, validateDocumentFile, getFileIcon, formatFileSize, validateCloudinaryUrl } from "../../Services/UploadApi";
+import { Image, Send, X, Tag, Upload, Trash2, ImagePlus } from "lucide-react";
+import { marked } from "marked";
 
 export default function EditPost({ onNavigate }) {
   const { postId } = useParams();
@@ -44,14 +45,18 @@ export default function EditPost({ onNavigate }) {
         setSelectedTags(post.tags || []);
         // Load existing attachments separately
         if (post.attachments && post.attachments.length > 0) {
-          setExistingAttachments(post.attachments.map(att => ({
-            id: att.attachmentId,
-            fileName: att.fileName,
-            fileUrl: att.fileUrl,
-            fileType: att.fileType,
-            fileExtension: att.fileExtension,
-            fileSize: att.fileSize
-          })));
+          console.log("Post attachments:", post.attachments);
+          setExistingAttachments(post.attachments.map(att => {
+            console.log("Attachment fileUrl:", att.fileUrl);
+            return {
+              id: att.attachmentId,
+              fileName: att.fileName,
+              url: att.fileUrl,  // Normalize to 'url' for consistency
+              fileType: att.fileType,
+              fileExtension: att.fileExtension,
+              fileSize: att.fileSize
+            };
+          }));
         }
       })
       .catch((error) => {
@@ -103,7 +108,7 @@ export default function EditPost({ onNavigate }) {
       tagNames: selectedTags.map(tag => tag.tagName),
       attachments: allAttachments.map(file => ({
         fileName: file.fileName,
-        fileUrl: file.fileUrl,
+        fileUrl: file.url,  // Use 'url' property
         fileType: file.fileType,
         fileExtension: file.fileExtension,
         fileSize: file.fileSize
@@ -193,6 +198,46 @@ export default function EditPost({ onNavigate }) {
 
   const handleAddImage = () => {
     document.getElementById('file-upload-edit').click();
+  };
+
+  const insertImageAtCursor = (imageUrl, fileName) => {
+    const textarea = document.getElementById('content');
+    if (!textarea) return;
+
+    console.log("Inserting image:", fileName, "URL:", imageUrl);
+
+    // Validate URL format
+    if (!validateCloudinaryUrl(imageUrl)) {
+      alert("Invalid image URL. The URL must be a valid Cloudinary URL. Please upload the image again.");
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = formData.content;
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+    
+    // Insert markdown image syntax with full URL
+    const imageMarkdown = `\n\n![${fileName}](${imageUrl})\n\n`;
+    const newContent = before + imageMarkdown + after;
+    
+    console.log("✅ Successfully inserted image:", imageUrl);
+    
+    setFormData(prev => ({
+      ...prev,
+      content: newContent
+    }));
+
+    // Move cursor to after the inserted image
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + imageMarkdown.length, start + imageMarkdown.length);
+    }, 0);
+  };
+
+  const handleInsertImage = (imageUrl, fileName) => {
+    insertImageAtCursor(imageUrl, fileName);
   };
 
   const handleTagSelect = (tag) => {
@@ -344,13 +389,25 @@ export default function EditPost({ onNavigate }) {
                               <span className="file-size">{formatFileSize(file.fileSize)}</span>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className="btn btn-remove-file"
-                            onClick={() => handleRemoveFile(file.id, true)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="file-actions">
+                            {file.fileType === 'image' && (
+                              <button
+                                type="button"
+                                className="btn btn-insert-image"
+                                onClick={() => handleInsertImage(file.url, file.fileName)}
+                                title="Insert into content"
+                              >
+                                <ImagePlus size={14} />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-remove-file"
+                              onClick={() => handleRemoveFile(file.id, true)}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                       
@@ -368,13 +425,25 @@ export default function EditPost({ onNavigate }) {
                               <span className="file-size">{formatFileSize(file.fileSize)}</span>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className="btn btn-remove-file"
-                            onClick={() => handleRemoveFile(file.id, false)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="file-actions">
+                            {file.fileType === 'image' && (
+                              <button
+                                type="button"
+                                className="btn btn-insert-image"
+                                onClick={() => handleInsertImage(file.url, file.fileName)}
+                                title="Insert into content"
+                              >
+                                <ImagePlus size={14} />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-remove-file"
+                              onClick={() => handleRemoveFile(file.id, false)}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>

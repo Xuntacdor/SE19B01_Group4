@@ -341,6 +341,29 @@
   font-family: 'Inter', sans-serif;
 }
 
+.file-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-insert-image {
+  background: #28a745;
+  color: white;
+  border: 1px solid #28a745;
+  padding: 8px;
+  border-radius: 6px;
+  min-width: auto;
+  min-height: auto;
+}
+
+.btn-insert-image:hover:not(:disabled) {
+  background: #218838;
+  border-color: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.2);
+}
+
 .btn-remove-file {
   background: #dc3545;
   color: white;
