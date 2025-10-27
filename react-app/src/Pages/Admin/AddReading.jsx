@@ -34,12 +34,13 @@ export default function AddReading() {
     }
   }, [skill]);
 
+  // ✅ FIXED handleSubmit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus({ icon: <FileText size={16} />, message: "Processing..." });
 
     try {
-      // 1️⃣ Temporary render (no readingId yet)
+      // 1️⃣ First render without readingId (uses "X_q#" keys)
       const { html, answers } = renderMarkdownToHtmlAndAnswers(readingQuestion);
 
       const payload = {
@@ -48,7 +49,7 @@ export default function AddReading() {
         readingQuestion,
         readingType: "Markdown",
         displayOrder: skill?.displayOrder || 1,
-        correctAnswer: JSON.stringify(answers),
+        correctAnswer: JSON.stringify(answers), // temporary (X_q#)
         questionHtml: html,
       };
 
@@ -62,7 +63,7 @@ export default function AddReading() {
           message: "Updated successfully!",
         });
       } else {
-        // Add new reading and wait for backend to return ID
+        // Add new reading (get real readingId)
         saved = await readingService.add(payload);
         setStatus({
           icon: <CheckCircle color="green" size={16} />,
@@ -70,17 +71,16 @@ export default function AddReading() {
         });
       }
 
-      // 2️⃣ Regenerate with actual readingId
+      // 2️⃣ Regenerate BOTH HTML + correct answers using real readingId
       const newId = saved?.readingId;
       if (newId) {
-        const { html: fixedHtml } = renderMarkdownToHtmlAndAnswers(
-          readingQuestion,
-          newId
-        );
+        const { html: fixedHtml, answers: fixedAnswers } =
+          renderMarkdownToHtmlAndAnswers(readingQuestion, newId);
 
         await readingService.update(newId, {
           ...payload,
           questionHtml: fixedHtml,
+          correctAnswer: JSON.stringify(fixedAnswers), // ✅ fixed IDs (e.g. "6_q1")
         });
       }
 

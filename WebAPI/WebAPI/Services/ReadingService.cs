@@ -25,61 +25,88 @@ namespace WebAPI.Services
         public decimal EvaluateReading(int examId, List<UserAnswerGroup> structuredAnswers)
         {
             var readings = _readingRepo.GetByExamId(examId);
-            if (readings == null || readings.Count == 0) return 0m;
+            if (readings == null || readings.Count == 0)
+                return 0m;
 
             int totalQuestions = 0;
-            int correctAnswers = 0;
+            int correctCount = 0;
 
+            // SkillId → normalized user answers
             var answerMap = structuredAnswers
-                .Where(g => g.Answers != null)
-                .ToDictionary(g => g.SkillId, g => g.Answers!);
+                .Where(g => g.Answers != null && g.Answers.Count > 0)
+                .ToDictionary(g => g.SkillId, g => g.ToNormalizedMap());
 
-            foreach (var r in readings)
+            foreach (var reading in readings)
             {
-                if (!answerMap.TryGetValue(r.ReadingId, out var userAnswers) || userAnswers.Count == 0)
+                if (!answerMap.TryGetValue(reading.ReadingId, out var userMap))
                     continue;
 
-                // Parse DB correct answers (supports JSON or plain text)
-                List<string> correctAnswersList;
+                // ✅ Parse correct answers flexibly
+                var correctMap = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+
                 try
                 {
-                    if (r.CorrectAnswer?.TrimStart().StartsWith("[") == true)
+                    var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+                        reading.CorrectAnswer ?? "{}",
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                    );
+
+                    if (parsed != null)
                     {
-                        correctAnswersList = JsonSerializer.Deserialize<List<string>>(r.CorrectAnswer!)?
-                            .Select(a => a.Trim().ToLower()).ToList() ?? new();
-                    }
-                    else
-                    {
-                        correctAnswersList = (r.CorrectAnswer ?? "")
-                            .Replace(" and ", ",")
-                            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                            .Select(a => a.Trim().ToLower())
-                            .ToList();
+                        foreach (var (key, je) in parsed)
+                        {
+                            switch (je.ValueKind)
+                            {
+                                case JsonValueKind.Array:
+                                    correctMap[key] = je.EnumerateArray()
+                                        .Select(x => x.GetString()?.Trim() ?? "")
+                                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                                        .ToArray();
+                                    break;
+
+                                case JsonValueKind.String:
+                                    var s = je.GetString()?.Trim();
+                                    correctMap[key] = string.IsNullOrEmpty(s)
+                                        ? Array.Empty<string>()
+                                        : new[] { s };
+                                    break;
+
+                                default:
+                                    correctMap[key] = new[] { je.ToString()?.Trim() ?? "" };
+                                    break;
+                            }
+                        }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    correctAnswersList = new();
+                    Console.WriteLine($"⚠️ CorrectAnswer parse failed for reading {reading.ReadingId}: {ex.Message}");
                 }
 
-                // Ensure we count all subquestions
-                totalQuestions += correctAnswersList.Count;
-
-                // Compare element-by-element (same order)
-                for (int i = 0; i < correctAnswersList.Count; i++)
+                // ✅ Evaluate answers
+                foreach (var (questionKey, correctVals) in correctMap)
                 {
-                    if (i < userAnswers.Count &&
-                        string.Equals(userAnswers[i].Trim(), correctAnswersList[i], StringComparison.OrdinalIgnoreCase))
-                    {
-                        correctAnswers++;
-                    }
+                    totalQuestions++;
+
+                    if (!userMap.TryGetValue(questionKey, out var userVals) || userVals.Length == 0)
+                        continue;
+
+                    var userSet = new HashSet<string>(
+                        userVals.Select(v => v.Trim().ToLower()), StringComparer.OrdinalIgnoreCase);
+                    var correctSet = new HashSet<string>(
+                        correctVals.Select(v => v.Trim().ToLower()), StringComparer.OrdinalIgnoreCase);
+
+                    if (userSet.SetEquals(correctSet))
+                        correctCount++;
                 }
             }
 
-            // Scale to IELTS band (9)
-            if (totalQuestions == 0) return 0m;
-            return Math.Round((decimal)correctAnswers / totalQuestions * 9, 1);
+            if (totalQuestions == 0)
+                return 0m;
+
+            return Math.Round((decimal)correctCount / totalQuestions * 9, 1);
         }
+
 
 
         public IEnumerable<ReadingDto> GetAll()

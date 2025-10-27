@@ -1,4 +1,5 @@
-﻿using WebAPI.Data;
+﻿using System.Text.Json;
+using WebAPI.Data;
 using WebAPI.DTOs;
 using WebAPI.Models;
 using WebAPI.Repositories;
@@ -93,6 +94,96 @@ namespace WebAPI.Services
         {
             _repo.SaveChanges();
             _attemptRepo.SaveChanges();
+        }
+
+        public static List<UserAnswerGroup> ParseAnswers(object? raw)
+        {
+            if (raw == null) return new();
+
+            // 1) Extract a JSON string from whatever we got
+            string json = "";
+            try
+            {
+                switch (raw)
+                {
+                    case JsonElement el:
+                        // If it's a JSON string (e.g., "\"[ ... ]\""), get the string; otherwise get the raw JSON
+                        json = el.ValueKind == JsonValueKind.String
+                            ? (el.GetString() ?? "")
+                            : el.GetRawText();
+                        break;
+
+                    case string s:
+                        json = s;
+                        break;
+
+                    default:
+                        json = raw.ToString() ?? "";
+                        break;
+                }
+            }
+            catch
+            {
+                return new();
+            }
+
+            if (string.IsNullOrWhiteSpace(json)) return new();
+
+            // 2) If we received a quoted JSON (double-encoded), unescape once
+            json = json.Trim();
+            if (json.Length > 0 && json[0] == '\"')
+            {
+                try
+                {
+                    // unwrap one level of stringified JSON
+                    json = JsonSerializer.Deserialize<string>(json) ?? "";
+                }
+                catch
+                {
+                    // ignore; we'll try the raw text anyway
+                }
+            }
+
+            // 3) Now deserialize. Accept both array and single-object payloads
+            try
+            {
+                if (json.StartsWith("["))
+                {
+                    var list = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
+                        json,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            ReadCommentHandling = JsonCommentHandling.Skip,
+                            AllowTrailingCommas = true
+                        }
+                    );
+                    return list ?? new();
+                }
+                else if (json.StartsWith("{"))
+                {
+                    var one = JsonSerializer.Deserialize<UserAnswerGroup>(
+                        json,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            ReadCommentHandling = JsonCommentHandling.Skip,
+                            AllowTrailingCommas = true
+                        }
+                    );
+                    return one != null ? new List<UserAnswerGroup> { one } : new();
+                }
+                else
+                {
+                    // Not valid JSON – return empty to trigger BadRequest upstream if needed
+                    return new();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ ParseAnswers failed after normalization: {ex.Message}");
+                return new();
+            }
         }
     }
 }
