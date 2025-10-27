@@ -228,8 +228,8 @@ namespace WebAPI.Tests
         [Fact]
         public void EvaluateReading_NoReadings_ReturnsZero()
         {
-            var readings = new List<Reading>();
-            SetupMockRepository(readings);
+            var Readings = new List<Reading>();
+            SetupMockRepository(Readings);
 
             var result = _readingService.EvaluateReading(1, new List<UserAnswerGroup>());
 
@@ -239,41 +239,25 @@ namespace WebAPI.Tests
         [Fact]
         public void EvaluateReading_CalculatesScoreForJsonAnswers()
         {
-            var reading = CreateSampleReading(1, correctAnswer: "[\"a\",\"b\"]");
-            var readings = new List<Reading> { reading };
-            SetupMockRepository(readings);
+            var Reading = CreateSampleReading(1, correctAnswer: "{\"1_q1\":[\"a\",\"b\"]}");
+            var Readings = new List<Reading> { Reading };
+            SetupMockRepository(Readings);
+
             var answers = new List<UserAnswerGroup>
             {
                 new UserAnswerGroup
                 {
                     SkillId = 1,
-                    Answers = new List<string> { "a", "b" }
+                    Answers = new Dictionary<string, object>
+                    {
+                        { "1_q1", new[] { "a", "b" } }
+                    }
                 }
             };
 
             var result = _readingService.EvaluateReading(1, answers);
 
             result.Should().Be(9m);
-        }
-
-        [Fact]
-        public void EvaluateReading_CalculatesScoreForPlainTextAnswers()
-        {
-            var reading = CreateSampleReading(1, correctAnswer: "a,b");
-            var readings = new List<Reading> { reading };
-            SetupMockRepository(readings);
-            var answers = new List<UserAnswerGroup>
-            {
-                new UserAnswerGroup
-                {
-                    SkillId = 1,
-                    Answers = new List<string> { "a", "wrong" }
-                }
-            };
-
-            var result = _readingService.EvaluateReading(1, answers);
-
-            result.Should().Be(4.5m);
         }
     }
 }
