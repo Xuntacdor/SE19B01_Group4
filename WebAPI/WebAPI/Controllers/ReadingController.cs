@@ -96,6 +96,7 @@ namespace WebAPI.Controllers
 
                 // ✅ Evaluate score
                 var score = _readingService.EvaluateReading(dto.ExamId, structuredAnswers);
+                //var score = 9.0m;
 
                 // ✅ Build attempt data for saving
                 var attemptDto = new SubmitAttemptDto
@@ -135,44 +136,95 @@ namespace WebAPI.Controllers
             }
         }
 
-        /// <summary>
-        /// Safely parses the raw Answers object (string, JSON element, etc.)
-        /// </summary>
         private List<UserAnswerGroup> ParseAnswers(object? raw)
         {
             if (raw == null) return new();
 
+            // 1) Extract a JSON string from whatever we got
+            string json = "";
             try
             {
-                string jsonString;
+                switch (raw)
+                {
+                    case JsonElement el:
+                        // If it's a JSON string (e.g., "\"[ ... ]\""), get the string; otherwise get the raw JSON
+                        json = el.ValueKind == JsonValueKind.String
+                            ? (el.GetString() ?? "")
+                            : el.GetRawText();
+                        break;
 
-                if (raw is JsonElement el)
-                {
-                    var text = el.GetRawText();
-                    jsonString = text.StartsWith("\"")
-                        ? JsonSerializer.Deserialize<string>(text)!
-                        : text;
-                }
-                else if (raw is string s)
-                {
-                    jsonString = s.TrimStart().StartsWith("\"")
-                        ? JsonSerializer.Deserialize<string>(s)!
-                        : s;
-                }
-                else
-                {
-                    jsonString = raw.ToString() ?? "[]";
-                }
+                    case string s:
+                        json = s;
+                        break;
 
-                return JsonSerializer.Deserialize<List<UserAnswerGroup>>(
-                    jsonString,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                ) ?? new();
+                    default:
+                        json = raw.ToString() ?? "";
+                        break;
+                }
             }
             catch
             {
                 return new();
             }
+
+            if (string.IsNullOrWhiteSpace(json)) return new();
+
+            // 2) If we received a quoted JSON (double-encoded), unescape once
+            json = json.Trim();
+            if (json.Length > 0 && json[0] == '\"')
+            {
+                try
+                {
+                    // unwrap one level of stringified JSON
+                    json = JsonSerializer.Deserialize<string>(json) ?? "";
+                }
+                catch
+                {
+                    // ignore; we'll try the raw text anyway
+                }
+            }
+
+            // 3) Now deserialize. Accept both array and single-object payloads
+            try
+            {
+                if (json.StartsWith("["))
+                {
+                    var list = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
+                        json,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            ReadCommentHandling = JsonCommentHandling.Skip,
+                            AllowTrailingCommas = true
+                        }
+                    );
+                    return list ?? new();
+                }
+                else if (json.StartsWith("{"))
+                {
+                    var one = JsonSerializer.Deserialize<UserAnswerGroup>(
+                        json,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            ReadCommentHandling = JsonCommentHandling.Skip,
+                            AllowTrailingCommas = true
+                        }
+                    );
+                    return one != null ? new List<UserAnswerGroup> { one } : new();
+                }
+                else
+                {
+                    // Not valid JSON – return empty to trigger BadRequest upstream if needed
+                    return new();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ ParseAnswers failed after normalization: {ex.Message}");
+                return new();
+            }
         }
+
     }
 }

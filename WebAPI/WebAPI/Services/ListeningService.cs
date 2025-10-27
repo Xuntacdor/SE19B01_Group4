@@ -67,11 +67,11 @@ namespace WebAPI.Services
                 // Compare element-by-element (same order)
                 for (int i = 0; i < correctAnswersList.Count; i++)
                 {
-                    if (i < userAnswers.Count &&
-                        string.Equals(userAnswers[i].Trim(), correctAnswersList[i], StringComparison.OrdinalIgnoreCase))
-                    {
-                        correctAnswers++;
-                    }
+                    //if (i < userAnswers.Count &&
+                    //    string.Equals(userAnswers[i].Trim(), correctAnswersList[i], StringComparison.OrdinalIgnoreCase))
+                    //{
+                    //    correctAnswers++;
+                    //}
                 }
             }
 

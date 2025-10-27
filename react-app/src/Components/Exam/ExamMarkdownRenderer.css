@@ -81,3 +81,55 @@
   accent-color: #007bff;
   cursor: pointer;
 }
+/* ✅ General look */
+.inlineTextbox,
+.dropdownInline {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 2px solid #d1d5db;
+  background-color: #fff;
+  margin: 3px;
+  transition: 0.2s ease;
+}
+
+/* ✅ Correction states */
+.answer-correct {
+  border-color: #16a34a !important;
+  background-color: #dcfce7 !important;
+}
+
+.answer-wrong {
+  border-color: #dc2626 !important;
+  background-color: #fee2e2 !important;
+}
+
+.answer-missing {
+  border-color: #9ca3af !important;
+  background-color: #f3f4f6 !important;
+}
+
+
+/* ✅ Choice blocks (radio/checkbox) */
+.choiceItem {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  margin: 3px 5px;
+  transition: 0.2s ease;
+}
+
+.choice-correct {
+  border-color: #16a34a;
+  background-color: #dcfce7;
+}
+
+.choice-wrong {
+  border-color: #dc2626;
+  background-color: #fee2e2;
+}
+
+.choice-missed {
+  border-color: #2563eb;
+  background-color: #dbeafe;
+}

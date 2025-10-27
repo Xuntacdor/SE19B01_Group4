@@ -21,10 +21,7 @@ export default function ReadingExamPage() {
   // 🕒 Timer
   useEffect(() => {
     if (!timeLeft || submitted) return;
-    const timer = setInterval(
-      () => setTimeLeft((t) => Math.max(0, t - 1)),
-      1000
-    );
+    const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
 
@@ -34,16 +31,10 @@ export default function ReadingExamPage() {
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
-  const handleQuestionNavigation = (questionNumber) => {
-    setCurrentTask(questionNumber - 1);
-  };
-
-  // ✅ Single unified input handler
   const handleChange = (e) => {
     const { name, value, type, checked, multiple, options, dataset } = e.target;
     if (!name) return;
 
-    // ✅ Checkbox (multi-answer MCQ)
     if (type === "checkbox") {
       const limit = parseInt(dataset.limit || "0", 10);
       const group = formRef.current?.querySelectorAll(
@@ -51,7 +42,6 @@ export default function ReadingExamPage() {
       );
       const checkedInGroup = Array.from(group || []).filter((el) => el.checked);
 
-      // Enforce limit
       if (checked && limit && checkedInGroup.length > limit) {
         e.preventDefault();
         e.target.checked = false;
@@ -64,13 +54,11 @@ export default function ReadingExamPage() {
       return;
     }
 
-    // ✅ Radio (single-answer MCQ)
     if (type === "radio") {
       if (checked) setAnswers((prev) => ({ ...prev, [name]: value }));
       return;
     }
 
-    // ✅ Dropdown (single or multi)
     if (multiple) {
       const selected = Array.from(options)
         .filter((opt) => opt.selected)
@@ -79,16 +67,14 @@ export default function ReadingExamPage() {
       return;
     }
 
-    // ✅ Text input or normal <select>
     setAnswers((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 📝 Submit logic (correctly flattens all arrays)
+  // 📝 Updated submit logic
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
 
-    // 🔧 Build structured answers
     const structuredAnswers = tasks.map((task) => {
       const prefix = `${task.readingId}_q`;
       const questionKeys = Object.keys(answers)
@@ -99,34 +85,19 @@ export default function ReadingExamPage() {
           return na - nb;
         });
 
-      const taskAnswers = [];
+      // 🔧 Instead of an array, store an object with question IDs
+      const taskAnswers = {};
       questionKeys.forEach((key) => {
         const val = answers[key];
-        if (Array.isArray(val)) {
-          // ✅ Push each answer separately (no join)
-          if (val.length > 0) val.forEach((v) => taskAnswers.push(v));
-          else taskAnswers.push("_");
-        } else if (typeof val === "string" && val.trim() !== "") {
-          taskAnswers.push(val);
-        } else {
-          taskAnswers.push("_");
-        }
+        if (Array.isArray(val) && val.length > 0) taskAnswers[key] = val;
+        else if (typeof val === "string" && val.trim() !== "") taskAnswers[key] = val;
+        else taskAnswers[key] = "_";
       });
-
-      // ✅ Match expected question count if available
-      try {
-        const expected = JSON.parse(task.correctAnswer || "[]");
-        if (Array.isArray(expected) && taskAnswers.length < expected.length) {
-          while (taskAnswers.length < expected.length) taskAnswers.push("_");
-        }
-      } catch {
-        // ignore if not JSON
-      }
 
       return { SkillId: task.readingId, Answers: taskAnswers };
     });
 
-    // ✅ Completion check
+    // ✅ Completion check (optional)
     const expectedTotal = tasks.reduce((sum, t) => {
       try {
         const arr = JSON.parse(t.correctAnswer || "[]");
@@ -137,10 +108,11 @@ export default function ReadingExamPage() {
       }
     }, 0);
 
-    const actualTotal = structuredAnswers.reduce(
-      (sum, g) => sum + (g.Answers?.filter((a) => a !== "_")?.length || 0),
-      0
-    );
+    const actualTotal = Object.values(answers).reduce((sum, v) => {
+      if (Array.isArray(v)) return sum + v.filter((x) => x !== "_").length;
+      if (typeof v === "string" && v.trim() !== "" && v !== "_") return sum + 1;
+      return sum;
+    }, 0);
 
     if (expectedTotal > 0 && actualTotal < expectedTotal) {
       alert(
@@ -151,9 +123,8 @@ export default function ReadingExamPage() {
         const inputs = form.querySelectorAll("input, select, textarea");
         inputs.forEach((el) => {
           const v = answers[el.name];
-          const has = Array.isArray(v)
-            ? v.length > 0
-            : typeof v === "string" && v.trim() !== "";
+          const has =
+            Array.isArray(v) ? v.length > 0 : typeof v === "string" && v.trim() !== "";
           el.classList.toggle("unanswered", !has);
         });
       }
@@ -276,16 +247,13 @@ export default function ReadingExamPage() {
       </div>
 
       {/* ===== Footer Navigation ===== */}
-      {/* ===== Footer Navigation ===== */}
       <div className={styles.bottomNavigation}>
         <div className={styles.navScrollContainer}>
           {tasks.map((task, taskIndex) => {
             const questionCount = getQuestionCount(task.readingQuestion);
             return (
               <div key={task.readingId} className={styles.navSection}>
-                <div className={styles.navSectionTitle}>
-                  Part {taskIndex + 1}
-                </div>
+                <div className={styles.navSectionTitle}>Part {taskIndex + 1}</div>
                 <div className={styles.navQuestions}>
                   {Array.from({ length: questionCount }, (_, qIndex) => (
                     <button
@@ -297,7 +265,6 @@ export default function ReadingExamPage() {
                       }`}
                       onClick={() => {
                         setCurrentTask(taskIndex);
-                        // scroll into view for clarity
                         document
                           .querySelector(`.${styles.examWrapper}`)
                           ?.scrollTo({ top: 0, behavior: "smooth" });
