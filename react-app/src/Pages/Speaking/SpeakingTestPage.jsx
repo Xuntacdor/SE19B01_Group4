@@ -70,6 +70,16 @@ export default function SpeakingTest() {
 
   // --- Destructure safely ---
   const { exam, tasks, task, mode, duration } = state || {};
+  // Group all questions by part (Part 1, 2, 3)
+  const groupedTasks = Array.isArray(tasks)
+    ? tasks.reduce((acc, t) => {
+        const key = t.speakingType || "Part 1";
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(t);
+        return acc;
+      }, {})
+    : {};
+
   const currentExam =
     exam ||
     (speakingTask
@@ -84,6 +94,8 @@ export default function SpeakingTest() {
     currentMode === "full"
       ? currentTask?.speakingId
       : task?.speakingId || speakingTask?.speakingId;
+  const currentPartType = currentTask?.speakingType;
+  const currentPartQuestions = groupedTasks[currentPartType] || [currentTask];
 
   // --- Timer ---
   const { timeLeft, formatTime } = useExamTimer(
@@ -305,14 +317,24 @@ export default function SpeakingTest() {
               <h3>Question {currentMode === "full" ? currentIndex + 1 : 1}</h3>
               <button
                 className={styles.playBtn}
-                onClick={() => speakQuestion(currentTask?.speakingQuestion)}
+                onClick={() => {
+                  const texts = currentPartQuestions
+                    .map((q) => q.speakingQuestion)
+                    .join(". ");
+                  speakQuestion(texts);
+                }}
               >
                 <Volume2 size={18} />
               </button>
             </div>
             <div className={styles.questionContent}>
-              <p>{currentTask?.speakingQuestion}</p>
+              {currentPartQuestions.map((q, i) => (
+                <p key={q.speakingId || i}>
+                  <strong>Q{i + 1}:</strong> {q.speakingQuestion}
+                </p>
+              ))}
             </div>
+
             <div className={styles.instructions}>
               <AlertCircle size={16} />
               <span>Speak clearly and naturally.</span>

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json;
 using WebAPI.Models;
 
 namespace WebAPI.Repositories
@@ -14,5 +15,6 @@ namespace WebAPI.Repositories
         void Update(SpeakingFeedback entity);
         void Delete(SpeakingFeedback entity);
         void SaveChanges();
+        void SaveFeedback(int examId, int speakingId, JsonDocument feedback, int userId, string? audioUrl, string? transcript);
     }
 }

@@ -35,9 +35,37 @@ namespace WebAPI.Repositories
             _context.Speakings.Update(entity);
         }
 
-        public void Delete(Speaking entity)
+        public bool Delete( int id)
         {
-            _context.Speakings.Remove(entity);
+            var existing = _context.Speakings.Find(id);
+            if (existing == null) return false;
+
+            // Xóa Feedback trước (nếu có)
+            var attemptIds = _context.SpeakingAttempts
+                .Where(sa => sa.SpeakingId == id)
+                .Select(sa => sa.SpeakingAttemptId)
+                .ToList();
+
+            if (attemptIds.Any())
+            {
+                var feedbacks = _context.SpeakingFeedbacks
+                    .Where(f => attemptIds.Contains(f.SpeakingAttemptId))
+                    .ToList();
+
+                if (feedbacks.Any())
+                    _context.SpeakingFeedbacks.RemoveRange(feedbacks);
+
+                var attempts = _context.SpeakingAttempts
+                    .Where(sa => sa.SpeakingId == id)
+                    .ToList();
+
+                if (attempts.Any())
+                    _context.SpeakingAttempts.RemoveRange(attempts);
+            }
+
+            _context.Speakings.Remove(existing);
+            _context.SaveChanges();
+            return true;
         }
 
         public void SaveChanges()
