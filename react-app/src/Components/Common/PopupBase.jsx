@@ -10,6 +10,7 @@ export default function PopupBase({
   show = false,
   onClose,
   children,
+  hideHeader = false,
 }) {
   if (!show) return null;
 
@@ -20,15 +21,17 @@ export default function PopupBase({
         style={{ width }}
         onClick={(e) => e.stopPropagation()} // prevent overlay click close
       >
-        <div className="popup-header">
-          <div className="popup-title">
-            {Icon && <Icon size={20} className="popup-icon" />}
-            <h3>{title}</h3>
+        {!hideHeader && (
+          <div className="popup-header">
+            <div className="popup-title">
+              {Icon && <Icon size={20} className="popup-icon" />}
+              {title && <h3>{title}</h3>}
+            </div>
+            <button className="popup-close" onClick={onClose}>
+              <X size={20} />
+            </button>
           </div>
-          <button className="popup-close" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+        )}
 
         <div className="popup-body">{children}</div>
       </div>

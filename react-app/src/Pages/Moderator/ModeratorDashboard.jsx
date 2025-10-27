@@ -38,6 +38,7 @@ import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement
 import * as ModeratorApi from "../../Services/ModeratorApi";
 import { getPostsByFilter } from "../../Services/ForumApi";
 import NotificationPopup from "../../Components/Forum/NotificationPopup";
+import RejectionReasonPopup from "../../Components/Common/RejectionReasonPopup";
 import CommentSection from "../../Components/Forum/CommentSection";
 import { marked } from "marked";
 
@@ -95,6 +96,8 @@ export default function ModeratorDashboard() {
   const [selectedPost, setSelectedPost] = useState(null);
   const [showPostDetail, setShowPostDetail] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [showRejectionPopup, setShowRejectionPopup] = useState(false);
+  const [postToReject, setPostToReject] = useState(null);
   
   // New state for forum posts
   const [allPosts, setAllPosts] = useState([]);
@@ -332,14 +335,22 @@ export default function ModeratorDashboard() {
     }
   };
 
-  const handleRejectPost = async (postId, reason) => {
+  const handleOpenRejectPopup = (postId) => {
+    setPostToReject(postId);
+    setShowRejectionPopup(true);
+  };
+
+  const handleRejectPost = async (reason) => {
+    if (!postToReject) return;
+    
     try {
-      await ModeratorApi.rejectPost(postId, reason);
+      await ModeratorApi.rejectPost(postToReject, reason);
       // Update local state
-      setPendingPosts(prev => prev.filter(post => (post.postId || post.id) !== postId));
+      setPendingPosts(prev => prev.filter(post => (post.postId || post.id) !== postToReject));
       setStats(prev => ({ ...prev, pending: prev.pending - 1, rejected: prev.rejected + 1 }));
       setShowPostDetail(false);
-      setRejectReason("");
+      setShowRejectionPopup(false);
+      setPostToReject(null);
       showNotification(
         "success",
         "Post rejected successfully!",
@@ -347,6 +358,8 @@ export default function ModeratorDashboard() {
       );  
     } catch (error) {
       console.error("Error rejecting post:", error);
+      setShowRejectionPopup(false);
+      setPostToReject(null);
       showNotification(
         "error",
         "Error rejecting post",
@@ -547,12 +560,7 @@ export default function ModeratorDashboard() {
                       </button>
                       <button 
                         className="btn btn-danger"
-                        onClick={() => {
-                          const reason = prompt("Enter rejection reason:");
-                          if (reason) {
-                            handleRejectPost(post.postId, reason);
-                          }
-                        }}
+                        onClick={() => handleOpenRejectPopup(post.postId)}
                       >
                         <X size={16} />
                         Reject
@@ -602,12 +610,7 @@ export default function ModeratorDashboard() {
               </button>
               <button 
                 className="btn btn-danger"
-                onClick={() => {
-                  const reason = prompt("Enter rejection reason:");
-                  if (reason) {
-                    handleRejectPost(post.postId || post.id, reason);
-                  }
-                }}
+                onClick={() => handleOpenRejectPopup(post.postId || post.id)}
               >
                 <X size={16} />
                 Reject
@@ -1172,12 +1175,7 @@ export default function ModeratorDashboard() {
                   </button>
                   <button 
                     className="btn btn-danger"
-                    onClick={() => {
-                      const reason = prompt("Enter rejection reason:");
-                      if (reason) {
-                        handleRejectPost(selectedPost.id, reason);
-                      }
-                    }}
+                    onClick={() => handleOpenRejectPopup(selectedPost.id)}
                   >
                     <XCircle size={16} />
                     Reject
@@ -1202,6 +1200,16 @@ export default function ModeratorDashboard() {
         type={notification.type}
         title={notification.title}
         message={notification.message}
+      />
+
+      <RejectionReasonPopup
+        isOpen={showRejectionPopup}
+        onClose={() => {
+          setShowRejectionPopup(false);
+          setPostToReject(null);
+        }}
+        onConfirm={handleRejectPost}
+        title="Reject Post"
       />
     </div>
   );

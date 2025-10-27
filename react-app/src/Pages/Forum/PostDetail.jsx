@@ -10,6 +10,8 @@ import useAuth from "../../Hook/UseAuth";
 import { MoreVertical, Trash2, Pin, EyeOff, Flag, ArrowLeft, MessageCircle, Image as ImageIcon, Share, Download, ThumbsUp, Edit } from "lucide-react";
 import { formatFullDateVietnam } from "../../utils/date";
 import { marked } from "marked";
+import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
+import NotificationPopup from "../../Components/Forum/NotificationPopup";
 
 // Không cần helper functions nữa - để view count tăng mỗi lần vào post
 
@@ -26,6 +28,9 @@ export default function PostDetail() {
   const [showMenu, setShowMenu] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [userStats, setUserStats] = useState(null);
+  const [showConfirmHide, setShowConfirmHide] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationData, setNotificationData] = useState({ type: "success", title: "", message: "" });
   const menuRef = useRef(null);
   const hasLoadedRef = useRef(false);
 
@@ -179,18 +184,33 @@ export default function PostDetail() {
 
   const handleHidePost = (e) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to hide this post?")) {
-      hidePost(post.postId)
-        .then(() => {
-          alert("Post hidden successfully!");
-          navigate('/forum');
-        })
-        .catch(error => {
-          console.error("Error hiding post:", error);
-          alert("Error hiding post. Please try again.");
+    setShowConfirmHide(true);
+    setShowMenu(false);
+  };
+
+  const confirmHidePost = () => {
+    hidePost(post.postId)
+      .then(() => {
+        setNotificationData({
+          type: "success",
+          title: "Success",
+          message: "Post hidden successfully!"
         });
-      setShowMenu(false);
-    }
+        setShowNotification(true);
+        setTimeout(() => {
+          setShowNotification(false);
+          navigate('/forum');
+        }, 1500);
+      })
+      .catch(error => {
+        console.error("Error hiding post:", error);
+        setNotificationData({
+          type: "error",
+          title: "Error",
+          message: "Error hiding post. Please try again."
+        });
+        setShowNotification(true);
+      });
   };
 
   const handleUnhidePost = (e) => {
@@ -345,7 +365,7 @@ export default function PostDetail() {
                             </button>
                             <button className="menu-item report" onClick={handleReportPost}>
                               <Flag size={16} />
-                              Tố cáo bài viết
+                              Report Post
                             </button>
                           </>
                         )}
@@ -358,7 +378,7 @@ export default function PostDetail() {
               <div className="post-content">
                 <h1 className="post-title">
                   {isPinned && (
-                    <span className="pinned-indicator" title="Bài viết đã được ghim">
+                    <span className="pinned-indicator" title="Already pinned!">
                       <Pin size={16} />
                     </span>
                   )}
@@ -494,6 +514,28 @@ export default function PostDetail() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Popup for Hide Post */}
+      <ConfirmationPopup
+        isOpen={showConfirmHide}
+        onClose={() => setShowConfirmHide(false)}
+        onConfirm={confirmHidePost}
+        title="Hide Post"
+        message="Are you sure you want to hide this post?"
+        confirmText="Hide"
+        cancelText="Cancel"
+        type="warning"
+      />
+
+      {/* Notification Popup */}
+      <NotificationPopup
+        isOpen={showNotification}
+        onClose={() => setShowNotification(false)}
+        type={notificationData.type}
+        title={notificationData.title}
+        message={notificationData.message}
+        duration={3000}
+      />
     </div>
   );
 }
