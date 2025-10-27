@@ -29,7 +29,6 @@ export default function PostDetail() {
   const [isPinned, setIsPinned] = useState(false);
   const [userStats, setUserStats] = useState(null);
   const [showConfirmHide, setShowConfirmHide] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationData, setNotificationData] = useState({ type: "success", title: "", message: "" });
   const menuRef = useRef(null);
@@ -150,37 +149,17 @@ export default function PostDetail() {
 
   const handleDeletePost = (e) => {
     e.stopPropagation();
-    setShowConfirmDelete(true);
-    setShowMenu(false);
-  };
-
-  const confirmDeletePost = () => {
-    deletePost(post.postId)
-      .then(() => {
-        setNotificationData({
-          type: "success",
-          title: "Success",
-          message: "Post deleted successfully!"
+    if (window.confirm("Are you sure you want to delete this post?")) {
+      deletePost(post.postId)
+        .then(() => {
+          alert("Post deleted successfully!");
+          navigate('/forum');
+        })
+        .catch(error => {
+          console.error("Error deleting post:", error);
+          alert("Error deleting post. Please try again.");
         });
-        setShowNotification(true);
-        // User will be redirected when they click OK
-      })
-      .catch(error => {
-        console.error("Error deleting post:", error);
-        setNotificationData({
-          type: "error",
-          title: "Error",
-          message: "Error deleting post. Please try again."
-        });
-        setShowNotification(true);
-      });
-  };
-
-  const handleNotificationClose = () => {
-    setShowNotification(false);
-    // If it was a successful delete, navigate to forum
-    if (notificationData.type === "success" && notificationData.message.includes("deleted")) {
-      navigate('/forum');
+      setShowMenu(false);
     }
   };
 
@@ -218,6 +197,10 @@ export default function PostDetail() {
           message: "Post hidden successfully!"
         });
         setShowNotification(true);
+        setTimeout(() => {
+          setShowNotification(false);
+          navigate('/forum');
+        }, 1500);
       })
       .catch(error => {
         console.error("Error hiding post:", error);
@@ -382,7 +365,7 @@ export default function PostDetail() {
                             </button>
                             <button className="menu-item report" onClick={handleReportPost}>
                               <Flag size={16} />
-                              Tố cáo bài viết
+                              Report Post
                             </button>
                           </>
                         )}
@@ -395,7 +378,7 @@ export default function PostDetail() {
               <div className="post-content">
                 <h1 className="post-title">
                   {isPinned && (
-                    <span className="pinned-indicator" title="Bài viết đã được ghim">
+                    <span className="pinned-indicator" title="Already pinned!">
                       <Pin size={16} />
                     </span>
                   )}
@@ -544,26 +527,14 @@ export default function PostDetail() {
         type="warning"
       />
 
-      {/* Confirmation Popup for Delete Post */}
-      <ConfirmationPopup
-        isOpen={showConfirmDelete}
-        onClose={() => setShowConfirmDelete(false)}
-        onConfirm={confirmDeletePost}
-        title="Delete Post"
-        message="Are you sure you want to delete this post? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        type="danger"
-      />
-
       {/* Notification Popup */}
       <NotificationPopup
         isOpen={showNotification}
-        onClose={handleNotificationClose}
+        onClose={() => setShowNotification(false)}
         type={notificationData.type}
         title={notificationData.title}
         message={notificationData.message}
-        duration={0}
+        duration={3000}
       />
     </div>
   );
