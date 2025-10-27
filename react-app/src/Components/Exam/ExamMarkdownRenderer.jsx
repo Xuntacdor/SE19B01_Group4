@@ -70,12 +70,12 @@ function processQuestionBlock(lines, qIndex, showAnswers, readingId = 0) {
       ? `<input type="text" value="${escapeHtml(
           ans
         )}" readonly class="inlineTextbox answerFilled" style="width:${width}ch;" />`
-      : `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}_text" style="width:${width}ch;" />`;
+      : `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}" style="width:${width}ch;" />`;
   });
 
   text = text.replace(/\[T\]/g, () => {
     const width = 15;
-    return `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}_text" style="width:${width}ch;" />`;
+    return `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}" style="width:${width}ch;" />`;
   });
 
   // Dropdowns
