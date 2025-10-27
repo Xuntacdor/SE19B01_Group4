@@ -92,44 +92,70 @@
   transition: 0.2s ease;
 }
 
-/* ✅ Correction states */
-.answer-correct {
-  border-color: #16a34a !important;
-  background-color: #dcfce7 !important;
-}
-
-.answer-wrong {
-  border-color: #dc2626 !important;
-  background-color: #fee2e2 !important;
-}
-
-.answer-missing {
-  border-color: #9ca3af !important;
-  background-color: #f3f4f6 !important;
-}
-
-
-/* ✅ Choice blocks (radio/checkbox) */
 .choiceItem {
-  display: inline-block;
-  padding: 6px 10px;
+  display: block;
+  margin: 3px 0;
+  padding: 4px 6px;
   border-radius: 6px;
-  border: 2px solid transparent;
-  margin: 3px 5px;
   transition: 0.2s ease;
 }
 
 .choice-correct {
-  border-color: #16a34a;
-  background-color: #dcfce7;
+  background-color: #e6f9e6;
+  border-left: 4px solid #34a853;
 }
 
 .choice-wrong {
-  border-color: #dc2626;
-  background-color: #fee2e2;
+  background-color: #ffe5e5;
+  border-left: 4px solid #ea4335;
 }
 
 .choice-missed {
-  border-color: #2563eb;
-  background-color: #dbeafe;
+  background-color: #e5f0ff;
+  border-left: 4px solid #4285f4;
+}
+
+.option-correct {
+  background-color: #e6f9e6;
+  color: #19692c;
+}
+
+.option-wrong {
+  background-color: #ffe5e5;
+  color: #842029;
+}
+
+.option-missed {
+  background-color: #e5f0ff;
+  color: #084298;
+}
+
+.text-correct {
+  border: 2px solid #34a853;
+  background-color: #e6f9e6;
+}
+
+.text-wrong {
+  border: 2px solid #ea4335;
+  background-color: #ffe5e5;
+}
+
+.text-missed {
+  border: 2px solid #4285f4;
+  background-color: #e5f0ff;
+}
+
+.textCorrectDisplay {
+  display: block;
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 2px;
+}
+
+.dropdownResult {
+  margin-left: 6px;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  min-width: 120px;
 }
