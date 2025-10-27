@@ -1,5 +1,6 @@
 import React from "react";
-import { CheckCircle, XCircle, AlertCircle, X } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, Info } from "lucide-react";
+import PopupBase from "../Common/PopupBase";
 import "./NotificationPopup.css";
 
 export default function NotificationPopup({ 
@@ -20,34 +21,46 @@ export default function NotificationPopup({
     }
   }, [isOpen, duration, onClose]);
 
-  if (!isOpen) return null;
-
   const getIcon = () => {
     switch (type) {
       case "success":
-        return <CheckCircle size={24} className="notification-icon success" />;
+        return CheckCircle;
       case "error":
-        return <XCircle size={24} className="notification-icon error" />;
+        return XCircle;
       case "warning":
-        return <AlertCircle size={24} className="notification-icon warning" />;
+        return AlertCircle;
       default:
-        return <CheckCircle size={24} className="notification-icon success" />;
+        return Info;
     }
   };
 
+  const getIconClass = () => {
+    switch (type) {
+      case "success":
+        return "notification-icon success";
+      case "error":
+        return "notification-icon error";
+      case "warning":
+        return "notification-icon warning";
+      default:
+        return "notification-icon info";
+    }
+  };
+
+  const Icon = getIcon();
+
   return (
-    <div className="notification-overlay">
-      <div className="notification-popup">
-        <div className="notification-header">
-          <div className="notification-icon-container">
-            {getIcon()}
-          </div>
-          <button className="notification-close" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
-        
+    <div className="notification-popup">
+      <PopupBase
+        hideHeader={true}
+        show={isOpen}
+        width="400px"
+        onClose={onClose}
+      >
         <div className="notification-content">
+          <div className="notification-icon-large">
+            <Icon size={32} className={getIconClass()} />
+          </div>
           {title && <h3 className="notification-title">{title}</h3>}
           <p className="notification-message">{message}</p>
         </div>
@@ -57,7 +70,8 @@ export default function NotificationPopup({
             OK
           </button>
         </div>
-      </div>
+      </PopupBase>
     </div>
   );
 }
+
