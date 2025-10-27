@@ -47,5 +47,11 @@ namespace WebAPI.Services
             _repo.Delete(feedback);
             _repo.SaveChanges();
         }
+
+        public SpeakingFeedback? GetBySpeakingAndUser(int speakingId, int userId)
+        {
+            return _repo.GetBySpeakingAndUser(speakingId, userId);
+        }
+
     }
 }

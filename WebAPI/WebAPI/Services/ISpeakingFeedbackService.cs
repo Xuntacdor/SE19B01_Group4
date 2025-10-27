@@ -8,6 +8,7 @@ namespace WebAPI.Services
         IEnumerable<SpeakingFeedback> GetAll();
         SpeakingFeedback? GetById(int id);
         List<SpeakingFeedback> GetByExamAndUser(int examId, int userId);
+        SpeakingFeedback? GetBySpeakingAndUser(int speakingId, int userId);
         void Add(SpeakingFeedback feedback);
         void Update(SpeakingFeedback feedback);
         void Delete(SpeakingFeedback feedback);

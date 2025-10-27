@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AppLayout from "../../Components/Layout/AppLayout";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as SpeakingApi from "../../Services/SpeakingApi";
 import * as UploadApi from "../../Services/UploadApi";
 import LoadingComponent from "../../Components/Exam/LoadingComponent";
 import useExamTimer from "../../Hook/useExamTimer";
+import MicroCheck from "../../Components/Exam/MicroCheck";
 import {
   Mic,
   MicOff,
   Play,
   Pause,
-  Square,
-  Upload,
   Clock,
   Volume2,
   CheckCircle,
@@ -22,7 +21,8 @@ import {
 import styles from "./SpeakingTestPage.module.css";
 
 export default function SpeakingTest() {
-  const { state } = useLocation();
+  const location = useLocation();
+  const state = location.state || null;
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -32,109 +32,169 @@ export default function SpeakingTest() {
   const [submitting, setSubmitting] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploading, setUploading] = useState({});
+  const [speakingTask, setSpeakingTask] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const audioRef = useRef(null);
   const recordingIntervalRef = useRef(null);
 
-  if (!state) {
-    return (
-      <AppLayout title="Speaking Test" sidebar={<GeneralSidebar />}>
-        <div className={styles.center}>
-          <h2>No exam selected</h2>
-          <button onClick={() => navigate(-1)} className={styles.backBtn}>
-            ← Back
-          </button>
-        </div>
-      </AppLayout>
+  const [params] = useSearchParams();
+  const speakingId = params.get("speakingId");
+
+  // --- FETCH khi retake / single ---
+  useEffect(() => {
+    const fetchTaskById = async () => {
+      if (!speakingId) return;
+      try {
+        const res = await SpeakingApi.getById(speakingId);
+        if (res) {
+          setSpeakingTask(res);
+        }
+      } catch (err) {
+        console.error("Failed to load speaking test:", err);
+      }
+    };
+    fetchTaskById();
+  }, [speakingId]);
+
+  // --- Resolve part index (Part 1/2/3 buttons) ---
+  function resolvePartIndex(tasks, partNumber) {
+    if (!Array.isArray(tasks) || tasks.length === 0) return -1;
+    let idx = tasks.findIndex((t) => Number(t?.displayOrder) === partNumber);
+    if (idx !== -1) return idx;
+    idx = tasks.findIndex((t) =>
+      (t?.speakingType || "").toLowerCase().includes(`part${partNumber}`)
     );
+    return idx !== -1 ? idx : partNumber - 1;
   }
 
-  const { exam, tasks, task, mode, duration } = state;
+  // --- Destructure safely ---
+  const { exam, tasks, task, mode, duration } = state || {};
+  const currentExam =
+    exam ||
+    (speakingTask
+      ? { examId: speakingTask.examId, examName: "Single Speaking Task" }
+      : undefined);
+  const currentMode = mode || (speakingTask ? "single" : undefined);
   const currentTask =
-    mode === "full" && Array.isArray(tasks) ? tasks[currentIndex] : task;
+    currentMode === "full" && Array.isArray(tasks)
+      ? tasks[currentIndex]
+      : task || speakingTask;
   const currentId =
-    mode === "full" ? currentTask?.speakingId : task?.speakingId;
+    currentMode === "full"
+      ? currentTask?.speakingId
+      : task?.speakingId || speakingTask?.speakingId;
 
-  // Timer logic
-  const { timeLeft, formatTime } = useExamTimer(duration || 15, submitting);
+  // --- Timer ---
+  const { timeLeft, formatTime } = useExamTimer(
+    duration || exam?.duration || currentTask?.duration || 15,
+    submitting
+  );
 
-  // Recording functions
+  // --- Auto redirect if already done ---
+  useEffect(() => {
+    if (state?.retakeMode) return; // bỏ qua khi đang làm lại
+
+    const checkIfDone = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (!user) return;
+
+        if (mode === "single") {
+          // 🔹 chỉ kiểm tra đúng speaking task này
+          const res = await SpeakingApi.getFeedbackBySpeakingId(
+            task?.speakingId || speakingId,
+            user.userId
+          );
+          if (res?.feedback) {
+            navigate("/speaking/result", {
+              state: {
+                examId: res.examId,
+                userId: user.userId,
+                exam,
+                mode: "single",
+                isWaiting: false,
+                feedbacks: [res.feedback],
+                averageBand: res.feedback.overall,
+              },
+            });
+          }
+        } else if (mode === "full" && exam?.examId) {
+          // 🔹 kiểm tra full exam
+          const res = await SpeakingApi.getFeedback(exam.examId, user.userId);
+          if (res?.feedbacks?.length > 0) {
+            navigate("/speaking/result", {
+              state: {
+                examId: exam.examId,
+                userId: user.userId,
+                exam,
+                mode: "full",
+                isWaiting: false,
+                feedbacks: res.feedbacks,
+                averageBand: res.averageOverall,
+              },
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("No previous result found for this exam");
+      }
+    };
+
+    checkIfDone();
+  }, [exam, navigate, mode, state?.retakeMode]);
+
+  // --- Text to Speech ---
+  const speakQuestion = (text) => {
+    if (!window.speechSynthesis) {
+      alert("Speech synthesis not supported on this browser.");
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "en-US";
+    utter.rate = 1;
+    utter.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  };
+
+  // --- Recording ---
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Sử dụng MIME type được Whisper hỗ trợ, với fallback
-      let options = {};
-      if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
-        options = { mimeType: "audio/webm;codecs=opus" };
-      } else if (MediaRecorder.isTypeSupported("audio/webm")) {
-        options = { mimeType: "audio/webm" };
-      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-        options = { mimeType: "audio/mp4" };
-      } else if (MediaRecorder.isTypeSupported("audio/wav")) {
-        options = { mimeType: "audio/wav" };
-      }
-
-      console.log("Using MediaRecorder options:", options);
+      const options = { mimeType: "audio/webm;codecs=opus" };
       const mediaRecorder = new MediaRecorder(stream, options);
-      const audioChunks = [];
+      const chunks = [];
 
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-
+      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
       mediaRecorder.onstop = async () => {
-        // Tạo blob với format phù hợp
-        const mimeType = options.mimeType || "audio/webm";
-        const audioBlob = new Blob(audioChunks, { type: mimeType });
-        const audioUrl = URL.createObjectURL(audioBlob);
-
-        console.log("Created audio blob:", {
-          type: mimeType,
-          size: audioBlob.size,
-          chunks: audioChunks.length,
-        });
-
-        setRecordings((prev) => ({
-          ...prev,
-          [currentId]: audioBlob,
-        }));
-        setAudioUrls((prev) => ({
-          ...prev,
-          [currentId]: audioUrl,
-        }));
-
-        // Auto-upload after recording (no transcription here)
-        console.log(`Auto-uploading audio for task ${currentId}`);
-        await uploadAudio(audioBlob, currentId);
-
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setRecordings((p) => ({ ...p, [currentId]: blob }));
+        setAudioUrls((p) => ({ ...p, [currentId]: url }));
+        await uploadAudio(blob, currentId);
+        stream.getTracks().forEach((t) => t.stop());
       };
 
-      mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
       setRecordingTime(0);
-
-      // Start recording timer
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-    } catch (error) {
-      console.error("Error starting recording:", error);
-      alert("Could not access microphone. Please check permissions.");
+      recordingIntervalRef.current = setInterval(
+        () => setRecordingTime((t) => t + 1),
+        1000
+      );
+    } catch (err) {
+      alert("Cannot access microphone!");
+      console.error(err);
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
+      clearInterval(recordingIntervalRef.current);
       setIsRecording(false);
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
     }
   };
 
@@ -150,148 +210,55 @@ export default function SpeakingTest() {
     }
   };
 
-  const uploadAudio = async (audioBlob, taskId) => {
-    setUploading((prev) => ({ ...prev, [taskId]: true }));
+  const uploadAudio = async (blob, taskId) => {
+    setUploading((p) => ({ ...p, [taskId]: true }));
     try {
-      const formData = new FormData();
-
-      // Xác định extension dựa trên MIME type
-      let extension = "webm";
-      if (audioBlob.type.includes("mp4")) extension = "mp4";
-      else if (audioBlob.type.includes("wav")) extension = "wav";
-      else if (audioBlob.type.includes("ogg")) extension = "ogg";
-
-      formData.append(
-        "file",
-        audioBlob,
-        `speaking_${taskId}_${Date.now()}.${extension}`
-      );
-
-      const response = await UploadApi.uploadAudio(audioBlob);
-      setAudioUrls((prev) => ({
-        ...prev,
-        [taskId]: response.url,
-      }));
-
-      // No frontend transcription - will be done on backend during grading
-      console.log(`Audio uploaded for task ${taskId}:`, response.url);
-    } catch (error) {
-      console.error("Upload failed:", error);
-      alert("Failed to upload audio. Please try again.");
+      const res = await UploadApi.uploadAudio(blob);
+      setAudioUrls((p) => ({ ...p, [taskId]: res.url }));
+    } catch (err) {
+      alert("Upload failed");
     } finally {
-      setUploading((prev) => ({ ...prev, [taskId]: false }));
+      setUploading((p) => ({ ...p, [taskId]: false }));
     }
   };
 
-  // Transcription is now handled on backend during grading
-  // No frontend transcription needed
-
-  const handleNext = () => {
-    if (currentIndex < tasks.length - 1) setCurrentIndex((i) => i + 1);
-  };
-
-  const handlePrev = () => {
-    if (currentIndex > 0) setCurrentIndex((i) => i - 1);
-  };
-
+  // --- Submit ---
   const handleSubmit = async () => {
-    // Phải có ít nhất 1 bản ghi
     if (!recordings || Object.keys(recordings).length === 0) {
-      alert(
-        "No valid recordings found. Please record your answer before submitting."
-      );
+      alert("No recordings found!");
       return;
     }
-
     setSubmitting(true);
     try {
-      // 1) Xác định danh sách task cần nộp (full => tất cả, single => chỉ current)
+      const user = JSON.parse(localStorage.getItem("user"));
       const speakingTasks =
-        mode === "full" && Array.isArray(tasks) ? tasks : [currentTask];
-
-      // 2) Build mảng answers: speakingId, displayOrder, audioUrl (Cloudinary)
-      const answers = [];
-      for (const t of speakingTasks) {
-        const taskId = t.speakingId;
-        const recordedBlob = recordings[taskId];
-
-        // Bỏ qua câu không có ghi âm
-        if (!recordedBlob && !audioUrls[taskId]) continue;
-
-        let url = audioUrls[taskId];
-
-        // Nếu đang là blob: thì upload để lấy link Cloudinary
-        if (!url || url.startsWith("blob:")) {
-          const formData = new FormData();
-
-          // Xác định extension dựa trên MIME type
-          let extension = "webm";
-          if (recordedBlob.type.includes("mp4")) extension = "mp4";
-          else if (recordedBlob.type.includes("wav")) extension = "wav";
-          else if (recordedBlob.type.includes("ogg")) extension = "ogg";
-
-          formData.append(
-            "file",
-            recordedBlob,
-            `speaking_${taskId}_${Date.now()}.${extension}`
-          );
-          const res = await fetch("/api/upload/audio", {
-            method: "POST",
-            body: formData,
-          });
-          if (!res.ok) throw new Error("Upload audio failed");
-          const data = await res.json();
-          url = data.url;
-        }
-
-        answers.push({
-          speakingId: taskId,
-          displayOrder: t.displayOrder ?? 1,
-          audioUrl: url,
-          // transcript will be generated on backend
-          transcript: "",
-        });
-      }
-
-      if (answers.length === 0) {
-        alert(
-          "No valid recordings found. Please record your answer before submitting."
-        );
-        return;
-      }
-
-      // 3) Lấy userId (nếu backend cần)
-      let userId = undefined;
-      try {
-        const user = JSON.parse(localStorage.getItem("user"));
-        userId = user?.userId;
-      } catch {}
-
-      // 4) Payload đúng định dạng DTO backend
+        currentMode === "full" && Array.isArray(tasks) ? tasks : [currentTask];
+      const answers = speakingTasks.map((t) => ({
+        speakingId: t.speakingId,
+        displayOrder: t.displayOrder || 1,
+        audioUrl: audioUrls[t.speakingId],
+        transcript: "",
+      }));
       const payload = {
-        examId: exam.examId,
-        userId, // có thể undefined nếu BE không bắt buộc
-        mode, // "full" | "single"
+        examId: currentExam?.examId,
+        userId: user?.userId,
+        mode: currentMode,
         answers,
       };
-
-      // 5) Gọi API chấm điểm
-      const result = await SpeakingApi.gradeSpeaking(payload);
-
-      // 6) Điều hướng sang trang kết quả giống luồng bạn đang dùng
+      await SpeakingApi.gradeSpeaking(payload);
       navigate("/speaking/result", {
         state: {
-          examId: exam.examId,
-          userId,
-          exam,
-          mode,
-          recordings: audioUrls, // map speakingId -> cloudinary url
-          isWaiting: true, // để trang result poll feedback, tùy flow của bạn
+          examId: currentExam?.examId,
+          userId: user?.userId,
+          exam: currentExam,
+          mode: currentMode,
+          recordings: audioUrls,
+          isWaiting: true,
+          testedSpeakingIds: answers.map((a) => a.speakingId),
         },
       });
     } catch (err) {
-      console.error("Submit failed:", err);
-      alert("Failed to submit your test. Please try again.");
+      alert("Submit failed");
     } finally {
       setSubmitting(false);
     }
@@ -299,11 +266,18 @@ export default function SpeakingTest() {
 
   const hasRecording = recordings[currentId];
   const isUploading = uploading[currentId];
-  const formatRecordingTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
+  const formatRecordingTime = (s) =>
+    `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+
+  if (!currentTask) {
+    return (
+      <AppLayout title="Speaking Test" sidebar={<GeneralSidebar />}>
+        <div className={styles.center}>
+          <LoadingComponent text="Loading speaking test..." />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Speaking Test" sidebar={<GeneralSidebar />}>
@@ -312,10 +286,13 @@ export default function SpeakingTest() {
           <div className={styles.titleSection}>
             <Mic className={styles.titleIcon} />
             <h2>
-              {mode === "full"
-                ? `Full Speaking Test — ${exam.examName}`
-                : `${currentTask?.speakingType} — ${exam.examName}`}
+              {currentMode === "full"
+                ? `Full Speaking Test — ${currentExam?.examName}`
+                : `${currentTask?.speakingType} — ${currentExam?.examName}`}
             </h2>
+          </div>
+          <div className={styles.headerRight}>
+            <MicroCheck />
           </div>
           <div className={styles.timer}>
             <Clock size={20} /> {formatTime(timeLeft)}
@@ -323,27 +300,25 @@ export default function SpeakingTest() {
         </div>
 
         <div className={styles.mainContent}>
-          {/* Question Panel */}
           <div className={styles.questionPanel}>
             <div className={styles.questionHeader}>
-              <h3>Question {mode === "full" ? currentIndex + 1 : 1}</h3>
-              <span className={styles.taskType}>
-                {currentTask?.speakingType}
-              </span>
+              <h3>Question {currentMode === "full" ? currentIndex + 1 : 1}</h3>
+              <button
+                className={styles.playBtn}
+                onClick={() => speakQuestion(currentTask?.speakingQuestion)}
+              >
+                <Volume2 size={18} />
+              </button>
             </div>
             <div className={styles.questionContent}>
               <p>{currentTask?.speakingQuestion}</p>
             </div>
             <div className={styles.instructions}>
               <AlertCircle size={16} />
-              <span>
-                Speak clearly and naturally. You can record multiple times
-                before submitting.
-              </span>
+              <span>Speak clearly and naturally.</span>
             </div>
           </div>
 
-          {/* Recording Panel */}
           <div className={styles.recordingPanel}>
             <div className={styles.recordingControls}>
               {!hasRecording ? (
@@ -366,79 +341,67 @@ export default function SpeakingTest() {
                   <button
                     className={styles.recordAgainBtn}
                     onClick={() => {
-                      setRecordings((prev) => {
-                        const newRecordings = { ...prev };
-                        delete newRecordings[currentId];
-                        return newRecordings;
+                      setRecordings((p) => {
+                        const n = { ...p };
+                        delete n[currentId];
+                        return n;
                       });
-                      setAudioUrls((prev) => {
-                        const newUrls = { ...prev };
-                        delete newUrls[currentId];
-                        return newUrls;
-                      });
-                      setTranscripts((prev) => {
-                        const newTranscripts = { ...prev };
-                        delete newTranscripts[currentId];
-                        return newTranscripts;
+                      setAudioUrls((p) => {
+                        const n = { ...p };
+                        delete n[currentId];
+                        return n;
                       });
                     }}
                   >
-                    <RotateCcw size={20} />
-                    Record Again
+                    <RotateCcw size={20} /> Record Again
                   </button>
                 </div>
               )}
-
               {isRecording && (
                 <div className={styles.recordingTimer}>
                   <div className={styles.recordingIndicator}></div>
                   <span>Recording: {formatRecordingTime(recordingTime)}</span>
                 </div>
               )}
-
               {isUploading && (
                 <div className={styles.uploadingIndicator}>
                   <div className={styles.spinner}></div>
-                  <span>Uploading and transcribing...</span>
+                  <span>Uploading...</span>
                 </div>
               )}
             </div>
 
-            {/* Audio Player */}
             {hasRecording && (
               <div className={styles.audioPlayer}>
                 <audio
                   ref={audioRef}
                   src={audioUrls[currentId]}
                   onEnded={() => setIsPlaying(false)}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
                 />
                 <div className={styles.audioInfo}>
-                  <Volume2 size={16} />
-                  <span>Your recording is ready</span>
+                  <Volume2 size={16} /> <span>Your recording is ready</span>
                 </div>
               </div>
             )}
-
-            {/* Transcript Display */}
-            {/* Transcript will be shown in result page after backend processing */}
           </div>
 
-          {/* Navigation */}
           <div className={styles.navigation}>
-            {mode === "full" && (
+            {currentMode === "full" && Array.isArray(tasks) && (
               <div className={styles.taskNavigation}>
-                {currentIndex > 0 && (
-                  <button onClick={handlePrev} className={styles.navBtn}>
-                    ← Previous
-                  </button>
-                )}
-                {currentIndex < tasks.length - 1 && (
-                  <button onClick={handleNext} className={styles.navBtn}>
-                    Next →
-                  </button>
-                )}
+                {[1, 2, 3].map((n) => {
+                  const idx = resolvePartIndex(tasks, n);
+                  return (
+                    <button
+                      key={n}
+                      onClick={() => setCurrentIndex(idx)}
+                      className={`${styles.navBtn} ${
+                        currentIndex === idx ? styles.activeNavBtn : ""
+                      }`}
+                    >
+                      Part {n}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -450,13 +413,11 @@ export default function SpeakingTest() {
               >
                 {submitting ? (
                   <>
-                    <div className={styles.spinner}></div>
-                    Submitting...
+                    <div className={styles.spinner}></div> Submitting...
                   </>
                 ) : (
                   <>
-                    <CheckCircle size={20} />
-                    Submit Test
+                    <CheckCircle size={20} /> Submit Test
                   </>
                 )}
               </button>
@@ -467,11 +428,7 @@ export default function SpeakingTest() {
           </div>
         </div>
       </div>
-
-      {/* Loading Overlay */}
-      {submitting && (
-        <LoadingComponent text="Submitting your speaking test..." />
-      )}
+      {submitting && <LoadingComponent text="Submitting your test..." />}
     </AppLayout>
   );
 }
