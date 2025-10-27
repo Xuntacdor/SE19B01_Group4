@@ -130,7 +130,11 @@ namespace WebAPI.Services
 
         public void UpdatePost(int id, UpdatePostDTO dto, int userId)
         {
-            var post = _context.Post.Find(id);
+            var post = _context.Post
+                .Include(p => p.Tags)
+                .Include(p => p.Attachments)
+                .FirstOrDefault(p => p.PostId == id);
+            
             if (post == null) throw new KeyNotFoundException("Post not found");
 
             var user = _userRepository.GetById(userId);
@@ -147,13 +151,71 @@ namespace WebAPI.Services
 
             post.UpdatedAt = DateTime.UtcNow;
 
-            if (dto.TagNames != null && dto.TagNames.Any())
+            // Update tags if provided
+            if (dto.TagNames != null)
             {
                 // Clear existing tags
                 post.Tags.Clear();
-                _context.SaveChanges();
 
-                AddTagsToPost(id, dto.TagNames);
+                // Add new tags if any provided
+                if (dto.TagNames.Any())
+                {
+                    foreach (var tagName in dto.TagNames)
+                    {
+                        var tag = _context.Tag.FirstOrDefault(t => t.TagName == tagName);
+
+                        if (tag == null)
+                        {
+                            tag = new Tag { TagName = tagName };
+                            _context.Tag.Add(tag);
+                        }
+
+                        // Add tag to post (no need to check, we already cleared)
+                        post.Tags.Add(tag);
+                    }
+                }
+            }
+
+            // Update attachments if provided
+            if (dto.Attachments != null)
+            {
+                // Load attachments explicitly if not loaded
+                if (post.Attachments == null || post.Attachments.Count == 0)
+                {
+                    var existingAttachments = _context.PostAttachment
+                        .Where(a => a.PostId == id)
+                        .ToList();
+                    
+                    if (existingAttachments.Any())
+                    {
+                        _context.PostAttachment.RemoveRange(existingAttachments);
+                    }
+                }
+                else
+                {
+                    // Remove existing attachments
+                    _context.PostAttachment.RemoveRange(post.Attachments);
+                }
+
+                // Add new attachments
+                if (dto.Attachments.Any())
+                {
+                    foreach (var attachment in dto.Attachments)
+                    {
+                        var postAttachment = new PostAttachment
+                        {
+                            PostId = id,
+                            FileName = attachment.FileName,
+                            FileUrl = attachment.FileUrl,
+                            FileType = attachment.FileType,
+                            FileExtension = attachment.FileExtension,
+                            FileSize = attachment.FileSize,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        _context.PostAttachment.Add(postAttachment);
+                    }
+                }
             }
 
             _context.SaveChanges();
@@ -266,7 +328,10 @@ namespace WebAPI.Services
 
         private void AddTagsToPost(int postId, List<string> tagNames)
         {
-            var post = _context.Post.Find(postId);
+            var post = _context.Post
+                .Include(p => p.Tags)
+                .FirstOrDefault(p => p.PostId == postId);
+            
             if (post == null) return;
 
             foreach (var tagName in tagNames)
@@ -280,8 +345,11 @@ namespace WebAPI.Services
                     _context.SaveChanges();
                 }
 
-                // Add tag to post's Tags collection
-                post.Tags.Add(tag);
+                // Check if tag is already associated with post
+                if (!post.Tags.Any(t => t.TagId == tag.TagId))
+                {
+                    post.Tags.Add(tag);
+                }
             }
 
             _context.SaveChanges();
@@ -314,6 +382,12 @@ namespace WebAPI.Services
                 .Any(pl => pl.PostId == postId && pl.UserId == userId);
         }
 
+        public bool IsPostHiddenByUser(int postId, int userId)
+        {
+            return _context.UserPostHide
+                .Any(uph => uph.PostId == postId && uph.UserId == userId);
+        }
+
         private PostDTO ToDTO(Post post, int? userId = null)
         {
             return new PostDTO
@@ -328,6 +402,7 @@ namespace WebAPI.Services
                 VoteCount = post.PostLikes.Count,
                 IsVoted = userId.HasValue ? IsPostVotedByUser(post.PostId, userId.Value) : false,
                 IsPinned = post.IsPinned,
+                IsHiddenByUser = userId.HasValue ? IsPostHiddenByUser(post.PostId, userId.Value) : false,
                 RejectionReason = post.RejectionReason,
                 User = new UserDTO
                 {
@@ -501,7 +576,8 @@ namespace WebAPI.Services
                 Content = $"Bài viết '{post.Title}' của bạn đã được duyệt và hiển thị công khai.",
                 Type = "post_approved",
                 IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                PostId = post.PostId
             };
 
             _context.Notification.Add(notification);
@@ -523,7 +599,8 @@ namespace WebAPI.Services
                 Content = $"Bài viết '{post.Title}' của bạn đã bị từ chối. Lý do: {reason}",
                 Type = "post_rejected",
                 IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                PostId = post.PostId
             };
 
             _context.Notification.Add(notification);

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ModeratorSidebar from "../../Components/Moderator/ModeratorSidebar";
 import { getAllTags, createTag, updateTag, deleteTag } from "../../Services/TagApi";
 import { getMe, logout } from "../../Services/AuthApi";
 import { formatTimeVietnam } from "../../utils/date";
@@ -29,7 +28,9 @@ import {
   Edit,
   Trash2,
   LogOut,
-  Settings
+  Settings,
+  LayoutDashboard,
+  LayoutList
 } from "lucide-react";
 import "./ModeratorDashboard.css";
 import { Line } from "react-chartjs-2";
@@ -37,12 +38,49 @@ import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement
 import * as ModeratorApi from "../../Services/ModeratorApi";
 import { getPostsByFilter } from "../../Services/ForumApi";
 import NotificationPopup from "../../Components/Forum/NotificationPopup";
+import RejectionReasonPopup from "../../Components/Common/RejectionReasonPopup";
+import CommentSection from "../../Components/Forum/CommentSection";
+import { marked } from "marked";
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
 export default function ModeratorDashboard() {
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState("overview");
+
+  // Menu items for Moderator Sidebar
+  const menuItems = [
+    {
+      icon: <LayoutDashboard size={20} />,
+      label: "All Posts",
+      view: "overview"
+    },
+    {
+      icon: <BarChart3 size={20} />,
+      label: "Statistics",
+      view: "statistics"
+    },
+    {
+      icon: <Tag size={20} />,
+      label: "Tag Management",
+      view: "tags"
+    },
+    {
+      icon: <FileText size={20} />,
+      label: "Pending Posts",
+      view: "pending"
+    },
+    {
+      icon: <Flag size={20} />,
+      label: "Reported Posts",
+      view: "reported"
+    },
+    {
+      icon: <XCircle size={20} />,
+      label: "Rejected Posts",
+      view: "rejected"
+    }
+  ];
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [stats, setStats] = useState({
     total: 0,
@@ -58,6 +96,8 @@ export default function ModeratorDashboard() {
   const [selectedPost, setSelectedPost] = useState(null);
   const [showPostDetail, setShowPostDetail] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [showRejectionPopup, setShowRejectionPopup] = useState(false);
+  const [postToReject, setPostToReject] = useState(null);
   
   // New state for forum posts
   const [allPosts, setAllPosts] = useState([]);
@@ -295,14 +335,22 @@ export default function ModeratorDashboard() {
     }
   };
 
-  const handleRejectPost = async (postId, reason) => {
+  const handleOpenRejectPopup = (postId) => {
+    setPostToReject(postId);
+    setShowRejectionPopup(true);
+  };
+
+  const handleRejectPost = async (reason) => {
+    if (!postToReject) return;
+    
     try {
-      await ModeratorApi.rejectPost(postId, reason);
+      await ModeratorApi.rejectPost(postToReject, reason);
       // Update local state
-      setPendingPosts(prev => prev.filter(post => (post.postId || post.id) !== postId));
+      setPendingPosts(prev => prev.filter(post => (post.postId || post.id) !== postToReject));
       setStats(prev => ({ ...prev, pending: prev.pending - 1, rejected: prev.rejected + 1 }));
       setShowPostDetail(false);
-      setRejectReason("");
+      setShowRejectionPopup(false);
+      setPostToReject(null);
       showNotification(
         "success",
         "Post rejected successfully!",
@@ -310,6 +358,8 @@ export default function ModeratorDashboard() {
       );  
     } catch (error) {
       console.error("Error rejecting post:", error);
+      setShowRejectionPopup(false);
+      setPostToReject(null);
       showNotification(
         "error",
         "Error rejecting post",
@@ -321,6 +371,21 @@ export default function ModeratorDashboard() {
   const handleViewPost = (post) => {
     setSelectedPost(post);
     setShowPostDetail(true);
+  };
+
+  const renderContent = (content) => {
+    if (!content) return null;
+    
+    try {
+      const html = marked.parse(content, {
+        breaks: true,
+        gfm: true
+      });
+      return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    } catch (error) {
+      console.error("Error parsing markdown:", error);
+      return <div>{content}</div>;
+    }
   };
 
   const chartConfig = {
@@ -495,12 +560,7 @@ export default function ModeratorDashboard() {
                       </button>
                       <button 
                         className="btn btn-danger"
-                        onClick={() => {
-                          const reason = prompt("Enter rejection reason:");
-                          if (reason) {
-                            handleRejectPost(post.postId, reason);
-                          }
-                        }}
+                        onClick={() => handleOpenRejectPopup(post.postId)}
                       >
                         <X size={16} />
                         Reject
@@ -550,12 +610,7 @@ export default function ModeratorDashboard() {
               </button>
               <button 
                 className="btn btn-danger"
-                onClick={() => {
-                  const reason = prompt("Enter rejection reason:");
-                  if (reason) {
-                    handleRejectPost(post.postId || post.id, reason);
-                  }
-                }}
+                onClick={() => handleOpenRejectPopup(post.postId || post.id)}
               >
                 <X size={16} />
                 Reject
@@ -996,10 +1051,36 @@ export default function ModeratorDashboard() {
       </header>
 
       <div className="moderator-content-wrapper">
-        <ModeratorSidebar 
-          currentView={currentView} 
-          onViewChange={setCurrentView}
-        />
+        <div className="sidebar-container">
+          <aside className="moderator-sidebar-custom">
+            <div className="sidebar-header">
+              <div className="logo">
+                <User size={28} color="#007bff" />
+                <span className="logo-text">Moderator</span>
+              </div>
+            </div>
+
+            <nav className="sidebar-nav">
+              {menuItems.map((item, index) => (
+                <button
+                  key={index}
+                  className={`nav-item ${currentView === item.view ? "active" : ""}`}
+                  onClick={() => setCurrentView(item.view)}
+                >
+                  <span className="nav-icon">{item.icon}</span>
+                  <span className="nav-label">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            <div className="sidebar-footer">
+              <div className="user-info">
+                <User size={20} />
+                <span>Moderator Panel</span>
+              </div>
+            </div>
+          </aside>
+        </div>
         
         <main className="moderator-main">
           {currentView === "overview" && renderOverview()}
@@ -1025,14 +1106,44 @@ export default function ModeratorDashboard() {
               </button>
             </div>
             
-            <div className="modal-body">
+            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
               <div className="post-meta">
-                <span>Author: {selectedPost.author}</span>
-                <span>Date: {formatTimeVietnam(selectedPost.createdAt)}</span>
+                <div className="post-author">
+                  <User size={16} />
+                  <span>Author: {selectedPost.user?.username || selectedPost.author || 'Unknown'}</span>
+                </div>
+                <div className="post-time">
+                  <Clock size={16} />
+                  <span>Date: {formatTimeVietnam(selectedPost.createdAt)}</span>
+                </div>
+                {selectedPost.viewCount !== undefined && (
+                  <div className="post-stats">
+                    <Eye size={16} />
+                    <span>{selectedPost.viewCount} views</span>
+                  </div>
+                )}
               </div>
               
-              <div className="post-content-full">
-                {selectedPost.content}
+              <div className="post-title-detail">
+                <h3>{selectedPost.title}</h3>
+              </div>
+
+              {selectedPost.tags && selectedPost.tags.length > 0 && (
+                <div className="post-tags-detail">
+                  {selectedPost.tags.map((tag, index) => (
+                    <span key={index} className="post-tag-detail">
+                      #{tag.tagName}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="post-content-full" style={{ 
+                lineHeight: '1.6',
+                fontSize: '16px',
+                color: '#333'
+              }}>
+                {renderContent(selectedPost.content)}
               </div>
 
               {selectedPost.reportReason && (
@@ -1041,6 +1152,15 @@ export default function ModeratorDashboard() {
                   <p>{selectedPost.reportReason}</p>
                 </div>
               )}
+
+              {/* Comments Section */}
+              <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e9ecef' }}>
+                <h4 style={{ marginBottom: '20px' }}>Comments</h4>
+                <CommentSection 
+                  postId={selectedPost.postId || selectedPost.id} 
+                  postOwnerId={selectedPost.user?.userId}
+                />
+              </div>
             </div>
 
             <div className="modal-footer">
@@ -1055,12 +1175,7 @@ export default function ModeratorDashboard() {
                   </button>
                   <button 
                     className="btn btn-danger"
-                    onClick={() => {
-                      const reason = prompt("Enter rejection reason:");
-                      if (reason) {
-                        handleRejectPost(selectedPost.id, reason);
-                      }
-                    }}
+                    onClick={() => handleOpenRejectPopup(selectedPost.id)}
                   >
                     <XCircle size={16} />
                     Reject
@@ -1085,6 +1200,16 @@ export default function ModeratorDashboard() {
         type={notification.type}
         title={notification.title}
         message={notification.message}
+      />
+
+      <RejectionReasonPopup
+        isOpen={showRejectionPopup}
+        onClose={() => {
+          setShowRejectionPopup(false);
+          setPostToReject(null);
+        }}
+        onConfirm={handleRejectPost}
+        title="Reject Post"
       />
     </div>
   );

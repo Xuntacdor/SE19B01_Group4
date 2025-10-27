@@ -4,11 +4,14 @@ import "./PostDetail.css";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import HeaderBar from "../../Components/Layout/HeaderBar";
 import CommentSection from "../../Components/Forum/CommentSection";
-import { getPost, votePost, unvotePost, reportPost, deletePost, pinPost, unpinPost, hidePost } from "../../Services/ForumApi";
+import { getPost, votePost, unvotePost, reportPost, deletePost, pinPost, unpinPost, hidePost, unhidePost } from "../../Services/ForumApi";
 import { getUserProfileStats } from "../../Services/UserApi";
 import useAuth from "../../Hook/UseAuth";
-import { MoreVertical, Trash2, Pin, EyeOff, Flag, ArrowLeft, MessageCircle, Image, Share, Download, ThumbsUp, Edit } from "lucide-react";
+import { MoreVertical, Trash2, Pin, EyeOff, Flag, ArrowLeft, MessageCircle, Image as ImageIcon, Share, Download, ThumbsUp, Edit } from "lucide-react";
 import { formatFullDateVietnam } from "../../utils/date";
+import { marked } from "marked";
+import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
+import NotificationPopup from "../../Components/Forum/NotificationPopup";
 
 // Không cần helper functions nữa - để view count tăng mỗi lần vào post
 
@@ -25,6 +28,9 @@ export default function PostDetail() {
   const [showMenu, setShowMenu] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [userStats, setUserStats] = useState(null);
+  const [showConfirmHide, setShowConfirmHide] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationData, setNotificationData] = useState({ type: "success", title: "", message: "" });
   const menuRef = useRef(null);
   const hasLoadedRef = useRef(false);
 
@@ -178,15 +184,46 @@ export default function PostDetail() {
 
   const handleHidePost = (e) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to hide this post?")) {
-      hidePost(post.postId)
+    setShowConfirmHide(true);
+    setShowMenu(false);
+  };
+
+  const confirmHidePost = () => {
+    hidePost(post.postId)
+      .then(() => {
+        setNotificationData({
+          type: "success",
+          title: "Success",
+          message: "Post hidden successfully!"
+        });
+        setShowNotification(true);
+        setTimeout(() => {
+          setShowNotification(false);
+          navigate('/forum');
+        }, 1500);
+      })
+      .catch(error => {
+        console.error("Error hiding post:", error);
+        setNotificationData({
+          type: "error",
+          title: "Error",
+          message: "Error hiding post. Please try again."
+        });
+        setShowNotification(true);
+      });
+  };
+
+  const handleUnhidePost = (e) => {
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to unhide this post? It will be moved back to the main forum.")) {
+      unhidePost(post.postId)
         .then(() => {
-          alert("Post hidden successfully!");
+          alert("Post unhidden successfully!");
           navigate('/forum');
         })
         .catch(error => {
-          console.error("Error hiding post:", error);
-          alert("Error hiding post. Please try again.");
+          console.error("Error unhiding post:", error);
+          alert("Error unhiding post. Please try again.");
         });
       setShowMenu(false);
     }
@@ -217,6 +254,28 @@ export default function PostDetail() {
 
   const formatTime = (dateString) => {
     return formatFullDateVietnam(dateString);
+  };
+
+  const renderContent = (content) => {
+    if (!content) return null;
+    
+    try {
+      // Log content to debug
+      console.log("Rendering content:", content);
+      
+      // Configure marked to allow HTML
+      const html = marked.parse(content, {
+        breaks: true,
+        gfm: true
+      });
+      
+      console.log("Parsed HTML:", html);
+      
+      return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    } catch (error) {
+      console.error("Error parsing markdown:", error);
+      return <div>{content}</div>;
+    }
   };
 
   if (loading) {
@@ -296,9 +355,9 @@ export default function PostDetail() {
                         ) : (
                           // Menu for other users
                           <>
-                            <button className="menu-item hide" onClick={handleHidePost}>
+                            <button className="menu-item hide" onClick={post.isHiddenByUser ? handleUnhidePost : handleHidePost}>
                               <EyeOff size={16} />
-                              Hide Post
+                              {post.isHiddenByUser ? "Unhide Post" : "Hide Post"}
                             </button>
                             <button className="menu-item pin" onClick={handlePinPost}>
                               <Pin size={16} />
@@ -306,7 +365,7 @@ export default function PostDetail() {
                             </button>
                             <button className="menu-item report" onClick={handleReportPost}>
                               <Flag size={16} />
-                              Tố cáo bài viết
+                              Report Post
                             </button>
                           </>
                         )}
@@ -319,52 +378,43 @@ export default function PostDetail() {
               <div className="post-content">
                 <h1 className="post-title">
                   {isPinned && (
-                    <span className="pinned-indicator" title="Bài viết đã được ghim">
+                    <span className="pinned-indicator" title="Already pinned!">
                       <Pin size={16} />
                     </span>
                   )}
                   {post.title}
                 </h1>
-                <div className="post-body">{post.content}</div>
+
+                {/* Tags Section - Moved directly below title */}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="post-tags">
+                    {post.tags.map((tag, index) => (
+                      <span key={index} className="post-tag">
+                        #{tag.tagName}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="post-body">{renderContent(post.content)}</div>
               </div>
 
-              {post.tags && post.tags.length > 0 && (
-                <div className="post-tags">
-                  {post.tags.map((tag, index) => (
-                    <span key={index} className="post-tag">
-                      #{tag.tagName}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Attachments Section */}
-              {post.attachments && post.attachments.length > 0 && (
+              {/* File attachments section (non-image files) */}
+              {post.attachments && post.attachments.filter(a => a.fileType !== 'image').length > 0 && (
                 <div className="post-attachments">
                   <h4 className="attachments-title">Attachments:</h4>
                   <div className="attachments-grid">
-                    {post.attachments.map((attachment, index) => (
-                      <div key={index} className="attachment-item">
-                        {attachment.fileType === 'image' ? (
-                          <div className="attachment-image">
-                            <img 
-                              src={attachment.fileUrl} 
-                              alt={attachment.fileName}
-                              className="attachment-img"
-                            />
-                            <div className="attachment-info">
-                              <span className="attachment-name">{attachment.fileName}</span>
-                              <span className="attachment-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
-                            </div>
-                          </div>
-                        ) : (
+                    {post.attachments
+                      .filter(attachment => attachment.fileType !== 'image')
+                      .map((attachment, index) => (
+                        <div key={index} className="attachment-item">
                           <div className="attachment-file">
                             <div className="attachment-icon">
                               <Download size={20} />
                             </div>
-                            <div className="attachment-info">
-                              <span className="attachment-name">{attachment.fileName}</span>
-                              <span className="attachment-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
+                            <div className="attachment-file-info">
+                              <span className="attachment-file-name">{attachment.fileName}</span>
+                              <span className="attachment-file-size">({(attachment.fileSize / 1024).toFixed(1)} KB)</span>
                             </div>
                             <a 
                               href={attachment.fileUrl} 
@@ -376,9 +426,8 @@ export default function PostDetail() {
                               <Download size={16} />
                             </a>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}
@@ -465,6 +514,28 @@ export default function PostDetail() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Popup for Hide Post */}
+      <ConfirmationPopup
+        isOpen={showConfirmHide}
+        onClose={() => setShowConfirmHide(false)}
+        onConfirm={confirmHidePost}
+        title="Hide Post"
+        message="Are you sure you want to hide this post?"
+        confirmText="Hide"
+        cancelText="Cancel"
+        type="warning"
+      />
+
+      {/* Notification Popup */}
+      <NotificationPopup
+        isOpen={showNotification}
+        onClose={() => setShowNotification(false)}
+        type={notificationData.type}
+        title={notificationData.title}
+        message={notificationData.message}
+        duration={3000}
+      />
     </div>
   );
 }

@@ -49,6 +49,12 @@ export const gradeSpeaking = (gradeData) =>
       alert(msg); // or use toast notification
       throw err;
     });
+export async function getFeedbackBySpeakingId(speakingId, userId) {
+  const res = await API.get(
+    `/feedback/bySpeaking?speakingId=${speakingId}&userId=${userId}`
+  );
+  return res.data;
+}
 
 export const getFeedback = (examId, userId) =>
   API.get(`/feedback/${examId}/${userId}`).then((r) => r.data);
