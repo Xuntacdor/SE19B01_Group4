@@ -576,7 +576,8 @@ namespace WebAPI.Services
                 Content = $"Bài viết '{post.Title}' của bạn đã được duyệt và hiển thị công khai.",
                 Type = "post_approved",
                 IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                PostId = post.PostId
             };
 
             _context.Notification.Add(notification);
@@ -598,7 +599,8 @@ namespace WebAPI.Services
                 Content = $"Bài viết '{post.Title}' của bạn đã bị từ chối. Lý do: {reason}",
                 Type = "post_rejected",
                 IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                PostId = post.PostId
             };
 
             _context.Notification.Add(notification);

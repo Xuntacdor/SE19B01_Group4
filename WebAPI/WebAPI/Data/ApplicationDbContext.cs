@@ -166,6 +166,7 @@ namespace WebAPI.Data
                     .HasMaxLength(30)
                     .HasColumnName("type");
                 entity.Property(e => e.UserId).HasColumnName("user_id");
+                entity.Property(e => e.PostId).HasColumnName("post_id");
 
                 entity.HasOne(d => d.User).WithMany(p => p.Notifications)
                     .HasForeignKey(d => d.UserId)
