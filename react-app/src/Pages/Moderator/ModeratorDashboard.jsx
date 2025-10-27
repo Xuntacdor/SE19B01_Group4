@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ModeratorSidebar from "../../Components/Moderator/ModeratorSidebar";
 import { getAllTags, createTag, updateTag, deleteTag } from "../../Services/TagApi";
 import { getMe, logout } from "../../Services/AuthApi";
 import { formatTimeVietnam } from "../../utils/date";
@@ -29,7 +28,9 @@ import {
   Edit,
   Trash2,
   LogOut,
-  Settings
+  Settings,
+  LayoutDashboard,
+  LayoutList
 } from "lucide-react";
 import "./ModeratorDashboard.css";
 import { Line } from "react-chartjs-2";
@@ -45,6 +46,40 @@ ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip,
 export default function ModeratorDashboard() {
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState("overview");
+
+  // Menu items for Moderator Sidebar
+  const menuItems = [
+    {
+      icon: <LayoutDashboard size={20} />,
+      label: "All Posts",
+      view: "overview"
+    },
+    {
+      icon: <BarChart3 size={20} />,
+      label: "Statistics",
+      view: "statistics"
+    },
+    {
+      icon: <Tag size={20} />,
+      label: "Tag Management",
+      view: "tags"
+    },
+    {
+      icon: <FileText size={20} />,
+      label: "Pending Posts",
+      view: "pending"
+    },
+    {
+      icon: <Flag size={20} />,
+      label: "Reported Posts",
+      view: "reported"
+    },
+    {
+      icon: <XCircle size={20} />,
+      label: "Rejected Posts",
+      view: "rejected"
+    }
+  ];
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [stats, setStats] = useState({
     total: 0,
@@ -1013,10 +1048,36 @@ export default function ModeratorDashboard() {
       </header>
 
       <div className="moderator-content-wrapper">
-        <ModeratorSidebar 
-          currentView={currentView} 
-          onViewChange={setCurrentView}
-        />
+        <div className="sidebar-container">
+          <aside className="moderator-sidebar-custom">
+            <div className="sidebar-header">
+              <div className="logo">
+                <User size={28} color="#007bff" />
+                <span className="logo-text">Moderator</span>
+              </div>
+            </div>
+
+            <nav className="sidebar-nav">
+              {menuItems.map((item, index) => (
+                <button
+                  key={index}
+                  className={`nav-item ${currentView === item.view ? "active" : ""}`}
+                  onClick={() => setCurrentView(item.view)}
+                >
+                  <span className="nav-icon">{item.icon}</span>
+                  <span className="nav-label">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            <div className="sidebar-footer">
+              <div className="user-info">
+                <User size={20} />
+                <span>Moderator Panel</span>
+              </div>
+            </div>
+          </aside>
+        </div>
         
         <main className="moderator-main">
           {currentView === "overview" && renderOverview()}
@@ -1064,14 +1125,6 @@ export default function ModeratorDashboard() {
                 <h3>{selectedPost.title}</h3>
               </div>
 
-              <div className="post-content-full" style={{ 
-                lineHeight: '1.6',
-                fontSize: '16px',
-                color: '#333'
-              }}>
-                {renderContent(selectedPost.content)}
-              </div>
-
               {selectedPost.tags && selectedPost.tags.length > 0 && (
                 <div className="post-tags-detail">
                   {selectedPost.tags.map((tag, index) => (
@@ -1081,6 +1134,14 @@ export default function ModeratorDashboard() {
                   ))}
                 </div>
               )}
+
+              <div className="post-content-full" style={{ 
+                lineHeight: '1.6',
+                fontSize: '16px',
+                color: '#333'
+              }}>
+                {renderContent(selectedPost.content)}
+              </div>
 
               {selectedPost.reportReason && (
                 <div className="report-info">

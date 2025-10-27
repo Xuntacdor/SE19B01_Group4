@@ -382,6 +382,12 @@ namespace WebAPI.Services
                 .Any(pl => pl.PostId == postId && pl.UserId == userId);
         }
 
+        public bool IsPostHiddenByUser(int postId, int userId)
+        {
+            return _context.UserPostHide
+                .Any(uph => uph.PostId == postId && uph.UserId == userId);
+        }
+
         private PostDTO ToDTO(Post post, int? userId = null)
         {
             return new PostDTO
@@ -396,6 +402,7 @@ namespace WebAPI.Services
                 VoteCount = post.PostLikes.Count,
                 IsVoted = userId.HasValue ? IsPostVotedByUser(post.PostId, userId.Value) : false,
                 IsPinned = post.IsPinned,
+                IsHiddenByUser = userId.HasValue ? IsPostHiddenByUser(post.PostId, userId.Value) : false,
                 RejectionReason = post.RejectionReason,
                 User = new UserDTO
                 {
