@@ -12,7 +12,6 @@ export default function PaymentSuccess() {
 
   useEffect(() => {
     if (success) {
-      // 🎊 Tạo hiệu ứng confetti khi thanh toán thành công
       const duration = 2 * 1000;
       const end = Date.now() + duration;
 
@@ -42,11 +41,13 @@ export default function PaymentSuccess() {
       {success && (
         <div className={`${styles.message} ${styles.success}`}>
           <PartyPopper className={styles.icon} size={60} />
-          <h2>Thanh toán thành công!</h2>
-          <p>Bạn đã được nâng cấp lên tài khoản VIP. Cảm ơn bạn đã ủng hộ!</p>
+          <h2>Payment Successful!</h2>
+          <p>
+            You have been upgraded to a VIP account. Thank you for your support!
+          </p>
           <Link to="/profile" className={styles.link}>
             <CheckCircle size={18} />
-            <span>Xem thông tin tài khoản</span>
+            <span>View account information</span>
           </Link>
         </div>
       )}
@@ -54,11 +55,11 @@ export default function PaymentSuccess() {
       {canceled && (
         <div className={`${styles.message} ${styles.canceled}`}>
           <XCircle className={styles.icon} size={60} />
-          <h2>Thanh toán bị hủy</h2>
-          <p>Bạn có thể thử lại bất cứ lúc nào.</p>
+          <h2>Payment Canceled</h2>
+          <p>You can try again anytime.</p>
           <Link to="/vipplans" className={styles.link}>
             <XCircle size={18} />
-            <span>Quay lại chọn gói VIP</span>
+            <span>Return to select VIP plan</span>
           </Link>
         </div>
       )}

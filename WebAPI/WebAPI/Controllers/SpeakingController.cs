@@ -105,6 +105,39 @@ namespace WebAPI.Controllers
 
             return Ok(response);
         }
+        [HttpGet("feedback/bySpeaking")]
+        [Authorize(Roles = "user,admin")]
+        public IActionResult GetFeedbackBySpeaking(int speakingId, int userId)
+        {
+            var feedback = _feedbackService.GetBySpeakingAndUser(speakingId, userId);
+            if (feedback == null)
+                return NotFound(new { message = "No feedback found for this speaking task." });
+
+            var response = new
+            {
+                examId = feedback.SpeakingAttempt?.ExamAttempt?.ExamId,
+                userId,
+                feedback = new
+                {
+                    speakingId = feedback.SpeakingAttempt?.SpeakingId,
+                    feedback.SpeakingAttemptId,
+                    feedback.Pronunciation,
+                    feedback.Fluency,
+                    feedback.LexicalResource,
+                    feedback.GrammarAccuracy,
+                    feedback.Coherence,
+                    feedback.Overall,
+                    feedback.AiAnalysisJson,
+                    feedback.CreatedAt,
+                    audioUrl = feedback.SpeakingAttempt?.AudioUrl,
+                    transcript = feedback.SpeakingAttempt?.Transcript
+                }
+            };
+
+            return Ok(response);
+        }
+
+
 
         // ==========================================
         // === TRANSCRIBE AUDIO ===

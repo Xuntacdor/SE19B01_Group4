@@ -8,6 +8,8 @@ namespace WebAPI.Repositories
         IEnumerable<SpeakingFeedback> GetAll();
         SpeakingFeedback? GetById(int id);
         List<SpeakingFeedback> GetByExamAndUser(int examId, int userId);
+        SpeakingFeedback? GetBySpeakingAndUser(int speakingId, int userId);
+
         void Add(SpeakingFeedback entity);
         void Update(SpeakingFeedback entity);
         void Delete(SpeakingFeedback entity);
