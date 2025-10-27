@@ -86,13 +86,6 @@ TestResults/
 *.coveragexml
 *.testsettings
 
-# ReportGenerator output
-coverage-report/
-coverageReport/
-coverage/
-*.html
-*.xml
-
 # Local coverage data
 *.cobertura.xml
 *.opencover.xml
@@ -105,9 +98,6 @@ coverage/
 *.vsmdi
 
 # Global test folders
-/WebAPI.Tests/TestResults/
-/WebAPI.Tests/coverageReport/
-/WebAPI.Tests/coverage.cobertura.xml
 
 ###########################
 # Local backups or temp files

@@ -1,48 +1,26 @@
-.notification-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  animation: fadeIn 0.3s ease-out;
-}
-
 .notification-popup {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: 400px;
-  width: 90%;
-  max-height: 90vh;
-  overflow: hidden;
-  animation: slideIn 0.3s ease-out;
+  position: relative;
 }
 
-.notification-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 20px 0 20px;
+.notification-content {
+  padding: 20px 0;
+  text-align: center;
 }
 
-.notification-icon-container {
+.notification-icon-large {
   display: flex;
-  align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  align-items: center;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background-color: #f3f4f6;
+  margin: 0 auto 16px auto;
 }
 
 .notification-icon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
 }
 
 .notification-icon.success {
@@ -57,24 +35,8 @@
   color: #f59e0b;
 }
 
-.notification-close {
-  background: none;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.notification-close:hover {
-  background-color: #f3f4f6;
-  color: #374151;
-}
-
-.notification-content {
-  padding: 20px;
-  text-align: center;
+.notification-icon.info {
+  color: #3b82f6;
 }
 
 .notification-title {
@@ -89,12 +51,14 @@
   font-size: 14px;
   color: #6b7280;
   line-height: 1.5;
+  padding: 0 12px;
 }
 
 .notification-footer {
-  padding: 0 20px 20px 20px;
+  padding-top: 12px;
   display: flex;
   justify-content: center;
+  border-top: 1px solid #f3f4f6;
 }
 
 .notification-btn {
@@ -119,43 +83,9 @@
   transform: translateY(0);
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 /* Responsive */
 @media (max-width: 480px) {
-  .notification-popup {
-    margin: 20px;
-    width: calc(100% - 40px);
-  }
-  
   .notification-content {
-    padding: 16px;
-  }
-  
-  .notification-header {
-    padding: 16px 16px 0 16px;
-  }
-  
-  .notification-footer {
-    padding: 0 16px 16px 16px;
+    padding: 16px 0;
   }
 }

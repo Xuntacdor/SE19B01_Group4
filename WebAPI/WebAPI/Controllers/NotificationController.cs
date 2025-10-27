@@ -32,7 +32,8 @@ namespace WebAPI.Controllers
                     Content = n.Content,
                     Type = n.Type,
                     IsRead = n.IsRead,
-                    CreatedAt = n.CreatedAt
+                    CreatedAt = n.CreatedAt,
+                    PostId = n.PostId
                 })
                 .ToList();
 

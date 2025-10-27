@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, CheckCircle, AlertCircle, MessageCircle, ThumbsUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { formatTimeVietnam } from '../../utils/date';
 import { getNotifications, markAsRead, deleteNotification } from '../../Services/NotificationApi';
 import './NotificationDropdown.css';
 
 export default function NotificationDropdown({ isOpen, onClose, onNotificationRead }) {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('all'); // 'all' or 'unread'
@@ -170,6 +172,11 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                 if (!notification.isRead) {
                   handleMarkAsRead(notification.notificationId);
                 }
+                // Navigate to post detail if postId exists
+                if (notification.postId) {
+                  onClose();
+                  navigate(`/post/${notification.postId}`);
+                }
               }}
             >
               <div className="notification-item-icon">
@@ -263,6 +270,12 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                     e.stopPropagation();
                     if (!notification.isRead) {
                       handleMarkAsRead(notification.notificationId);
+                    }
+                    // Navigate to post detail if postId exists
+                    if (notification.postId) {
+                      setShowAllModal(false);
+                      onClose();
+                      navigate(`/post/${notification.postId}`);
                     }
                   }}
                 >

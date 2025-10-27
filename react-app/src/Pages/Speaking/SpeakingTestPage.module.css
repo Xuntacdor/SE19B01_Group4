@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Dongle&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Outfit:wght@100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Dongle&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Outfit:wght@100..900&display=swap");
 
 .container {
   padding: 24px;
@@ -155,8 +155,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 .recordingActions {
@@ -165,7 +170,8 @@
   align-items: center;
 }
 
-.playBtn, .recordAgainBtn {
+.playBtn,
+.recordAgainBtn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -215,8 +221,14 @@
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .uploadingIndicator {
@@ -237,8 +249,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .audioPlayer {
@@ -374,49 +390,98 @@
   color: #374151;
   margin-bottom: 16px;
 }
+.navBtn {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.navBtn:hover {
+  background: #e5e7eb;
+}
+
+.activeNavBtn {
+  background: #22c55e;
+  color: white;
+  border-color: #16a34a;
+}
+.ttsSection {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.playBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.playBtn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.ttsIcon {
+  color: white;
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .container {
     padding: 16px;
   }
-  
+
   .header {
     flex-direction: column;
     gap: 16px;
     text-align: center;
   }
-  
+
   .titleSection h2 {
     font-size: 1.25rem;
   }
-  
+
   .recordingActions {
     flex-direction: column;
     width: 100%;
   }
-  
-  .playBtn, .recordAgainBtn {
+
+  .playBtn,
+  .recordAgainBtn {
     width: 100%;
     justify-content: center;
   }
-  
+
   .navigation {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .taskNavigation {
     order: 2;
   }
-  
+
   .submitSection {
     order: 1;
     flex-direction: column;
     width: 100%;
   }
-  
-  .submitBtn, .backBtn {
+
+  .submitBtn,
+  .backBtn {
     width: 100%;
     justify-content: center;
   }

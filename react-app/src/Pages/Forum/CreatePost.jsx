@@ -6,8 +6,8 @@ import HeaderBar from "../../Components/Layout/HeaderBar";
 import RightSidebar from "../../Components/Forum/RightSidebar";
 import { createPost } from "../../Services/ForumApi";
 import { getAllTags } from "../../Services/TagApi";
-import { uploadFile, validateImageFile, validateDocumentFile, getFileIcon, formatFileSize } from "../../Services/UploadApi";
-import { Image, Send, X, Upload, FileText, File, Trash2, Tag } from "lucide-react";
+import { uploadFile, validateImageFile, validateDocumentFile, getFileIcon, formatFileSize, validateCloudinaryUrl } from "../../Services/UploadApi";
+import { Image, Send, X, Upload, FileText, File, Trash2, Tag, ImagePlus } from "lucide-react";
 import NotificationPopup from "../../Components/Forum/NotificationPopup";
 
 export default function CreatePost() {
@@ -78,7 +78,9 @@ export default function CreatePost() {
         }
 
         const response = await uploadFile(file);
-        return {
+        console.log("Upload response for file:", file.name, response);
+        
+        const uploadedFile = {
           id: Date.now() + Math.random(),
           fileName: file.name,
           fileSize: file.size,
@@ -86,6 +88,9 @@ export default function CreatePost() {
           fileExtension: fileExtension,
           url: response.url,
         };
+        
+        console.log("Created uploaded file object:", uploadedFile);
+        return uploadedFile;
       });
 
       const uploadedFiles = await Promise.all(uploadPromises);
@@ -210,6 +215,50 @@ export default function CreatePost() {
     document.getElementById('file-upload').click();
   };
 
+  const insertImageAtCursor = (imageUrl, fileName) => {
+    const textarea = document.getElementById('content');
+    if (!textarea) return;
+
+    console.log("Inserting image:", fileName, "URL:", imageUrl);
+
+    // Validate URL format
+    if (!validateCloudinaryUrl(imageUrl)) {
+      showNotification(
+        "error",
+        "Invalid URL",
+        "Invalid image URL. The URL must be a valid Cloudinary URL. Please upload the image again."
+      );
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = formData.content;
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+    
+    // Insert markdown image syntax
+    const imageMarkdown = `\n\n![${fileName}](${imageUrl})\n\n`;
+    const newContent = before + imageMarkdown + after;
+    
+    console.log("✅ Successfully inserted image:", imageUrl);
+    
+    setFormData(prev => ({
+      ...prev,
+      content: newContent
+    }));
+
+    // Move cursor to after the inserted image
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + imageMarkdown.length, start + imageMarkdown.length);
+    }, 0);
+  };
+
+  const handleInsertImage = (imageUrl, fileName) => {
+    insertImageAtCursor(imageUrl, fileName);
+  };
+
   return (
     <div className="create-post-container">
       <GeneralSidebar />
@@ -237,20 +286,7 @@ export default function CreatePost() {
                 />
               </div>
 
-              <div className="form-group">
-                <textarea
-                  id="content"
-                  name="content"
-                  value={formData.content}
-                  onChange={handleInputChange}
-                  placeholder="Type whatever you want to describe"
-                  rows={12}
-                  required
-                  className="form-textarea"
-                />
-              </div>
-
-              {/* Tag Selection Section */}
+              {/* Tag Selection Section - Moved below title */}
               <div className="form-group">
                 <label htmlFor="tags">Tags (Optional)</label>
                 <div className="tag-selection">
@@ -290,6 +326,19 @@ export default function CreatePost() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="form-group">
+                <textarea
+                  id="content"
+                  name="content"
+                  value={formData.content}
+                  onChange={handleInputChange}
+                  placeholder="Type whatever you want to describe"
+                  rows={12}
+                  required
+                  className="form-textarea"
+                />
               </div>
 
               {/* File Upload Section */}
@@ -335,13 +384,25 @@ export default function CreatePost() {
                               <span className="file-size">{formatFileSize(file.fileSize)}</span>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className="btn btn-remove-file"
-                            onClick={() => handleRemoveFile(file.id)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="file-actions">
+                            {file.fileType === 'image' && (
+                              <button
+                                type="button"
+                                className="btn btn-insert-image"
+                                onClick={() => handleInsertImage(file.url, file.fileName)}
+                                title="Insert into content"
+                              >
+                                <ImagePlus size={14} />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-remove-file"
+                              onClick={() => handleRemoveFile(file.id)}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>

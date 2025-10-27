@@ -1,18 +1,21 @@
-// src/Components/Common/Popup.jsx
 import React from "react";
-import styles from "./Popup.module.css"; // dùng module.css
+import { BookOpen } from "lucide-react";
+import PopupBase from "../Common/PopupBase";
+import styles from "./PopUp.module.css";
 
-export default function Popup({ title, onClose, children, actions }) {
+export default function Popup({ title, onClose, children, actions, show = true }) {
+  if (!show) return null;
+  
   return (
-    <div className={styles.popup} onClick={onClose}>
-      <div className={styles.popupContent} onClick={(e) => e.stopPropagation()}>
-        {/* Nút close mặc định */}
-        <button className={styles.closeBtn} onClick={onClose}>✕</button>
-
-        {title && <h3 className={styles.title}>{title}</h3>}
-        <div className={styles.body}>{children}</div>
-        {actions && <div className={styles.actions}>{actions}</div>}
-      </div>
-    </div>
+    <PopupBase
+      title={title}
+      icon={BookOpen}
+      show={true}
+      width="520px"
+      onClose={onClose}
+    >
+      <div className={styles.content}>{children}</div>
+      {actions && <div className={styles.actions}>{actions}</div>}
+    </PopupBase>
   );
 }
