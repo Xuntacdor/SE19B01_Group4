@@ -45,18 +45,19 @@ export default function EditPost({ onNavigate }) {
         setSelectedTags(post.tags || []);
         // Load existing attachments separately
         if (post.attachments && post.attachments.length > 0) {
-          console.log("Post attachments:", post.attachments);
-          setExistingAttachments(post.attachments.map(att => {
-            console.log("Attachment fileUrl:", att.fileUrl);
-            return {
-              id: att.attachmentId,
-              fileName: att.fileName,
-              url: att.fileUrl,  // Normalize to 'url' for consistency
-              fileType: att.fileType,
-              fileExtension: att.fileExtension,
-              fileSize: att.fileSize
-            };
-          }));
+        console.log("Post attachments:", post.attachments);
+        setExistingAttachments(post.attachments.map(att => {
+          console.log("Attachment fileUrl:", att.fileUrl);
+          return {
+            id: att.attachmentId,
+            fileName: att.fileName,
+            fileUrl: att.fileUrl,  // Keep original property name
+            url: att.fileUrl,  // Also add url for compatibility
+            fileType: att.fileType,
+            fileExtension: att.fileExtension,
+            fileSize: att.fileSize
+          };
+        }));
         }
       })
       .catch((error) => {
@@ -108,7 +109,7 @@ export default function EditPost({ onNavigate }) {
       tagNames: selectedTags.map(tag => tag.tagName),
       attachments: allAttachments.map(file => ({
         fileName: file.fileName,
-        fileUrl: file.url,  // Use 'url' property
+        fileUrl: file.url || file.fileUrl,  // Support both property names
         fileType: file.fileType,
         fileExtension: file.fileExtension,
         fileSize: file.fileSize
@@ -172,7 +173,7 @@ export default function EditPost({ onNavigate }) {
           fileSize: file.size,
           fileType: response.category || (isImage ? 'image' : 'document'),
           fileExtension: fileExtension,
-          fileUrl: response.url,
+          url: response.url,
         };
       });
 

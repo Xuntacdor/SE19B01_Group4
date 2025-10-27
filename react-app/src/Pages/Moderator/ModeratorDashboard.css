@@ -5,6 +5,102 @@
   background-color: #f8f9fa;
 }
 
+/* Sidebar Container */
+.sidebar-container {
+  flex-shrink: 0;
+  width: 0;
+  /* Sidebar is fixed, so container doesn't need width */
+}
+
+.moderator-sidebar-custom {
+  position: fixed;
+  left: 0;
+  top: 64px;
+  width: 250px;
+  height: calc(100vh - 64px);
+  background: white;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.moderator-sidebar-custom .sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.moderator-sidebar-custom .logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.moderator-sidebar-custom .logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.moderator-sidebar-custom .sidebar-nav {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.moderator-sidebar-custom .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.moderator-sidebar-custom .nav-item:hover {
+  background: #f8f9fa;
+  color: #007bff;
+}
+
+.moderator-sidebar-custom .nav-item.active {
+  background: #e3f2fd;
+  color: #007bff;
+  border-right: 3px solid #007bff;
+}
+
+.moderator-sidebar-custom .nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.moderator-sidebar-custom .nav-label {
+  flex: 1;
+}
+
+.moderator-sidebar-custom .sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.moderator-sidebar-custom .user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 500;
+}
+
 /* Header Bar */
 .moderator-header {
   background: white;
@@ -105,7 +201,6 @@
 
 .moderator-main {
   flex: 1;
-  margin-left: 250px;
   padding: 20px;
 }
 
@@ -865,6 +960,9 @@
   color: #6c757d;
   font-size: 15px;
   font-weight: 500;
+  width: auto;
+  min-width: auto;
+  justify-content: flex-start;
 }
 
 .post-content-full {
@@ -1048,6 +1146,23 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .sidebar-container {
+    position: fixed;
+    left: 0;
+    top: 64px;
+    width: 280px;
+    z-index: 1000;
+  }
+
+  .moderator-sidebar-custom {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .moderator-sidebar-custom.open {
+    transform: translateX(0);
+  }
+
   .moderator-header {
     padding: 0 16px;
   }

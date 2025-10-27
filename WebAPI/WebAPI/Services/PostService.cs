@@ -382,6 +382,12 @@ namespace WebAPI.Services
                 .Any(pl => pl.PostId == postId && pl.UserId == userId);
         }
 
+        public bool IsPostHiddenByUser(int postId, int userId)
+        {
+            return _context.UserPostHide
+                .Any(uph => uph.PostId == postId && uph.UserId == userId);
+        }
+
         private PostDTO ToDTO(Post post, int? userId = null)
         {
             return new PostDTO
@@ -396,6 +402,7 @@ namespace WebAPI.Services
                 VoteCount = post.PostLikes.Count,
                 IsVoted = userId.HasValue ? IsPostVotedByUser(post.PostId, userId.Value) : false,
                 IsPinned = post.IsPinned,
+                IsHiddenByUser = userId.HasValue ? IsPostHiddenByUser(post.PostId, userId.Value) : false,
                 RejectionReason = post.RejectionReason,
                 User = new UserDTO
                 {
@@ -569,7 +576,8 @@ namespace WebAPI.Services
                 Content = $"Bài viết '{post.Title}' của bạn đã được duyệt và hiển thị công khai.",
                 Type = "post_approved",
                 IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                PostId = post.PostId
             };
 
             _context.Notification.Add(notification);
@@ -591,7 +599,8 @@ namespace WebAPI.Services
                 Content = $"Bài viết '{post.Title}' của bạn đã bị từ chối. Lý do: {reason}",
                 Type = "post_rejected",
                 IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                PostId = post.PostId
             };
 
             _context.Notification.Add(notification);

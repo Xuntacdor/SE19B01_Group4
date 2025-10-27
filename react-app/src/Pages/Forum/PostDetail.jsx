@@ -4,7 +4,7 @@ import "./PostDetail.css";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import HeaderBar from "../../Components/Layout/HeaderBar";
 import CommentSection from "../../Components/Forum/CommentSection";
-import { getPost, votePost, unvotePost, reportPost, deletePost, pinPost, unpinPost, hidePost } from "../../Services/ForumApi";
+import { getPost, votePost, unvotePost, reportPost, deletePost, pinPost, unpinPost, hidePost, unhidePost } from "../../Services/ForumApi";
 import { getUserProfileStats } from "../../Services/UserApi";
 import useAuth from "../../Hook/UseAuth";
 import { MoreVertical, Trash2, Pin, EyeOff, Flag, ArrowLeft, MessageCircle, Image as ImageIcon, Share, Download, ThumbsUp, Edit } from "lucide-react";
@@ -193,6 +193,22 @@ export default function PostDetail() {
     }
   };
 
+  const handleUnhidePost = (e) => {
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to unhide this post? It will be moved back to the main forum.")) {
+      unhidePost(post.postId)
+        .then(() => {
+          alert("Post unhidden successfully!");
+          navigate('/forum');
+        })
+        .catch(error => {
+          console.error("Error unhiding post:", error);
+          alert("Error unhiding post. Please try again.");
+        });
+      setShowMenu(false);
+    }
+  };
+
   const handleReportPost = (e) => {
     e.stopPropagation();
     setShowReportModal(true);
@@ -319,9 +335,9 @@ export default function PostDetail() {
                         ) : (
                           // Menu for other users
                           <>
-                            <button className="menu-item hide" onClick={handleHidePost}>
+                            <button className="menu-item hide" onClick={post.isHiddenByUser ? handleUnhidePost : handleHidePost}>
                               <EyeOff size={16} />
-                              Hide Post
+                              {post.isHiddenByUser ? "Unhide Post" : "Hide Post"}
                             </button>
                             <button className="menu-item pin" onClick={handlePinPost}>
                               <Pin size={16} />
