@@ -237,43 +237,58 @@ namespace WebAPI.Tests
         }
 
         [Fact]
+        public void EvaluateReading_CalculatesScoreForPlainTextAnswers()
+        {
+            // Arrange
+            var reading = CreateSampleReading(1, correctAnswer: "{\"q1\": [\"a\",\"b\"]}");
+            var readings = new List<Reading> { reading };
+            SetupMockRepository(readings);
+
+            var answers = new List<UserAnswerGroup>
+    {
+        new UserAnswerGroup
+        {
+            SkillId = 1,
+            Answers = new Dictionary<string, object>
+            {
+                { "q1", new List<string> { "a", "wrong" } }
+            }
+        }
+    };
+
+            // Act
+            var result = _readingService.EvaluateReading(1, answers);
+
+            // Assert
+            result.Should().Be(4.5m);
+        }
+
+
+        [Fact]
         public void EvaluateReading_CalculatesScoreForJsonAnswers()
         {
-            var reading = CreateSampleReading(1, correctAnswer: "[\"a\",\"b\"]");
+            var reading = CreateSampleReading(1, correctAnswer: "{\"1\": [\"a\",\"b\"]}");
             var readings = new List<Reading> { reading };
             SetupMockRepository(readings);
             var answers = new List<UserAnswerGroup>
+    {
+        new UserAnswerGroup
+        {
+            SkillId = 1,
+            Answers = new Dictionary<string, object>
             {
-                new UserAnswerGroup
-                {
-                    SkillId = 1,
-                    Answers = new List<string> { "a", "b" }
-                }
-            };
+                { "1", new List<string> { "a", "b" } }
+            }
+        }
+    };
 
             var result = _readingService.EvaluateReading(1, answers);
 
             result.Should().Be(9m);
         }
 
-        [Fact]
-        public void EvaluateReading_CalculatesScoreForPlainTextAnswers()
-        {
-            var reading = CreateSampleReading(1, correctAnswer: "a,b");
-            var readings = new List<Reading> { reading };
-            SetupMockRepository(readings);
-            var answers = new List<UserAnswerGroup>
-            {
-                new UserAnswerGroup
-                {
-                    SkillId = 1,
-                    Answers = new List<string> { "a", "wrong" }
-                }
-            };
 
-            var result = _readingService.EvaluateReading(1, answers);
 
-            result.Should().Be(4.5m);
-        }
+
     }
 }

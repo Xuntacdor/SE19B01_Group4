@@ -1,3 +1,4 @@
+﻿using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI.DTOs;
 using WebAPI.Services;
@@ -28,7 +29,8 @@ namespace WebAPI.Controllers
         {
             var userId = HttpContext.Session.GetInt32("UserId");
             var comment = _commentService.GetCommentById(id, userId);
-            if (comment == null) return NotFound("Comment not found");
+            if (comment == null)
+                return NotFound("Comment not found");
             return Ok(comment);
         }
 
@@ -36,11 +38,14 @@ namespace WebAPI.Controllers
         public ActionResult<CommentDTO> CreateComment(int postId, [FromBody] CreateCommentDTO dto)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null) return Unauthorized("Please login to create comments");
+            if (userId == null)
+                return Unauthorized("Please login to create comments");
 
             try
             {
                 var comment = _commentService.CreateComment(postId, dto, userId.Value);
+                if (comment == null)
+                    return NotFound("Post not found");
                 return CreatedAtAction(nameof(GetComment), new { id = comment.CommentId }, comment);
             }
             catch (KeyNotFoundException ex)
@@ -49,19 +54,26 @@ namespace WebAPI.Controllers
             }
             catch (Exception ex)
             {
+                if (ex is KeyNotFoundException || ex.InnerException is KeyNotFoundException)
+                    return NotFound(ex.Message);
+
                 return BadRequest(ex.Message);
             }
+
         }
 
         [HttpPost("{parentCommentId}/replies")]
         public ActionResult<CommentDTO> CreateReply(int parentCommentId, [FromBody] CreateCommentDTO dto)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null) return Unauthorized("Please login to create replies");
+            if (userId == null)
+                return Unauthorized("Please login to create replies");
 
             try
             {
                 var comment = _commentService.CreateReply(parentCommentId, dto, userId.Value);
+                if (comment == null)
+                    return NotFound("Comment not found");
                 return CreatedAtAction(nameof(GetComment), new { id = comment.CommentId }, comment);
             }
             catch (KeyNotFoundException ex)
@@ -70,15 +82,21 @@ namespace WebAPI.Controllers
             }
             catch (Exception ex)
             {
+                if (ex is KeyNotFoundException || ex.InnerException is KeyNotFoundException)
+                    return NotFound(ex.Message);
+
                 return BadRequest(ex.Message);
             }
+
         }
+
 
         [HttpPut("{id}")]
         public IActionResult UpdateComment(int id, [FromBody] UpdateCommentDTO dto)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null) return Unauthorized("Please login to update comments");
+            if (userId == null)
+                return Unauthorized("Please login to update comments");
 
             try
             {
@@ -103,7 +121,8 @@ namespace WebAPI.Controllers
         public IActionResult DeleteComment(int id)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null) return Unauthorized("Please login to delete comments");
+            if (userId == null)
+                return Unauthorized("Please login to delete comments");
 
             try
             {
@@ -124,7 +143,8 @@ namespace WebAPI.Controllers
         public IActionResult LikeComment(int id)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null) return Unauthorized("Please login to like comments");
+            if (userId == null)
+                return Unauthorized("Please login to like comments");
 
             try
             {
@@ -145,7 +165,8 @@ namespace WebAPI.Controllers
         public IActionResult UnlikeComment(int id)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null) return Unauthorized("Please login to unlike comments");
+            if (userId == null)
+                return Unauthorized("Please login to unlike comments");
 
             try
             {
@@ -161,6 +182,5 @@ namespace WebAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
     }
 }

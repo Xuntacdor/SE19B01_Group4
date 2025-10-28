@@ -13,13 +13,13 @@ namespace WebAPI.Controllers
     {
         private readonly ISpeakingService _speakingService;
         private readonly ISpeakingFeedbackService _feedbackService;
-        private readonly SpeechToTextService _speechService;
+        private readonly ISpeechToTextService _speechService;
         private readonly ILogger<SpeakingController> _logger;
 
         public SpeakingController(
             ISpeakingService speakingService,
             ISpeakingFeedbackService feedbackService,
-            SpeechToTextService speechService,
+            ISpeechToTextService speechService,
             ILogger<SpeakingController> logger)
         {
             _speakingService = speakingService;

@@ -9,7 +9,7 @@ using WebAPI.Services;
 
 namespace WebAPI.Services
 {
-    public class SpeechToTextService
+    public class SpeechToTextService : ISpeechToTextService
     {
         private readonly string _apiKey;
         private readonly ILogger<SpeechToTextService> _logger;

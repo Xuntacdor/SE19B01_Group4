@@ -25,17 +25,5 @@
         public string AnswerText { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
     }
-
-    public class WritingGradeResponseDTO
-    {
-        public int WritingId { get; set; }
-        public decimal Band { get; set; }
-        public string FeedbackJson { get; set; } = string.Empty;
-    }
-
-    public class FullWritingGradeResponse
-    {
-        public int ExamId { get; set; }
-        public List<WritingGradeResponseDTO> Results { get; set; } = new();
-    }
+ 
 }
