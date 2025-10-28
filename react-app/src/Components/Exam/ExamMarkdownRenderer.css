@@ -180,10 +180,6 @@
   background: rgba(161,92,7,.12);
 }
 
-.choiceItem.qa-neutral {
-  border-color: rgba(0,0,0,.06);
-}
-
 /* Highlight for text/dropdowns */
 .inlineTextbox.qa-right,
 .dropdownInline.qa-right {
@@ -203,7 +199,34 @@
   background: rgba(161,92,7,.12);
 }
 
-.inlineTextbox.qa-neutral,
-.dropdownInline.qa-neutral {
-  border: 2px solid rgba(0,0,0,.06) !important;
+/* Explanation UI */
+.explainBlock {
+  margin: 10px 0;
+  border-left: 3px solid #c8e6c9;
+  padding-left: 10px;
+}
+.explainBtn {
+  cursor: pointer;
+  font-weight: 600;
+}
+.explainBody {
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* Passage highlights */
+.passageHighlight {
+  background: #fff3cd; /* soft amber */
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+/* Pulse effect when jumped-to */
+@keyframes pulseGlow {
+  0%   { box-shadow: 0 0 0px 0 rgba(255, 193, 7, 0.9); }
+  50%  { box-shadow: 0 0 10px 6px rgba(255, 193, 7, 0.5); }
+  100% { box-shadow: 0 0 0px 0 rgba(255, 193, 7, 0.0); }
+}
+.pulseOnce {
+  animation: pulseGlow 1.2s ease-out 1;
 }
