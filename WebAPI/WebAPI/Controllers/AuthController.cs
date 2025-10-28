@@ -283,6 +283,35 @@ namespace WebAPI.Controllers
             }
         }
 
+        [HttpPost("change-password")]
+        [ProducesResponseType(typeof(object), 200)]
+        [ProducesResponseType(typeof(object), 400)]
+        public ActionResult ChangePassword([FromBody] ChangePasswordDTO dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return Unauthorized("Not logged in");
+
+            try
+            {
+                var result = _userService.ChangePassword(userId.Value, dto.CurrentPassword, dto.NewPassword);
+                return Ok(new { message = result });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while changing password" });
+            }
+        }
+
         [HttpPost("test-email")]
         public ActionResult TestEmail([FromBody] ForgotPasswordRequestDTO dto)
         {
