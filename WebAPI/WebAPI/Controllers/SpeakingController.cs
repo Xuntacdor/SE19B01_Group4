@@ -140,8 +140,7 @@ namespace WebAPI.Controllers
 
 
         // ==========================================
-        // === TRANSCRIBE AUDIO ===
-        // ==========================================
+ 
         [HttpPost("transcribe")]
         [Authorize(Roles = "user,admin")]
         public IActionResult Transcribe([FromBody] SpeechTranscribeDto dto)
@@ -170,10 +169,7 @@ namespace WebAPI.Controllers
 
        
         
-        // ==========================================
-        // === GRADE SPEAKING (AI EVALUATION) ===
-        // ==========================================
-        [Authorize(Policy = "VIPOnly")]
+   
         [HttpPost("grade")]
         [Authorize(Roles = "user,admin")]
         public IActionResult GradeSpeaking([FromBody] SpeakingGradeRequestDTO dto)
