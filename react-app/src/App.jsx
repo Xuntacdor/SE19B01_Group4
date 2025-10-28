@@ -33,7 +33,6 @@ import AdminVipPlans from "./Pages/Admin/AdminVipPlans.jsx";
 import WritingResultPage from "./Pages/Writing/WritingResultPage.jsx";
 import SpeakingPage from "./Pages/Speaking/SpeakingPage.jsx";
 import SpeakingTestPage from "./Pages/Speaking/SpeakingTestPage.jsx";
-import SpeakingResultPage from "./Pages/Speaking/SpeakingResultPage.jsx";
 import ReadingResultPage from "./Pages/Reading/ReadingResultPage.jsx";
 import ListeningResultPage from "./Pages/Listening/ListeningResultPage.jsx";
 import VipPlans from "./Pages/Transactions/VipPlans.jsx";
@@ -70,7 +69,7 @@ function App() {
         <Route path="/writing/test" element={<WritingTestPage />} />
         <Route path="/writing/result" element={<WritingResultPage />} />
         <Route path="/speaking/test" element={<SpeakingTestPage />} />
-        <Route path="/speaking/result" element={<SpeakingResultPage />} />
+
         <Route path="/reading/result" element={<ReadingResultPage />} />
         <Route path="/listening/result" element={<ListeningResultPage />} />
 
