@@ -235,7 +235,7 @@ namespace WebAPI.Tests
         [Fact]
         public void EvaluateListening_CalculatesScoreForJsonAnswers()
         {
-            var listening = CreateSampleListening(1, correctAnswer: "{\"1_q1\":[\"a\",\"b\"]}");
+            var listening = CreateSampleListening(1, correctAnswer: "{\"q1\": [\"a\",\"b\"]}");
             var listenings = new List<Listening> { listening };
             SetupMockRepository(listenings);
 
@@ -246,7 +246,7 @@ namespace WebAPI.Tests
                     SkillId = 1,
                     Answers = new Dictionary<string, object>
                     {
-                        { "1_q1", new[] { "a", "b" } }
+                        { "q1", new List<string> { "a", "b" } }
                     }
                 }
             };
@@ -254,6 +254,29 @@ namespace WebAPI.Tests
             var result = _listeningService.EvaluateListening(1, answers);
 
             result.Should().Be(9m);
+        }
+
+        [Fact]
+        public void EvaluateListening_CalculatesScoreForPlainTextAnswers()
+        {
+            var listening = CreateSampleListening(1, correctAnswer: "{\"q1\": [\"a\",\"b\"]}");
+            var listenings = new List<Listening> { listening };
+            SetupMockRepository(listenings);
+            var answers = new List<UserAnswerGroup>
+            {
+                new UserAnswerGroup
+                {
+                    SkillId = 1,
+                    Answers = new Dictionary<string, object>
+                    {
+                        { "q1", new List<string> { "a", "wrong" } }
+                    }
+                }
+            };
+
+            var result = _listeningService.EvaluateListening(1, answers);
+
+            result.Should().Be(4.5m);
         }
     }
 }

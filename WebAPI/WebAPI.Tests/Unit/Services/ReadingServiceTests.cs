@@ -237,27 +237,58 @@ namespace WebAPI.Tests
         }
 
         [Fact]
-        public void EvaluateReading_CalculatesScoreForJsonAnswers()
+        public void EvaluateReading_CalculatesScoreForPlainTextAnswers()
         {
-            var Reading = CreateSampleReading(1, correctAnswer: "{\"1_q1\":[\"a\",\"b\"]}");
-            var Readings = new List<Reading> { Reading };
-            SetupMockRepository(Readings);
+            // Arrange
+            var reading = CreateSampleReading(1, correctAnswer: "{\"q1\": [\"a\",\"b\"]}");
+            var readings = new List<Reading> { reading };
+            SetupMockRepository(readings);
 
             var answers = new List<UserAnswerGroup>
+    {
+        new UserAnswerGroup
+        {
+            SkillId = 1,
+            Answers = new Dictionary<string, object>
             {
-                new UserAnswerGroup
-                {
-                    SkillId = 1,
-                    Answers = new Dictionary<string, object>
-                    {
-                        { "1_q1", new[] { "a", "b" } }
-                    }
-                }
-            };
+                { "q1", new List<string> { "a", "wrong" } }
+            }
+        }
+    };
+
+            // Act
+            var result = _readingService.EvaluateReading(1, answers);
+
+            // Assert
+            result.Should().Be(4.5m);
+        }
+
+
+        [Fact]
+        public void EvaluateReading_CalculatesScoreForJsonAnswers()
+        {
+            var reading = CreateSampleReading(1, correctAnswer: "{\"1\": [\"a\",\"b\"]}");
+            var readings = new List<Reading> { reading };
+            SetupMockRepository(readings);
+            var answers = new List<UserAnswerGroup>
+    {
+        new UserAnswerGroup
+        {
+            SkillId = 1,
+            Answers = new Dictionary<string, object>
+            {
+                { "1", new List<string> { "a", "b" } }
+            }
+        }
+    };
 
             var result = _readingService.EvaluateReading(1, answers);
 
             result.Should().Be(9m);
         }
+
+
+
+
     }
 }

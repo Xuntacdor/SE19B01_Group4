@@ -9,7 +9,7 @@ using WebAPI.Services;
 
 namespace WebAPI.Services
 {
-    public class SpeechToTextService
+    public class SpeechToTextService : ISpeechToTextService
     {
         private readonly string _apiKey;
         private readonly ILogger<SpeechToTextService> _logger;
@@ -27,7 +27,7 @@ namespace WebAPI.Services
         /// <summary>
         /// Download Cloudinary audio → Whisper (REST) → transcript → save to ExamAttempt.AnswerText (JSON).
         /// </summary>
-        public string TranscribeAndSave(long attemptId, string audioUrl, string language = "en")
+        public string TranscribeAndSave(long attemptId, string audioUrl)
         {
             if (string.IsNullOrWhiteSpace(audioUrl))
                 throw new ArgumentException("Audio URL is required.");
@@ -69,7 +69,8 @@ namespace WebAPI.Services
                 form.Add(audioContent, "file", fileName);                     // Use proper filename with extension
                 form.Add(new StringContent("whisper-1"), "model");            // model
                 form.Add(new StringContent("json"), "response_format");       // json
-                form.Add(new StringContent(language), "language");            // "en" or your choice
+                // default to English
+                form.Add(new StringContent("en"), "language");            // "en" or your choice
 
                 using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/audio/transcriptions");
                 req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);

@@ -117,23 +117,23 @@ namespace WebAPI.Controllers
         public IActionResult VotePost(int id)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null) return Unauthorized("Please login to vote");
+            if (userId == null)
+                return Unauthorized("Please login to vote posts.");
 
             try
             {
                 _postService.VotePost(id, userId.Value);
-                return Ok("Post voted successfully");
+                return Ok("Vote successful");
             }
-            catch (KeyNotFoundException)
+            catch (KeyNotFoundException ex)
             {
-                return NotFound("Post not found");
+                return NotFound(ex.Message);
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
-
         [HttpDelete("{id}/vote")]
         public IActionResult UnvotePost(int id)
         {

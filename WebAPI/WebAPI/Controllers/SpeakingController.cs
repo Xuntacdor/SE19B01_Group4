@@ -13,13 +13,13 @@ namespace WebAPI.Controllers
     {
         private readonly ISpeakingService _speakingService;
         private readonly ISpeakingFeedbackService _feedbackService;
-        private readonly SpeechToTextService _speechService;
+        private readonly ISpeechToTextService _speechService;
         private readonly ILogger<SpeakingController> _logger;
 
         public SpeakingController(
             ISpeakingService speakingService,
             ISpeakingFeedbackService feedbackService,
-            SpeechToTextService speechService,
+            ISpeechToTextService speechService,
             ILogger<SpeakingController> logger)
         {
             _speakingService = speakingService;
@@ -140,8 +140,7 @@ namespace WebAPI.Controllers
 
 
         // ==========================================
-        // === TRANSCRIBE AUDIO ===
-        // ==========================================
+ 
         [HttpPost("transcribe")]
         [Authorize(Roles = "user,admin")]
         public IActionResult Transcribe([FromBody] SpeechTranscribeDto dto)
@@ -170,10 +169,7 @@ namespace WebAPI.Controllers
 
        
         
-        // ==========================================
-        // === GRADE SPEAKING (AI EVALUATION) ===
-        // ==========================================
-        [Authorize(Policy = "VIPOnly")]
+   
         [HttpPost("grade")]
         [Authorize(Roles = "user,admin")]
         public IActionResult GradeSpeaking([FromBody] SpeakingGradeRequestDTO dto)

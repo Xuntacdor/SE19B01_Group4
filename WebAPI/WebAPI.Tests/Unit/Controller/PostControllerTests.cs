@@ -1,0 +1,521 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using WebAPI.Controllers;
+using WebAPI.DTOs;
+using WebAPI.Services;
+using Xunit;
+
+namespace WebAPI.Tests.Unit.Controller
+{
+    public class PostControllerTests
+    {
+        private readonly Mock<IPostService> _postService;
+        private readonly Mock<ICommentService> _commentService;
+        private readonly PostController _controller;
+
+        public PostControllerTests()
+        {
+            _postService = new Mock<IPostService>();
+            _commentService = new Mock<ICommentService>();
+            _controller = new PostController(_postService.Object, _commentService.Object);
+            // Set up default HttpContext with session
+            ClearSession();
+        }
+
+        private void SetSession(int? userId = 1)
+        {
+            var context = new DefaultHttpContext();
+            var session = new TestSession();
+            context.Session = session;
+            if (userId.HasValue)
+            {
+                var bytes = BitConverter.GetBytes(userId.Value);
+                session.Set("UserId", bytes);
+            }
+            _controller.ControllerContext = new ControllerContext { HttpContext = context };
+        }
+
+        private void ClearSession()
+        {
+            var context = new DefaultHttpContext();
+            context.Session = new TestSession();
+            _controller.ControllerContext = new ControllerContext { HttpContext = context };
+        }
+
+        // ============ GET POSTS ============
+
+        [Fact]
+        public void GetPosts_ReturnsOkWithPosts()
+        {
+            var posts = new List<PostDTO>
+            {
+                new PostDTO { PostId = 1, Title = "Test Post", Content = "Content" }
+            };
+            _postService.Setup(s => s.GetPosts(1, 10, null)).Returns(posts);
+
+            var result = _controller.GetPosts(1, 10);
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var ok = result.Result as OkObjectResult;
+            ok!.Value.Should().BeEquivalentTo(posts);
+        }
+
+        [Fact]
+        public void GetPosts_WithLoggedInUser_ReturnsPosts()
+        {
+            SetSession(1);
+            var posts = new List<PostDTO> { new PostDTO { PostId = 1 } };
+            _postService.Setup(s => s.GetPosts(1, 10, 1)).Returns(posts);
+
+            var result = _controller.GetPosts(1, 10);
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+        }
+
+        // ============ GET POSTS BY FILTER ============
+
+        [Fact]
+        public void GetPostsByFilter_ReturnsOk()
+        {
+            var posts = new List<PostDTO> { new PostDTO { PostId = 1 } };
+            _postService.Setup(s => s.GetPostsByFilter("new", 1, 10, null)).Returns(posts);
+
+            var result = _controller.GetPostsByFilter("new", 1, 10);
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public void GetPostsByFilter_WithTopFilter_ReturnsOk()
+        {
+            var posts = new List<PostDTO> { new PostDTO { PostId = 1 } };
+            _postService.Setup(s => s.GetPostsByFilter("top", 1, 10, null)).Returns(posts);
+
+            var result = _controller.GetPostsByFilter("top", 1, 10);
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+        }
+
+        // ============ GET POST BY ID ============
+
+        [Fact]
+        public void GetPost_WhenFound_ReturnsOk()
+        {
+            var post = new PostDTO { PostId = 1, Title = "Test" };
+            _postService.Setup(s => s.GetPostById(1, null)).Returns(post);
+
+            var result = _controller.GetPost(1);
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+            _postService.Verify(s => s.IncrementViewCount(1), Times.Once);
+        }
+
+        [Fact]
+        public void GetPost_WhenNotFound_ReturnsNotFound()
+        {
+            _postService.Setup(s => s.GetPostById(999, null)).Returns((PostDTO?)null);
+
+            var result = _controller.GetPost(999);
+
+            result.Result.Should().BeOfType<NotFoundObjectResult>();
+            var notFound = result.Result as NotFoundObjectResult;
+            notFound!.Value.Should().Be("Post not found");
+        }
+
+        // ============ CREATE POST ============
+
+        [Fact]
+        public void CreatePost_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+            var dto = new CreatePostDTO { Title = "Test", Content = "Content" };
+
+            var result = _controller.CreatePost(dto);
+
+            result.Result.Should().BeOfType<UnauthorizedObjectResult>();
+            var unauthorized = result.Result as UnauthorizedObjectResult;
+            unauthorized!.Value.Should().Be("Please login to create posts");
+        }
+
+        [Fact]
+        public void CreatePost_WhenLoggedIn_ReturnsCreated()
+        {
+            SetSession(1);
+            var dto = new CreatePostDTO { Title = "Test", Content = "Content" };
+            var created = new PostDTO { PostId = 1, Title = "Test", Content = "Content" };
+            _postService.Setup(s => s.CreatePost(It.IsAny<CreatePostDTO>(), It.IsAny<int>()))
+                        .Returns(created);
+
+            var result = _controller.CreatePost(dto);
+
+            result.Result.Should().BeOfType<CreatedAtActionResult>();
+        }
+
+        [Fact]
+        public void CreatePost_WhenException_ReturnsBadRequest()
+        {
+            SetSession(1);
+            var dto = new CreatePostDTO { Title = "Test", Content = "Test" };
+            _postService.Setup(s => s.CreatePost(It.IsAny<CreatePostDTO>(), It.IsAny<int>()))
+                        .Throws(new Exception("Error"));
+
+            var result = _controller.CreatePost(dto);
+
+            result.Result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequest = result.Result as BadRequestObjectResult;
+            badRequest!.Value.Should().Be("Error");
+        }
+
+        // ============ UPDATE POST ============
+
+        [Fact]
+        public void UpdatePost_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+            var dto = new UpdatePostDTO { Title = "Updated" };
+
+            var result = _controller.UpdatePost(1, dto);
+
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public void UpdatePost_WhenSuccessful_ReturnsNoContent()
+        {
+            SetSession(1);
+            var dto = new UpdatePostDTO { Title = "Updated" };
+
+            var result = _controller.UpdatePost(1, dto);
+
+            result.Should().BeOfType<NoContentResult>();
+        }
+
+        [Fact]
+        public void UpdatePost_WhenNotFound_ReturnsNotFound()
+        {
+            SetSession(1);
+            var dto = new UpdatePostDTO { Title = "Updated" };
+            _postService.Setup(s => s.UpdatePost(It.IsAny<int>(), It.IsAny<UpdatePostDTO>(), It.IsAny<int>()))
+                        .Throws<KeyNotFoundException>();
+
+            var result = _controller.UpdatePost(999, dto);
+
+            result.Should().BeOfType<NotFoundObjectResult>();
+            var notFound = result as NotFoundObjectResult;
+            notFound!.Value.Should().Be("Post not found");
+        }
+
+        [Fact]
+        public void UpdatePost_WhenUnauthorized_ReturnsForbid()
+        {
+            SetSession(1);
+            var dto = new UpdatePostDTO { Title = "Updated" };
+            _postService.Setup(s => s.UpdatePost(It.IsAny<int>(), It.IsAny<UpdatePostDTO>(), It.IsAny<int>()))
+                        .Throws<UnauthorizedAccessException>();
+
+            var result = _controller.UpdatePost(1, dto);
+
+            result.Should().BeOfType<ForbidResult>();
+        }
+
+        // ============ DELETE POST ============
+
+        [Fact]
+        public void DeletePost_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+
+            var result = _controller.DeletePost(1);
+
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public void DeletePost_WhenSuccessful_ReturnsNoContent()
+        {
+            SetSession(1);
+
+            var result = _controller.DeletePost(1);
+
+            result.Should().BeOfType<NoContentResult>();
+        }
+
+        [Fact]
+        public void DeletePost_WhenNotFound_ReturnsNotFound()
+        {
+            SetSession(1);
+            _postService.Setup(s => s.DeletePost(999, 1))
+                        .Throws(new KeyNotFoundException("Post not found"));
+
+            var result = _controller.DeletePost(999);
+
+            result.Should().BeOfType<NotFoundObjectResult>();
+            var notFound = result as NotFoundObjectResult;
+            notFound!.Value.Should().Be("Post not found");
+        }
+
+        // ============ VOTE POST ============
+
+        [Fact]
+        public void VotePost_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+
+            var result = _controller.VotePost(1);
+
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public void VotePost_WhenSuccessful_ReturnsOk()
+        {
+            SetSession(1);
+
+            var result = _controller.VotePost(1);
+
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public void VotePost_WhenNotFound_ReturnsNotFound()
+        {
+            SetSession(1);
+            _postService.Setup(s => s.VotePost(999, It.IsAny<int>()))
+                        .Throws(new KeyNotFoundException("Post not found"));
+
+            var result = _controller.VotePost(999);
+
+            result.Should().BeOfType<NotFoundObjectResult>();
+            var notFound = result as NotFoundObjectResult;
+            notFound!.Value.Should().Be("Post not found");
+
+            _postService.Verify(s => s.VotePost(999, It.IsAny<int>()), Times.Once);
+        }
+
+
+        // ============ UNVOTE POST ============
+
+        [Fact]
+        public void UnvotePost_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+
+            var result = _controller.UnvotePost(1);
+
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public void UnvotePost_WhenSuccessful_ReturnsOk()
+        {
+            SetSession(1);
+
+            var result = _controller.UnvotePost(1);
+
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        // ============ GET COMMENTS ============
+
+        [Fact]
+        public void GetCommentsByPostId_ReturnsOk()
+        {
+            var comments = new List<CommentDTO> { new CommentDTO { CommentId = 1 } };
+            _commentService.Setup(s => s.GetCommentsByPostId(1, It.IsAny<int?>())).Returns(comments);
+
+            var result = _controller.GetCommentsByPostId(1);
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+        }
+
+        // ============ CREATE COMMENT ============
+
+        [Fact]
+        public void CreateComment_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+            var dto = new CreateCommentDTO { Content = "Comment" };
+
+            var result = _controller.CreateComment(1, dto);
+
+            result.Result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public void CreateComment_WhenSuccessful_ReturnsCreated()
+        {
+            SetSession(1);
+            var dto = new CreateCommentDTO { Content = "Comment" };
+            var comment = new CommentDTO { CommentId = 1 };
+            _commentService.Setup(s => s.CreateComment(1, dto, 1)).Returns(comment);
+
+            var result = _controller.CreateComment(1, dto);
+
+            result.Result.Should().BeOfType<CreatedAtActionResult>();
+        }
+
+        // ============ DELETE COMMENT ============
+
+        [Fact]
+        public void DeleteComment_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+
+            var result = _controller.DeleteComment(1, 1);
+
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public void DeleteComment_WhenSuccessful_ReturnsOk()
+        {
+            SetSession(1);
+
+            var result = _controller.DeleteComment(1, 1);
+
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        // ============ PIN POST ============
+
+        [Fact]
+        public void PinPost_WhenSuccessful_ReturnsOk()
+        {
+            var result = _controller.PinPost(1);
+
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public void PinPost_WhenNotFound_ReturnsNotFound()
+        {
+            _postService.Setup(s => s.PinPost(999)).Throws(new KeyNotFoundException("Post not found"));
+
+            var result = _controller.PinPost(999);
+
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        // ============ UNPIN POST ============
+
+        [Fact]
+        public void UnpinPost_WhenSuccessful_ReturnsOk()
+        {
+            var result = _controller.UnpinPost(1);
+
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        // ============ HIDE POST ============
+
+        [Fact]
+        public void HidePost_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+
+            var result = _controller.HidePost(1);
+
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public void HidePost_WhenSuccessful_ReturnsOk()
+        {
+            SetSession(1);
+
+            var result = _controller.HidePost(1);
+
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        // ============ UNHIDE POST ============
+
+        [Fact]
+        public void UnhidePost_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+
+            var result = _controller.UnhidePost(1);
+
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        // ============ REPORT POST ============
+
+        [Fact]
+        public void ReportPost_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+            var request = new ReportPostRequest { Reason = "Spam" };
+
+            var result = _controller.ReportPost(1, request);
+
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+        }
+
+        [Fact]
+        public void ReportPost_WhenLoggedIn_ReturnsOk()
+        {
+            SetSession(1);
+            var request = new ReportPostRequest { Reason = "Spam" };
+
+            var result = _controller.ReportPost(1, request);
+
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public void ReportPost_WhenNotFound_ReturnsNotFound()
+        {
+            SetSession(1);
+            var request = new ReportPostRequest { Reason = "Spam" };
+            _postService.Setup(s => s.ReportPost(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()))
+                        .Throws(new KeyNotFoundException("Post not found"));
+
+            var result = _controller.ReportPost(999, request);
+
+            result.Should().BeOfType<NotFoundObjectResult>();
+        }
+
+        [Fact]
+        public void ReportPost_WhenException_ReturnsBadRequest()
+        {
+            SetSession(1);
+            var request = new ReportPostRequest { Reason = "Spam" };
+            _postService.Setup(s => s.ReportPost(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()))
+                        .Throws(new Exception("Error"));
+
+            var result = _controller.ReportPost(1, request);
+
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
+    }
+
+    // Helper class for testing
+    public class TestSession : ISession
+    {
+        private readonly Dictionary<string, byte[]> _store = new();
+
+        public bool IsAvailable => true;
+        public string Id { get; } = Guid.NewGuid().ToString();
+        public IEnumerable<string> Keys => _store.Keys;
+
+        public void Clear() => _store.Clear();
+
+        public Task CommitAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task LoadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public void Remove(string key) => _store.Remove(key);
+
+        public void Set(string key, byte[] value) => _store[key] = value;
+
+        public bool TryGetValue(string key, out byte[] value) => _store.TryGetValue(key, out value);
+    }
+}
+
