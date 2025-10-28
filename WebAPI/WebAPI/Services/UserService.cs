@@ -205,6 +205,29 @@ namespace WebAPI.Services
             return "Password reset successfully";
         }
 
+        public string ChangePassword(int userId, string currentPassword, string newPassword)
+        {
+            // Get user
+            var user = _repo.GetById(userId);
+            if (user == null)
+                throw new KeyNotFoundException("User not found");
+
+            // Verify current password
+            if (!PasswordService.VerifyPassword(currentPassword, user.PasswordHash, user.PasswordSalt))
+                throw new UnauthorizedAccessException("Current password is incorrect");
+
+            // Update to new password
+            PasswordService.CreatePasswordHash(newPassword, out var hash, out var salt);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            _repo.Update(user);
+            _repo.SaveChanges();
+
+            return "Password changed successfully";
+        }
+
         // Moderator methods
         public IEnumerable<UserStatsDTO> GetUsersWithStats(int page, int limit)
         {
