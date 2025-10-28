@@ -10,5 +10,6 @@ namespace WebAPI.Repositories
         void Update(Speaking entity);
         bool Delete(int id);
         void SaveChanges();
+        SpeakingAttempt GetOrCreateAttempt(int examId, int speakingId, int userId, string? audioUrl, string? transcript);
     }
 }

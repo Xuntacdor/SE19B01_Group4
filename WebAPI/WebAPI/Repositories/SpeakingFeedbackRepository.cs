@@ -11,9 +11,12 @@ namespace WebAPI.Repositories
     public class SpeakingFeedbackRepository : ISpeakingFeedbackRepository
     {
         private readonly ApplicationDbContext _context;
-        public SpeakingFeedbackRepository(ApplicationDbContext context)
+        private readonly ISpeakingRepository _speakingRepo;
+
+        public SpeakingFeedbackRepository(ApplicationDbContext context, ISpeakingRepository speakingRepo)
         {
             _context = context;
+            _speakingRepo = speakingRepo;
         }
 
         public IEnumerable<SpeakingFeedback> GetAll()
@@ -50,12 +53,15 @@ namespace WebAPI.Repositories
             return _context.SpeakingFeedbacks
                 .Include(f => f.SpeakingAttempt)
                     .ThenInclude(sa => sa.ExamAttempt)
-                .FirstOrDefault(f =>
+                .Where(f =>
                     f.SpeakingAttempt != null &&
                     f.SpeakingAttempt.ExamAttempt != null &&
                     f.SpeakingAttempt.SpeakingId == speakingId &&
-                    f.SpeakingAttempt.ExamAttempt.UserId == userId);
+                    f.SpeakingAttempt.ExamAttempt.UserId == userId)
+                .OrderByDescending(f => f.CreatedAt) // ✅ lấy feedback mới nhất
+                .FirstOrDefault();
         }
+
 
         public void Add(SpeakingFeedback entity)
         {
@@ -77,20 +83,17 @@ namespace WebAPI.Repositories
             _context.SaveChanges();
         }
 
-        // ✅ Chuẩn hóa logic SaveFeedback — có kiểm tra tồn tại và cập nhật nếu có sẵn
+        // ✅ Fixed version with FK-safe save
         public void SaveFeedback(int examId, int speakingId, JsonDocument feedback, int userId, string? audioUrl, string? transcript)
         {
+            // 1️⃣ Get or create SpeakingAttempt (ensures FK is valid)
+            var attempt = _speakingRepo.GetOrCreateAttempt(examId, speakingId, userId, audioUrl, transcript);
+
             var band = feedback.RootElement.GetProperty("band_estimate");
 
-            // Kiểm tra xem có feedback cũ không (cùng speakingId + userId)
+            // 2️⃣ Try find existing feedback for this attempt
             var existing = _context.SpeakingFeedbacks
-                .Include(f => f.SpeakingAttempt)
-                .ThenInclude(sa => sa.ExamAttempt)
-                .FirstOrDefault(f =>
-                    f.SpeakingAttempt != null &&
-                    f.SpeakingAttempt.SpeakingId == speakingId &&
-                    f.SpeakingAttempt.ExamAttempt != null &&
-                    f.SpeakingAttempt.ExamAttempt.UserId == userId);
+                .FirstOrDefault(f => f.SpeakingAttemptId == attempt.SpeakingAttemptId);
 
             if (existing != null)
             {
@@ -108,6 +111,7 @@ namespace WebAPI.Repositories
             {
                 var entity = new SpeakingFeedback
                 {
+                    SpeakingAttemptId = attempt.SpeakingAttemptId, // ✅ Important FK fix
                     Pronunciation = band.GetProperty("pronunciation").GetDecimal(),
                     Fluency = band.GetProperty("fluency").GetDecimal(),
                     LexicalResource = band.GetProperty("lexical_resource").GetDecimal(),
