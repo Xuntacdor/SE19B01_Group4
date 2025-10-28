@@ -5,6 +5,14 @@ import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 import { Clock } from "lucide-react";
 import styles from "./ReadingExamPage.module.css";
 
+// On the EXAM page, strip [H*id]...[/H] completely (no highlight at all)
+function stripPassageHints(raw) {
+  if (!raw) return "";
+  return String(raw).replace(/\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g, (_, __, inner) => {
+    return inner.replace(/\r?\n/g, "<br/>"); // preserve line breaks visually
+  });
+}
+
 export default function ReadingExamPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -18,7 +26,6 @@ export default function ReadingExamPage() {
 
   const formRef = useRef(null);
 
-  // 🕒 Timer
   useEffect(() => {
     if (!timeLeft || submitted) return;
     const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
@@ -70,7 +77,6 @@ export default function ReadingExamPage() {
     setAnswers((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 📝 Updated submit logic
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
@@ -85,7 +91,6 @@ export default function ReadingExamPage() {
           return na - nb;
         });
 
-      // 🔧 Instead of an array, store an object with question IDs
       const taskAnswers = {};
       questionKeys.forEach((key) => {
         const val = answers[key];
@@ -97,41 +102,6 @@ export default function ReadingExamPage() {
       return { SkillId: task.readingId, Answers: taskAnswers };
     });
 
-    // ✅ Completion check (optional)
-    const expectedTotal = tasks.reduce((sum, t) => {
-      try {
-        const arr = JSON.parse(t.correctAnswer || "[]");
-        return sum + (Array.isArray(arr) ? arr.length : 0);
-      } catch {
-        const markers = (t.readingQuestion?.match(/\[!num\]/g) || []).length;
-        return sum + markers;
-      }
-    }, 0);
-
-    const actualTotal = Object.values(answers).reduce((sum, v) => {
-      if (Array.isArray(v)) return sum + v.filter((x) => x !== "_").length;
-      if (typeof v === "string" && v.trim() !== "" && v !== "_") return sum + 1;
-      return sum;
-    }, 0);
-
-    if (expectedTotal > 0 && actualTotal < expectedTotal) {
-      alert(
-        `Please complete all questions before submitting. (${actualTotal}/${expectedTotal} answered)`
-      );
-      const form = formRef.current;
-      if (form) {
-        const inputs = form.querySelectorAll("input, select, textarea");
-        inputs.forEach((el) => {
-          const v = answers[el.name];
-          const has =
-            Array.isArray(v) ? v.length > 0 : typeof v === "string" && v.trim() !== "";
-          el.classList.toggle("unanswered", !has);
-        });
-      }
-      return;
-    }
-
-    // ✅ Submit
     setIsSubmitting(true);
     const jsonString = JSON.stringify(structuredAnswers);
     const attempt = {
@@ -191,7 +161,7 @@ export default function ReadingExamPage() {
 
   return (
     <div className={styles.examWrapper}>
-      {/* ===== Header ===== */}
+      {/* Header */}
       <div className={styles.topHeader}>
         <button className={styles.backBtn} onClick={() => navigate("/reading")}>
           ← Back
@@ -203,7 +173,6 @@ export default function ReadingExamPage() {
         </div>
       </div>
 
-      {/* ===== Main Content ===== */}
       <div className={styles.mainContent}>
         <div className={styles.leftPanel}>
           {currentTaskData?.passageTitle && (
@@ -213,9 +182,12 @@ export default function ReadingExamPage() {
               </h3>
             </div>
           )}
-          <div className={styles.passageContent}>
-            {currentTaskData?.readingContent || ""}
-          </div>
+          <div
+            className={styles.passageContent}
+            dangerouslySetInnerHTML={{
+              __html: stripPassageHints(currentTaskData?.readingContent || ""),
+            }}
+          />
         </div>
 
         <div className={styles.rightPanel}>
@@ -223,22 +195,14 @@ export default function ReadingExamPage() {
             {currentTaskData?.readingQuestion ? (
               <ExamMarkdownRenderer
                 markdown={currentTaskData.readingQuestion}
-                showAnswers={false}
+                showAnswers={false}          // explanations hidden on exam
                 readingId={currentTaskData.readingId}
               />
             ) : (
               <div className={styles.questionSection}>
-                <div
-                  style={{
-                    padding: "40px",
-                    textAlign: "center",
-                    color: "#666",
-                  }}
-                >
+                <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
                   <h3>No Questions Found</h3>
-                  <p>
-                    This reading test doesn't have any questions configured yet.
-                  </p>
+                  <p>This reading test doesn't have any questions configured yet.</p>
                 </div>
               </div>
             )}
@@ -246,7 +210,6 @@ export default function ReadingExamPage() {
         </div>
       </div>
 
-      {/* ===== Footer Navigation ===== */}
       <div className={styles.bottomNavigation}>
         <div className={styles.navScrollContainer}>
           {tasks.map((task, taskIndex) => {

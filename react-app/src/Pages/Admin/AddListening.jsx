@@ -70,7 +70,7 @@ export default function AddListening() {
     setStatus({ icon: <FileAudio size={16} />, message: "Processing..." });
 
     try {
-      // 1️⃣ Generate initial HTML + answers
+      // 1) Generate initial HTML + answers (temporary keys like "X_q#")
       const { html, answers } = renderMarkdownToHtmlAndAnswers(listeningQuestion);
       const payload = {
         examId: exam.examId,
@@ -100,16 +100,18 @@ export default function AddListening() {
         });
       }
 
-      // 2️⃣ Regenerate HTML using the real listeningId
+      // 2) Regenerate HTML + correct answers using the real listeningId
       const newId = saved?.listeningId;
       if (newId) {
-        const { html: fixedHtml } = renderMarkdownToHtmlAndAnswers(
-          listeningQuestion,
-          newId
-        );
+        const {
+          html: fixedHtml,
+          answers: fixedAnswers,
+        } = renderMarkdownToHtmlAndAnswers(listeningQuestion, newId);
+
         await listeningService.update(newId, {
           ...payload,
           questionHtml: fixedHtml,
+          correctAnswer: JSON.stringify(fixedAnswers), // ✅ now keyed by "<listeningId>_q#"
         });
       }
 
