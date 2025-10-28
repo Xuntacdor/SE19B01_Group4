@@ -28,7 +28,7 @@ export default function ReadingResultPage() {
 
   const { attemptId, examName, isWaiting } = state;
 
-  // ====== Fetch Attempt ======
+  // ===== Fetch Attempt =====
   useEffect(() => {
     let timer;
     const fetchAttempt = async () => {
@@ -45,17 +45,14 @@ export default function ReadingResultPage() {
     };
 
     if (isWaiting) {
-      timer = setInterval(
-        () => setProgress((p) => (p < 90 ? p + 5 : p)),
-        1000
-      );
+      timer = setInterval(() => setProgress((p) => (p < 90 ? p + 5 : p)), 1000);
     }
 
     fetchAttempt();
     return () => clearInterval(timer);
   }, [attemptId, isWaiting]);
 
-  // ====== Fetch Readings ======
+  // ===== Fetch Readings =====
   useEffect(() => {
     if (!attempt?.examId) return;
     (async () => {
@@ -96,7 +93,7 @@ export default function ReadingResultPage() {
     );
   }
 
-  // ====== Parse answers ======
+  // ===== Parse user's answers =====
   const parsedAnswers = (() => {
     try {
       return JSON.parse(attempt.answerText || "[]");
@@ -105,53 +102,67 @@ export default function ReadingResultPage() {
     }
   })();
 
-  // Only show attempted skills
-  const attemptedSkillIds = parsedAnswers.map((g) => g.SkillId);
-  const relevantReadings = readings.filter((r) =>
-    attemptedSkillIds.includes(r.readingId)
-  );
-
-  // Build user answer map
-  const answerMap = new Map();
+  // Build map: readingId → userAnswers
+  const userAnswerMap = new Map();
   parsedAnswers.forEach((g) => {
-    if (g.SkillId && Array.isArray(g.Answers)) {
-      answerMap.set(g.SkillId, g.Answers);
+    if (g.SkillId && g.Answers) {
+      userAnswerMap.set(g.SkillId, g.Answers);
     }
   });
 
-  // ====== Score summary ======
-  let totalSubQuestions = 0;
+  // 🟢 NEW: Detect full vs partial attempt
+  const attemptedSkillIds = [...userAnswerMap.keys()];
+  const totalSkills = readings.length;
+  const attemptedSkills = attemptedSkillIds.length;
+  const isFullExam = totalSkills > 0 && attemptedSkills === totalSkills;
+
+  // ===== Compute totals =====
+  let totalQuestions = 0;
   let correctCount = 0;
 
-  relevantReadings.forEach((r) => {
-    const userAnswers = answerMap.get(r.readingId) || [];
-    let correctAnswers = [];
-    try {
-      if (r.correctAnswer?.trim().startsWith("[")) {
-        correctAnswers = JSON.parse(r.correctAnswer);
-      } else {
-        correctAnswers = r.correctAnswer
-          ? r.correctAnswer.split(/[,;]+/).map((x) => x.trim())
-          : [];
-      }
-    } catch {
-      correctAnswers = [];
-    }
+  const normalize = (val) => {
+    if (Array.isArray(val)) return val.map((x) => x.trim().toLowerCase());
+    if (typeof val === "string") return [val.trim().toLowerCase()];
+    return [];
+  };
 
-    totalSubQuestions += correctAnswers.length;
-
-    correctAnswers.forEach((ans, i) => {
-      const userAns = userAnswers[i] || "_";
-      if (userAns.trim().toLowerCase() === ans.trim().toLowerCase()) {
-        correctCount++;
+  // 🟢 Only evaluate readings that were actually attempted
+  const readingsWithCorrect = readings
+    .filter((r) => attemptedSkillIds.includes(r.readingId))
+    .map((r) => {
+      let correctAnswers = {};
+      try {
+        correctAnswers = JSON.parse(r.correctAnswer || "{}");
+      } catch {
+        correctAnswers = {};
       }
+
+      const userAnswers = userAnswerMap.get(r.readingId) || {};
+      const correctKeys = Object.keys(correctAnswers);
+
+      // 🟢 Count total correct options instead of questions
+      correctKeys.forEach((key) => {
+        const userVal = normalize(userAnswers[key] || []);
+        const correctVal = normalize(correctAnswers[key] || []);
+
+        // Each correct option counts individually
+        totalQuestions += correctVal.length;
+
+        // Count how many of those the user got right
+        correctVal.forEach((opt) => {
+          if (userVal.map((v) => v.toLowerCase()).includes(opt.toLowerCase())) {
+            correctCount++;
+          }
+        });
+      });
+      
+      return { ...r, correctAnswers, userAnswers };
     });
-  });
 
   const accuracy =
-    totalSubQuestions > 0 ? (correctCount / totalSubQuestions) * 100 : 0;
+    totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
 
-  // ====== Render ======
+  // ===== Render =====
   return (
     <div className={styles.pageLayout}>
       <GeneralSidebar />
@@ -159,6 +170,12 @@ export default function ReadingResultPage() {
         {/* ===== Header ===== */}
         <div className={styles.header}>
           <h2>Reading Result — {examName || attempt.examName}</h2>
+          {!isFullExam && (
+            <p className={styles.partialNotice}>
+              ⚠️ You completed only {attemptedSkills}/{totalSkills} part(s) of
+              this exam. The score shown below reflects a partial attempt.
+            </p>
+          )}
         </div>
 
         {/* ===== Band Summary ===== */}
@@ -176,7 +193,7 @@ export default function ReadingResultPage() {
             </div>
             <div>
               <b>Total</b>
-              <p>{totalSubQuestions}</p>
+              <p>{totalQuestions}</p>
             </div>
             <div>
               <b>Accuracy</b>
@@ -186,21 +203,12 @@ export default function ReadingResultPage() {
         </div>
 
         {/* ===== Embedded Correction ===== */}
-        {relevantReadings.map((r, i) => {
-          const userAnswers = answerMap.get(r.readingId) || [];
-          let correctAnswers = [];
-          try {
-            correctAnswers = JSON.parse(r.correctAnswer || "[]");
-          } catch {
-            correctAnswers = [];
-          }
-
-          return (
+        {readingsWithCorrect
+          .filter((r) => attemptedSkillIds.includes(r.readingId)) // 🟢 NEW: show only attempted parts
+          .map((r, i) => (
             <div key={i} className={styles.resultContainer}>
               <div className={styles.leftPanel}>
-                <h3>
-                  Passage {r.displayOrder || i + 1}
-                </h3>
+                <h3>Passage {r.displayOrder || i + 1}</h3>
                 <div
                   className={styles.passageContent}
                   dangerouslySetInnerHTML={{
@@ -214,16 +222,22 @@ export default function ReadingResultPage() {
                 <ExamMarkdownRenderer
                   markdown={r.readingQuestion}
                   showAnswers={true}
-                  userAnswers={userAnswers}
-                  correctAnswers={correctAnswers}
+                  userAnswers={[
+                    { SkillId: r.readingId, Answers: r.userAnswers },
+                  ]}
+                  correctAnswers={[
+                    { SkillId: r.readingId, Answers: r.correctAnswers },
+                  ]}
+                  readingId={r.readingId}
                 />
               </div>
             </div>
-          );
-        })}
-
+          ))}
         <div className={styles.footer}>
-          <button className={styles.backBtn} onClick={() => navigate("/reading")}>
+          <button
+            className={styles.backBtn}
+            onClick={() => navigate("/reading")}
+          >
             ← Back to Reading List
           </button>
         </div>

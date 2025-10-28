@@ -89,15 +89,14 @@ namespace WebAPI.Controllers
                 if (exam == null)
                     return NotFound("Exam not found.");
 
-                // ✅ Parse answers (controller stays responsible for decoding payload)
-                var structuredAnswers = ParseAnswers(dto.Answers);
-                if (structuredAnswers == null || structuredAnswers.Count == 0)
+                var structuredAnswers = ExamService.ParseAnswers(dto.Answers);
+
+                // ❗ Handle empty-answers object as bad request (prevents 500 in tests)
+                if (structuredAnswers == null || !structuredAnswers.Any(g => g.Answers != null && g.Answers.Count > 0))
                     return BadRequest("No answers found in payload.");
 
-                // ✅ Evaluate score
                 var score = _readingService.EvaluateReading(dto.ExamId, structuredAnswers);
 
-                // ✅ Build attempt data for saving
                 var attemptDto = new SubmitAttemptDto
                 {
                     ExamId = dto.ExamId,
@@ -106,10 +105,8 @@ namespace WebAPI.Controllers
                     Score = score
                 };
 
-                // ✅ Save attempt
                 var attempt = _examService.SubmitAttempt(attemptDto, userId.Value);
 
-                // Use the 'exam' object that was fetched and validated earlier in the method.
                 return Ok(new ExamAttemptDto
                 {
                     AttemptId = attempt.AttemptId,
@@ -124,9 +121,7 @@ namespace WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine("=== SubmitAnswers exception ===");
-                Console.WriteLine(ex.GetType().Name + ": " + ex.Message);
-                Console.WriteLine(ex.StackTrace);
+                // Reading tests expect 500 on unexpected exceptions
                 return StatusCode(500, new
                 {
                     Message = "Error submitting reading answers.",
@@ -135,44 +130,5 @@ namespace WebAPI.Controllers
             }
         }
 
-        /// <summary>
-        /// Safely parses the raw Answers object (string, JSON element, etc.)
-        /// </summary>
-        private List<UserAnswerGroup> ParseAnswers(object? raw)
-        {
-            if (raw == null) return new();
-
-            try
-            {
-                string jsonString;
-
-                if (raw is JsonElement el)
-                {
-                    var text = el.GetRawText();
-                    jsonString = text.StartsWith("\"")
-                        ? JsonSerializer.Deserialize<string>(text)!
-                        : text;
-                }
-                else if (raw is string s)
-                {
-                    jsonString = s.TrimStart().StartsWith("\"")
-                        ? JsonSerializer.Deserialize<string>(s)!
-                        : s;
-                }
-                else
-                {
-                    jsonString = raw.ToString() ?? "[]";
-                }
-
-                return JsonSerializer.Deserialize<List<UserAnswerGroup>>(
-                    jsonString,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                ) ?? new();
-            }
-            catch
-            {
-                return new();
-            }
-        }
     }
 }
