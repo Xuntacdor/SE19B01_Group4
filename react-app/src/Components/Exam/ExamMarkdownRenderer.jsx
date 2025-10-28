@@ -10,7 +10,30 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-// 🟢 Split markdown into content & question blocks
+// ============= helpers =============
+function normalize(val) {
+  if (Array.isArray(val)) return val.map((x) => String(x).trim().toLowerCase());
+  if (val == null) return [];
+  return [String(val).trim().toLowerCase()];
+}
+
+// Treat "_", "", null, [], ["_"] as missing
+function normalizeUser(raw) {
+  if (raw == null) return { arr: [], isMissing: true };
+
+  if (Array.isArray(raw)) {
+    const cleaned = raw.map((v) => String(v).trim()).filter((v) => v !== "");
+    if (cleaned.length === 0) return { arr: [], isMissing: true };
+    if (cleaned.length === 1 && cleaned[0] === "_") return { arr: [], isMissing: true };
+    return { arr: cleaned.map((v) => v.toLowerCase()), isMissing: false };
+  }
+
+  const s = String(raw).trim();
+  if (s === "" || s === "_") return { arr: [], isMissing: true };
+  return { arr: [s.toLowerCase()], isMissing: false };
+}
+
+// ============= splitter (unchanged) =============
 function splitBlocks(md) {
   const lines = md.split(/\r?\n/);
   const blocks = [];
@@ -56,29 +79,58 @@ marked.setOptions({
   headerIds: false,
 });
 
-// 🟢 Render question block (convert markdown syntax to HTML)
-function processQuestionBlock(lines, qIndex, showAnswers, readingId = 0) {
+// ============= per-question renderer =============
+function processQuestionBlock(
+  lines,
+  qIndex,
+  showAnswers,
+  readingId = 0,
+  userAnsObj = {},
+  correctAnsObj = {}
+) {
   let text = lines.join("\n");
 
-  // Use "X" placeholder when readingId not yet known (e.g., AddReading preview)
   const safeId = readingId && readingId > 0 ? readingId : "X";
+  const key = `${safeId}_q${qIndex}`;
 
-  // Text inputs
+  const userNorm = normalizeUser(userAnsObj?.[key]);
+  const cArr = normalize(correctAnsObj?.[key]);
+  const uSet = new Set(userNorm.arr);
+  const cSet = new Set(cArr);
+
+  // 🟢 Text inputs [T*answer]
   text = text.replace(/\[T\*([^\]]+)\]/g, (_, ans) => {
     const width = Math.min(Math.max(ans.length + 5, 10), 30);
-    return showAnswers
-      ? `<input type="text" value="${escapeHtml(
-          ans
-        )}" readonly class="inlineTextbox answerFilled" style="width:${width}ch;" />`
-      : `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}" style="width:${width}ch;" />`;
+    if (!showAnswers) {
+      return `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}" style="width:${width}ch;" />`;
+    }
+    const uRaw = userAnsObj?.[key];
+    const uFirst = Array.isArray(uRaw) ? (uRaw[0] ?? "") : (uRaw ?? "");
+    const uFirstTrim = String(uFirst).trim();
+    const isMissing = uFirstTrim === "" || uFirstTrim === "_";
+    const ok =
+      !isMissing &&
+      uFirstTrim.toLowerCase() === String(ans).trim().toLowerCase();
+
+    const statusClass = isMissing ? "qa-missing" : ok ? "qa-right" : "qa-wrong";
+    const title =
+      isMissing ? "Your answer: (blank)" : `Your answer: ${escapeHtml(uFirstTrim)}`;
+
+    return `<input type="text" value="${escapeHtml(
+      ans
+    )}" readonly class="inlineTextbox answerFilled ${statusClass}" title="${title}" style="width:${width}ch;" />`;
   });
 
+  // Bare [T] -> plain disabled input on review
   text = text.replace(/\[T\]/g, () => {
     const width = 15;
-    return `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}" style="width:${width}ch;" />`;
+    if (!showAnswers) {
+      return `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}" style="width:${width}ch;" />`;
+    }
+    return `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}" style="width:${width}ch;" disabled />`;
   });
 
-  // Dropdowns
+  // 🟢 Dropdowns [D] ... [/D]
   const choiceRegex = /\[([* ])\]\s*([^\n\[]+)/g;
   const dropdownRegex = /\[D\]([\s\S]*?)\[\/D\]/g;
   text = text.replace(dropdownRegex, (_, inner) => {
@@ -86,9 +138,23 @@ function processQuestionBlock(lines, qIndex, showAnswers, readingId = 0) {
       correct: m[1] === "*",
       text: m[2].trim(),
     }));
+
+    const userPickRaw = userAnsObj?.[key];
+    const userPickNorm = normalizeUser(userPickRaw);
+    const userPick = userPickNorm.arr[0] || ""; // dropdown is single
+    const correctPick = (options.find((o) => o.correct)?.text ?? "").toLowerCase();
+
+    let selectStatus = "";
+    if (showAnswers) {
+      if (userPickNorm.isMissing && correctPick) selectStatus = "qa-missing"; // "_"
+      else if (!userPickNorm.isMissing && userPick === correctPick) selectStatus = "qa-right";
+      else if (!userPickNorm.isMissing && userPick !== correctPick) selectStatus = "qa-wrong";
+      else selectStatus = "";
+    }
+
     const longest = Math.min(Math.max(...options.map((o) => o.text.length)) + 5, 30);
     return (
-      `<select name="${safeId}_q${qIndex}" class="dropdownInline" style="width:${longest}ch" ${
+      `<select name="${safeId}_q${qIndex}" class="dropdownInline ${selectStatus}" style="width:${longest}ch" ${
         showAnswers ? "disabled" : ""
       }>` +
       `<option value="" disabled selected hidden></option>` +
@@ -104,34 +170,96 @@ function processQuestionBlock(lines, qIndex, showAnswers, readingId = 0) {
     );
   });
 
-  // Radio/checkbox
+  // 🟢 Radio / Checkbox: correct is ALWAYS green; user's wrong picks red; unanswered "_" -> all amber
   const choiceRegex2 = /\[([* ])\]\s*([^\n\[]+)/g;
   const outsideDropdown = text.replace(/\[D\][\s\S]*?\[\/D\]/g, "");
   const correctCount = (outsideDropdown.match(/\[\*\]/g) || []).length;
   const isMulti = correctCount > 1;
   const type = isMulti ? "checkbox" : "radio";
 
+  const allChoiceLowers = [...outsideDropdown.matchAll(choiceRegex2)].map((m) =>
+    String(m[2]).trim().toLowerCase()
+  );
+  const hasChoices = allChoiceLowers.length > 0;
+  const applyGroupMissing = showAnswers && hasChoices && userNorm.isMissing; // "_"
+
   text = text.replace(choiceRegex2, (match, mark, label) => {
-    const value = escapeHtml(label.trim());
+    const value = String(label).trim();
+    const vKey = value.toLowerCase();
+
+    let hl = "";
+    if (showAnswers) {
+      if (applyGroupMissing) {
+        hl = "qa-missing"; // user submitted "_": all options amber
+      } else if (cSet.has(vKey)) {
+        hl = "qa-right";   // correct should be green regardless of user choice
+      } else if (uSet.has(vKey) && !cSet.has(vKey)) {
+        hl = "qa-wrong";   // user chose a wrong option
+      } else {
+        hl = "";           // no highlight for other unselected options
+      }
+    }
+
+    // Keep original behavior: on review, tick the correct option(s)
     const checked = showAnswers && mark === "*" ? "checked" : "";
     const limitAttr = isMulti
       ? `data-limit="${correctCount}" data-group="${safeId}_q${qIndex}"`
       : "";
-    return `<label class="choiceItem">
-      <input type="${type}" name="${safeId}_q${qIndex}" value="${value}" ${limitAttr} ${checked} ${
+
+    return `<label class="choiceItem ${hl}">
+      <input type="${type}" name="${safeId}_q${qIndex}" value="${escapeHtml(value)}" ${limitAttr} ${checked} ${
       showAnswers ? "disabled" : ""
     }/>
-      ${value}
+      ${escapeHtml(value)}
     </label>`;
   });
 
-  // Question number
+  // Number tag
   text = text.replace(/\[!num\]/g, `<span class="numberIndex">Q${qIndex}.</span>`);
 
   return marked.parse(text);
 }
 
-// 🟢 Export helper for generating correct answers
+
+// ============= main =============
+export default function ExamMarkdownRenderer({
+  markdown = "",
+  showAnswers = false,
+  userAnswers = [],
+  correctAnswers = [],
+  readingId = 0,
+}) {
+  const blocks = splitBlocks(markdown);
+  let qCounter = 0;
+
+  const userAnsObj =
+    userAnswers?.find((x) => x?.SkillId === readingId)?.Answers || {};
+  const correctAnsObj =
+    correctAnswers?.find((x) => x?.SkillId === readingId)?.Answers || {};
+
+  const html = blocks
+    .map((b) => {
+      if (b.type === "markdown") return marked.parse(b.text);
+      if (b.type === "question") {
+        qCounter++;
+        return processQuestionBlock(
+          b.lines,
+          qCounter,
+          showAnswers,
+          readingId,
+          userAnsObj,
+          correctAnsObj
+        );
+      }
+      return "";
+    })
+    .join("\n");
+
+  return <div className="renderer" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+
+// 🟢 Export helper unchanged
 export function renderMarkdownToHtmlAndAnswers(markdown, readingId = 0) {
   const blocks = splitBlocks(markdown);
   let htmlOutput = "";
@@ -165,29 +293,4 @@ export function renderMarkdownToHtmlAndAnswers(markdown, readingId = 0) {
   });
 
   return { html: htmlOutput, answers: allAnswers };
-}
-
-// 🟢 Main Component
-export default function ExamMarkdownRenderer({
-  markdown = "",
-  showAnswers = false,
-  userAnswers = [],
-  correctAnswers = [],
-  readingId = 0,
-}) {
-  const blocks = splitBlocks(markdown);
-  let qCounter = 0;
-
-  const html = blocks
-    .map((b) => {
-      if (b.type === "markdown") return marked.parse(b.text);
-      if (b.type === "question") {
-        qCounter++;
-        return processQuestionBlock(b.lines, qCounter, showAnswers, readingId);
-      }
-      return "";
-    })
-    .join("\n");
-
-  return <div className="renderer" dangerouslySetInnerHTML={{ __html: html }} />;
 }
