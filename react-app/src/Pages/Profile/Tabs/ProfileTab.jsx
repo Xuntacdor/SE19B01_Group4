@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { User } from "lucide-react";
 import { compressAndUploadImage } from "../../../utils/ImageHelper";
 import { updateUser } from "../../../Services/UserApi";
-import { useNavigate } from "react-router-dom";
+import ChangePasswordModal from "../../../Components/Auth/ChangePasswordModal";
 
 export default function ProfileTab({ user, profileData, setProfileData }) {
-  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   // ===== Handle input changes =====
   const handleChange = (e) => {
@@ -159,7 +159,7 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
               fontSize: "28px",
               padding: "10px 20px",
             }}
-            onClick={() => navigate("/?mode=forgot")}
+            onClick={() => setIsChangePasswordOpen(true)}
           >
             Change Password
           </button>
@@ -178,6 +178,12 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
           </button>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal 
+        isOpen={isChangePasswordOpen} 
+        onClose={() => setIsChangePasswordOpen(false)} 
+      />
     </div>
   );
 }
