@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using WebAPI.DTOs;
 using WebAPI.Models;
 using WebAPI.Repositories;
 using WebAPI.Services;
-using Xunit;
 
 namespace WebAPI.Tests
 {
@@ -242,6 +238,7 @@ namespace WebAPI.Tests
             var listening = CreateSampleListening(1, correctAnswer: "{\"q1\": [\"a\",\"b\"]}");
             var listenings = new List<Listening> { listening };
             SetupMockRepository(listenings);
+
             var answers = new List<UserAnswerGroup>
             {
                 new UserAnswerGroup

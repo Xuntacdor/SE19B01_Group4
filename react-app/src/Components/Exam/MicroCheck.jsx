@@ -1,5 +1,5 @@
 import PopupBase from "../Common/PopupBase";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, RotateCcw } from "lucide-react";
 import "./MicroCheck.css";
 
@@ -9,28 +9,44 @@ export default function MicroCheck() {
   const [audioUrl, setAudioUrl] = useState(null);
   const [recorder, setRecorder] = useState(null);
   const [timer, setTimer] = useState(0);
+  const intervalRef = useRef(null);
   const audioRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      // cleanup khi unmount
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (recorder) {
+        try {
+          recorder.stream?.getTracks()?.forEach((t) => t.stop());
+        } catch {}
+      }
+    };
+  }, [recorder]);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      // chọn mimeType phổ biến nhất
+      const mr = new MediaRecorder(stream, {
+        mimeType: "audio/webm;codecs=opus",
+      });
       const chunks = [];
-      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-      mediaRecorder.onstop = () => {
+      mr.ondataavailable = (e) => chunks.push(e.data);
+      mr.onstop = () => {
         const blob = new Blob(chunks, { type: "audio/webm" });
         setAudioUrl(URL.createObjectURL(blob));
       };
-      mediaRecorder.start();
-      setRecorder(mediaRecorder);
+      mr.start();
+      setRecorder(mr);
       setIsRecording(true);
       setTimer(0);
 
-      const interval = setInterval(() => {
+      // đếm 20s, tự dừng
+      intervalRef.current = setInterval(() => {
         setTimer((t) => {
-          if (t >= 20) {
+          if (t >= 19) {
             stopRecording();
-            clearInterval(interval);
             return 20;
           }
           return t + 1;
@@ -43,11 +59,20 @@ export default function MicroCheck() {
   };
 
   const stopRecording = () => {
-    if (recorder) {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (recorder && recorder.state !== "inactive") {
       recorder.stop();
       recorder.stream.getTracks().forEach((t) => t.stop());
-      setIsRecording(false);
     }
+    setIsRecording(false);
+  };
+
+  const resetAll = () => {
+    setAudioUrl(null);
+    setTimer(0);
   };
 
   return (
@@ -61,11 +86,14 @@ export default function MicroCheck() {
         icon={Mic}
         show={show}
         width="420px"
-        onClose={() => setShow(false)}
+        onClose={() => {
+          setShow(false);
+          stopRecording();
+        }}
       >
         <ul className="instructions-list">
-          <li>You have 20 seconds to speak.</li>{" "}
-          <li>Please allow microphone access to check.</li>{" "}
+          <li>You have 20 seconds to speak.</li>
+          <li>Please allow microphone access to check.</li>
         </ul>
 
         <div className="record-controls">
@@ -83,23 +111,16 @@ export default function MicroCheck() {
         </div>
 
         {audioUrl && (
-          <div className="audio-preview">
-            <audio ref={audioRef} src={audioUrl} controls />
-          </div>
-        )}
-
-        {audioUrl && (
-          <div className="record-controls">
-            <button
-              className="record-btn"
-              onClick={() => {
-                setAudioUrl(null);
-                setTimer(0);
-              }}
-            >
-              <RotateCcw size={16} /> Try Again
-            </button>
-          </div>
+          <>
+            <div className="audio-preview">
+              <audio ref={audioRef} src={audioUrl} controls />
+            </div>
+            <div className="record-controls">
+              <button className="record-btn" onClick={resetAll}>
+                <RotateCcw size={16} /> Try Again
+              </button>
+            </div>
+          </>
         )}
       </PopupBase>
     </>

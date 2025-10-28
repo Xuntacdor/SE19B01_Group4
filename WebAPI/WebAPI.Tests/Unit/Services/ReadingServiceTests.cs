@@ -228,8 +228,8 @@ namespace WebAPI.Tests
         [Fact]
         public void EvaluateReading_NoReadings_ReturnsZero()
         {
-            var readings = new List<Reading>();
-            SetupMockRepository(readings);
+            var Readings = new List<Reading>();
+            SetupMockRepository(Readings);
 
             var result = _readingService.EvaluateReading(1, new List<UserAnswerGroup>());
 

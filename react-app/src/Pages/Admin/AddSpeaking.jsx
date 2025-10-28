@@ -15,7 +15,6 @@ import {
   ArrowLeft,
   Clock,
   MessageCircle,
-  Users,
 } from "lucide-react";
 
 export default function AddSpeaking() {
@@ -26,26 +25,26 @@ export default function AddSpeaking() {
 
   const [form, setForm] = useState({
     examId: exam?.examId ?? exam?.ExamId ?? "",
-    speakingQuestion: "",
-    speakingType: "Part 1", // Part 1, Part 2, Part 3
-    displayOrder: "",
+    speakingType: "Part 1",
+    displayOrder: 1,
+    questions: [""], // nhiều câu hỏi trong cùng Part
     imageUrl: "",
-    preparationTime: 60, // seconds for Part 2
-    speakingTime: 120, // seconds for Part 2
+    preparationTime: 60,
+    speakingTime: 120,
     instructions: "",
   });
 
   const [status, setStatus] = useState({ icon: null, message: "" });
   const [uploading, setUploading] = useState(false);
 
-  // === Nếu có skill (edit mode) thì load dữ liệu ===
+  // Nếu có skill (edit mode)
   useEffect(() => {
     if (skill) {
       setForm({
         examId: skill.examId ?? exam?.examId,
-        speakingQuestion: skill.speakingQuestion ?? "",
         speakingType: skill.speakingType ?? "Part 1",
         displayOrder: skill.displayOrder ?? 1,
+        questions: [skill.speakingQuestion ?? ""],
         imageUrl: skill.imageUrl ?? "",
         preparationTime: skill.preparationTime ?? 60,
         speakingTime: skill.speakingTime ?? 120,
@@ -54,13 +53,12 @@ export default function AddSpeaking() {
     }
   }, [skill, exam]);
 
-  // === Handle input change ===
+  // Xử lý thay đổi trong form
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
 
-  // === Handle speaking type change ===
   const handleSpeakingTypeChange = (e) => {
     const speakingType = e.target.value;
     let preparationTime = 60;
@@ -70,18 +68,21 @@ export default function AddSpeaking() {
     switch (speakingType) {
       case "Part 1":
         preparationTime = 0;
-        speakingTime = 300; // 5 minutes
-        instructions = "Answer the questions naturally. Give detailed responses with examples.";
+        speakingTime = 300;
+        instructions =
+          "Answer the questions naturally. Give detailed responses with examples.";
         break;
       case "Part 2":
         preparationTime = 60;
-        speakingTime = 120; // 2 minutes
-        instructions = "You have 1 minute to prepare. Then speak for 1-2 minutes about the topic.";
+        speakingTime = 120;
+        instructions =
+          "You have 1 minute to prepare. Then speak for 1-2 minutes about the topic.";
         break;
       case "Part 3":
         preparationTime = 0;
-        speakingTime = 300; // 5 minutes
-        instructions = "Discuss the topic in depth. Give your opinion and support it with examples.";
+        speakingTime = 300;
+        instructions =
+          "Discuss the topic in depth. Give your opinion and support it with examples.";
         break;
     }
 
@@ -94,11 +95,28 @@ export default function AddSpeaking() {
     });
   };
 
-  // === Upload image ===
+  // === MULTI QUESTION HANDLERS ===
+  const addQuestion = () => {
+    setForm({ ...form, questions: [...form.questions, ""] });
+  };
+
+  const removeQuestion = (index) => {
+    setForm({
+      ...form,
+      questions: form.questions.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleQuestionChange = (index, value) => {
+    const updated = [...form.questions];
+    updated[index] = value;
+    setForm({ ...form, questions: updated });
+  };
+
+  // Upload image
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setUploading(true);
     setStatus({ icon: <Upload size={16} />, message: "Uploading image..." });
 
@@ -120,7 +138,7 @@ export default function AddSpeaking() {
       .finally(() => setUploading(false));
   };
 
-  // === Submit form ===
+  // Submit: gửi nhiều record cùng part
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -132,85 +150,40 @@ export default function AddSpeaking() {
       return;
     }
 
-    if (!form.displayOrder) {
+    if (form.questions.some((q) => !q.trim())) {
       setStatus({
         icon: <XCircle color="red" size={16} />,
-        message: "Please enter display order.",
+        message: "Please fill all question fields.",
       });
       return;
     }
 
-    if (!form.speakingQuestion.trim()) {
-      setStatus({
-        icon: <XCircle color="red" size={16} />,
-        message: "Please enter speaking question content.",
-      });
-      return;
-    }
-
-    setStatus({ icon: <Upload size={16} />, message: "Processing..." });
+    setStatus({ icon: <Upload size={16} />, message: "Adding questions..." });
 
     try {
-      // Only send fields that the backend currently supports
-      const payload = {
-        examId: form.examId,
-        speakingQuestion: form.speakingQuestion,
-        speakingType: form.speakingType,
-        displayOrder: parseInt(form.displayOrder),
-        // Note: imageUrl, preparationTime, speakingTime, instructions will be added to backend later
-      };
-
-      if (skill) {
-        await SpeakingApi.update(skill.speakingId, payload);
-        setStatus({
-          icon: <CheckCircle color="green" size={16} />,
-          message: "Updated speaking question successfully!",
-        });
-      } else {
+      // Gửi từng câu hỏi lên backend (mỗi câu là 1 record Speaking)
+      for (let i = 0; i < form.questions.length; i++) {
+        const payload = {
+          examId: form.examId,
+          speakingQuestion: form.questions[i],
+          speakingType: form.speakingType,
+          displayOrder: parseInt(form.displayOrder) + i, // tăng dần theo thứ tự câu
+        };
         await SpeakingApi.add(payload);
-        setStatus({
-          icon: <CheckCircle color="green" size={16} />,
-          message: "Speaking question added successfully!",
-        });
       }
 
-      setTimeout(() => navigate(-1), 1000);
+      setStatus({
+        icon: <CheckCircle color="green" size={16} />,
+        message: "All questions added successfully!",
+      });
+
+      setTimeout(() => navigate(-1), 1200);
     } catch (err) {
       console.error(err);
       setStatus({
         icon: <XCircle color="red" size={16} />,
-        message: "Failed to save speaking question.",
+        message: "Failed to add speaking questions.",
       });
-    }
-  };
-
-  // === Get sample questions based on speaking type ===
-  const getSampleQuestions = (speakingType) => {
-    switch (speakingType) {
-      case "Part 1":
-        return [
-          "What do you do for work?",
-          "Do you enjoy your job? Why or why not?",
-          "What do you like to do in your free time?",
-          "Tell me about your hometown.",
-          "Do you prefer living in the city or countryside?",
-        ];
-      case "Part 2":
-        return [
-          "Describe a memorable trip you have taken. You should say:\n- where you went\n- who you went with\n- what you did there\n- and explain why it was memorable",
-          "Describe a person who has influenced you. You should say:\n- who this person is\n- how you know them\n- what they have done\n- and explain why they influenced you",
-          "Describe your favorite book or movie. You should say:\n- what it is\n- what it is about\n- when you first experienced it\n- and explain why you like it",
-        ];
-      case "Part 3":
-        return [
-          "What are the advantages and disadvantages of living in a big city?",
-          "How has technology changed the way people communicate?",
-          "Do you think it's important for children to learn a second language? Why?",
-          "What role does education play in society?",
-          "How do you think the workplace will change in the future?",
-        ];
-      default:
-        return [];
     }
   };
 
@@ -222,25 +195,14 @@ export default function AddSpeaking() {
       <div className={styles.leftPanel}>
         <h2>
           <Mic size={22} style={{ marginRight: 6 }} />
-          {skill ? (
-            <>
-              <Pencil size={18} style={{ marginRight: 6 }} /> Edit Speaking for{" "}
-              {exam?.examName || exam?.ExamName}
-            </>
-          ) : (
-            <>
-              <PlusCircle size={18} style={{ marginRight: 6 }} /> Add Speaking for{" "}
-              {exam?.examName || exam?.ExamName}
-            </>
-          )}
+          <PlusCircle size={18} style={{ marginRight: 6 }} /> Add Speaking for{" "}
+          {exam?.examName || exam?.ExamName}
         </h2>
 
-        {exam && (
-          <p className={styles.examInfo}>
-            <strong>Exam:</strong> {exam.examName || exam.ExamName} (
-            {exam.examType || exam.ExamType})
-          </p>
-        )}
+        <p className={styles.examInfo}>
+          <strong>Exam:</strong> {exam?.examName || exam?.ExamName} (
+          {exam?.examType || exam?.ExamType})
+        </p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           {/* Speaking Type */}
@@ -252,43 +214,27 @@ export default function AddSpeaking() {
               onChange={handleSpeakingTypeChange}
               required
             >
-              <option value="Part 1">Part 1 - Introduction & Interview (4-5 min)</option>
-              <option value="Part 2">Part 2 - Individual Long Turn (3-4 min)</option>
-              <option value="Part 3">Part 3 - Two-way Discussion (4-5 min)</option>
+              <option value="Part 1">Part 1 - Introduction & Interview</option>
+              <option value="Part 2">Part 2 - Individual Long Turn</option>
+              <option value="Part 3">Part 3 - Two-way Discussion</option>
             </select>
-            <small className={styles.note}>
-              Choose the appropriate IELTS Speaking part
-            </small>
           </div>
 
           {/* Display Order */}
           <div className={styles.group}>
-            <label>Display Order</label>
+            <label>Display Order (base)</label>
             <input
               type="number"
               name="displayOrder"
               value={form.displayOrder}
               onChange={handleChange}
-              placeholder="1 for Part 1, 2 for Part 2, 3 for Part 3"
-              min={1}
-              max={3}
+              placeholder="Starting order number (e.g. 1)"
               required
             />
             <small className={styles.note}>
-              Determines part order (1 = Part 1, 2 = Part 2, 3 = Part 3)
+              Questions will auto-increment display order starting from this
+              number
             </small>
-          </div>
-
-          {/* Timing Information */}
-          <div className={styles.timingInfo}>
-            <div className={styles.timingCard}>
-              <Clock size={16} />
-              <span>Preparation: {form.preparationTime}s</span>
-            </div>
-            <div className={styles.timingCard}>
-              <MessageCircle size={16} />
-              <span>Speaking: {form.speakingTime}s</span>
-            </div>
           </div>
 
           {/* Instructions */}
@@ -302,44 +248,41 @@ export default function AddSpeaking() {
               rows={3}
               required
             />
-            <small className={styles.note}>
-              Instructions will be shown to the student before they start speaking
-            </small>
           </div>
 
-          {/* Speaking Question */}
+          {/* MULTI QUESTIONS */}
           <div className={styles.group}>
-            <label>Question Content</label>
-            <textarea
-              name="speakingQuestion"
-              value={form.speakingQuestion}
-              onChange={handleChange}
-              placeholder="Enter speaking question or topic..."
-              rows={8}
-              required
-            />
-            <small className={styles.note}>
-              For Part 2, include bullet points for what to cover
-            </small>
+            <label>Questions</label>
+            {form.questions.map((q, i) => (
+              <div key={i} className={styles.multiQuestionRow}>
+                <textarea
+                  value={q}
+                  onChange={(e) => handleQuestionChange(i, e.target.value)}
+                  placeholder={`Question ${i + 1}`}
+                  rows={2}
+                  required
+                />
+                {form.questions.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeQuestion(i)}
+                    className={styles.removeBtn}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addQuestion}
+              className={styles.addBtn}
+            >
+              + Add Another Question
+            </button>
           </div>
 
-          {/* Sample Questions */}
-          <div className={styles.sampleSection}>
-            <h4>Sample Questions for {form.speakingType}</h4>
-            <div className={styles.sampleQuestions}>
-              {getSampleQuestions(form.speakingType).map((question, index) => (
-                <div
-                  key={index}
-                  className={styles.sampleQuestion}
-                  onClick={() => setForm({ ...form, speakingQuestion: question })}
-                >
-                  {question}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Upload + Submit cùng hàng */}
+          {/* Upload & Submit */}
           <div className={styles.actionRow}>
             <div className={styles.uploadBox}>
               <input
@@ -356,15 +299,8 @@ export default function AddSpeaking() {
             </div>
 
             <button type="submit" className={styles.btnPrimary}>
-              {skill ? (
-                <>
-                  <Pencil size={16} style={{ marginRight: 6 }} /> Update Speaking
-                </>
-              ) : (
-                <>
-                  <PlusCircle size={16} style={{ marginRight: 6 }} /> Add Speaking
-                </>
-              )}
+              <PlusCircle size={16} style={{ marginRight: 6 }} /> Add All
+              Questions
             </button>
           </div>
         </form>
@@ -381,7 +317,7 @@ export default function AddSpeaking() {
         </button>
       </div>
 
-      {/* ===== Right panel: Preview ===== */}
+      {/* ===== Right panel (Preview) ===== */}
       <div className={styles.rightPanel}>
         <h3>
           <ImageIcon size={18} style={{ marginRight: 6 }} />
@@ -393,24 +329,15 @@ export default function AddSpeaking() {
             <Mic size={20} />
             <span>IELTS Speaking {form.speakingType}</span>
           </div>
-          
+
           <div className={styles.previewContent}>
             <h4>Instructions</h4>
             <p>{form.instructions || "(Instructions will appear here)"}</p>
-            
-            <h4>Question</h4>
-            <p>{form.speakingQuestion || "(Question content will appear here)"}</p>
-            
-            <div className={styles.previewTiming}>
-              <div className={styles.timingItem}>
-                <Clock size={14} />
-                <span>Prep: {form.preparationTime}s</span>
-              </div>
-              <div className={styles.timingItem}>
-                <MessageCircle size={14} />
-                <span>Speak: {form.speakingTime}s</span>
-              </div>
-            </div>
+
+            <h4>Questions</h4>
+            {form.questions.map((q, i) => (
+              <p key={i}>• {q || "(Empty question)"} </p>
+            ))}
           </div>
         </div>
 

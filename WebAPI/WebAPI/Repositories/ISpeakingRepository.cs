@@ -8,7 +8,8 @@ namespace WebAPI.Repositories
         IEnumerable<Speaking> GetByExamId(int examId);
         void Add(Speaking entity);
         void Update(Speaking entity);
-        void Delete(Speaking entity);
+        bool Delete(int id);
         void SaveChanges();
+        SpeakingAttempt GetOrCreateAttempt(int examId, int speakingId, int userId, string? audioUrl, string? transcript);
     }
 }

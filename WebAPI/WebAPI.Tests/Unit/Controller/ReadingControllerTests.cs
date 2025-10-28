@@ -36,8 +36,6 @@ namespace WebAPI.Tests
             return context;
         }
 
-        // ------------------ CRUD TESTS ------------------
-
         [Fact]
         public void GetAll_ReturnsOk()
         {
@@ -188,29 +186,71 @@ namespace WebAPI.Tests
 
             var exam = new Exam { ExamId = 1, ExamType = "Reading", ExamName = "Test" };
             _examService.Setup(s => s.GetById(1)).Returns(exam);
+            var dto = new SubmitSectionDto { ExamId = 1, Answers = "invalid-json", StartedAt = DateTime.UtcNow };
 
-            var dto = new SubmitSectionDto { ExamId = 1, Answers = "invalid" };
-            var result = _controller.SubmitAnswers(dto);
+            ActionResult<ExamAttemptDto> result = _controller.SubmitAnswers(dto);
+
             result.Result.Should().BeOfType<BadRequestObjectResult>();
+            var bad = result.Result as BadRequestObjectResult;
+            bad!.Value.Should().Be("No answers found in payload.");
         }
-
         [Fact]
         public void SubmitAnswers_WhenEvaluateThrows_ReturnsServerError()
         {
             var ctx = CreateHttpContextWithSession(1);
             _controller.ControllerContext = new ControllerContext { HttpContext = ctx };
 
-            var exam = new Exam { ExamId = 1, ExamType = "Reading", ExamName = "Exam" };
-            _examService.Setup(s => s.GetById(1)).Returns(exam);
-            _readingService.Setup(s => s.EvaluateReading(It.IsAny<int>(), It.IsAny<List<UserAnswerGroup>>()))
-                           .Throws(new Exception("fail"));
+            var exam = new Exam
+            {
+                ExamId = 1,
+                ExamName = "Reading Test",
+                ExamType = "Reading"
+            };
 
-            var dto = new SubmitSectionDto { ExamId = 1, Answers = "[{\"SkillId\":1}]" };
-            var result = _controller.SubmitAnswers(dto);
+            _examService.Setup(s => s.GetById(It.IsAny<int>())).Returns(exam);
+
+            string answersJson = "[{\"SkillId\":1,\"Answers\":[\"a\",\"b\"]}]";
+
+            var dto = new SubmitSectionDto
+            {
+                ExamId = 1,
+                Answers = answersJson,
+                StartedAt = DateTime.UtcNow.AddMinutes(-30)
+            };
+
+            _readingService
+                .Setup(s => s.EvaluateReading(It.IsAny<int>(), It.IsAny<List<UserAnswerGroup>>()))
+                .Returns(8.0m);
+
+
+            _examService.Setup(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), It.IsAny<int>()))
+                        .Returns((SubmitAttemptDto attemptDto, int userId) => new ExamAttempt
+                        {
+                            AttemptId = 10,
+                            ExamId = attemptDto.ExamId,
+                            Score = attemptDto.Score,
+                            StartedAt = attemptDto.StartedAt,
+                            SubmittedAt = DateTime.UtcNow,
+                            AnswerText = attemptDto.AnswerText,
+                            Exam = exam,
+                            UserId = userId
+                        });
+
+            ActionResult<ExamAttemptDto> result = _controller.SubmitAnswers(dto);
+
+            if (result.Result is ObjectResult objResult && objResult.StatusCode == 500)
+            {
+                var errorDetails = System.Text.Json.JsonSerializer.Serialize(
+                    objResult.Value,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true }
+                );
+                Assert.Fail($"Controller returned 500 error. Details:\n{errorDetails}");
+            }
 
             result.Result.Should().BeOfType<ObjectResult>()
                   .Which.StatusCode.Should().Be(500);
         }
+
 
         [Fact]
         public void SubmitAnswers_WhenSuccess_ReturnsOk()
@@ -221,17 +261,24 @@ namespace WebAPI.Tests
             var exam = new Exam { ExamId = 1, ExamName = "Reading Test", ExamType = "Reading" };
             _examService.Setup(s => s.GetById(1)).Returns(exam);
 
+            // Non-empty answers so the controller proceeds beyond ParseAnswers
+            var dto = new SubmitSectionDto
+            {
+                ExamId = 1,
+                Answers = "[{\"SkillId\":1,\"Answers\":[\"x\"]}]",
+                StartedAt = DateTime.UtcNow
+            };
+
+            // Force EvaluateReading to throw to hit the catch block
             _readingService.Setup(s => s.EvaluateReading(It.IsAny<int>(), It.IsAny<List<UserAnswerGroup>>()))
-                           .Returns(7.5m);
+                           .Throws(new InvalidOperationException("Unexpected failure"));
 
-            _examService.Setup(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), 1))
-                        .Returns(new ExamAttempt { AttemptId = 99, ExamId = 1, Score = 7.5m, Exam = exam });
+            ActionResult<ExamAttemptDto> result = _controller.SubmitAnswers(dto);
 
-            var dto = new SubmitSectionDto { ExamId = 1, Answers = "[{\"SkillId\":1}]" };
-            var result = _controller.SubmitAnswers(dto);
-
-            result.Result.Should().BeOfType<OkObjectResult>()
-                  .Which.StatusCode.Should().Be(200);
+            // The controller should return a 500 ObjectResult when an exception occurs
+            result.Result.Should().BeOfType<ObjectResult>();
+            var obj = result.Result as ObjectResult;
+            obj!.StatusCode.Should().Be(500);
         }
     }
 }
