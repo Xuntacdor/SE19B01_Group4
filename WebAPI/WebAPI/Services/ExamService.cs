@@ -1,4 +1,5 @@
-﻿using WebAPI.Data;
+﻿using System.Text.Json;
+using WebAPI.Data;
 using WebAPI.DTOs;
 using WebAPI.Models;
 using WebAPI.Repositories;
@@ -93,6 +94,56 @@ namespace WebAPI.Services
         {
             _repo.SaveChanges();
             _attemptRepo.SaveChanges();
+        }
+
+        public static List<UserAnswerGroup> ParseAnswers(object? raw)
+        {
+            if (raw == null) return new();
+
+            try
+            {
+                string jsonString;
+
+                if (raw is JsonElement el)
+                {
+                    var text = el.GetRawText();
+                    jsonString = text.StartsWith("\"")
+                        ? JsonSerializer.Deserialize<string>(text) ?? "[]"
+                        : text;
+                }
+                else if (raw is string s)
+                {
+                    jsonString = s.TrimStart().StartsWith("\"")
+                        ? JsonSerializer.Deserialize<string>(s) ?? "[]"
+                        : s;
+                }
+                else
+                {
+                    jsonString = raw.ToString() ?? "[]";
+                }
+
+                // Try to parse list
+                var groups = JsonSerializer.Deserialize<List<UserAnswerGroup>>(
+                    jsonString,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                ) ?? new();
+
+                // Sanitize malformed cases
+                if (groups.Count == 0) return new();
+
+                // Fix placeholders if any
+                foreach (var g in groups)
+                {
+                    if (g.Answers == null) g.Answers = new();
+                }
+
+                return groups;
+            }
+            catch
+            {
+                // ✅ Always return empty list instead of throwing
+                return new();
+            }
         }
     }
 }

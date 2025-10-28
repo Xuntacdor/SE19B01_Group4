@@ -9,30 +9,30 @@ namespace WebAPI.Controllers
     [Route("api/[controller]")]
     public class ListeningController : ControllerBase
     {
-        private readonly IListeningService _ListeningService;
+        private readonly IListeningService _listeningService;
         private readonly IExamService _examService;
 
         public ListeningController(IListeningService ListeningService, IExamService examService)
         {
-            _ListeningService = ListeningService;
+            _listeningService = ListeningService;
             _examService = examService;
         }
 
         [HttpGet]
         public ActionResult<IEnumerable<ListeningDto>> GetAll()
-            => Ok(_ListeningService.GetAll());
+            => Ok(_listeningService.GetAll());
 
         [HttpGet("{id:int}")]
         public ActionResult<ListeningDto> GetById(int id)
         {
-            var Listening = _ListeningService.GetById(id);
+            var Listening = _listeningService.GetById(id);
             return Listening == null ? NotFound() : Ok(Listening);
         }
 
         [HttpGet("exam/{examId:int}")]
         public ActionResult<IEnumerable<ListeningDto>> GetByExam(int examId)
         {
-            var Listenings = _ListeningService.GetListeningsByExam(examId);
+            var Listenings = _listeningService.GetListeningsByExam(examId);
             var result = Listenings.Select(r => new ListeningDto
             {
                 ListeningId = r.ListeningId,
@@ -54,7 +54,7 @@ namespace WebAPI.Controllers
         {
             if (dto == null) return BadRequest("Invalid data.");
 
-            var created = _ListeningService.Add(dto);
+            var created = _listeningService.Add(dto);
             if (created == null) return StatusCode(500, "Failed to create Listening.");
 
             return CreatedAtAction(nameof(GetById), new { id = created.ListeningId }, created);
@@ -65,13 +65,13 @@ namespace WebAPI.Controllers
         public IActionResult Update(int id, [FromBody] UpdateListeningDto dto)
         {
             if (dto == null) return BadRequest("Invalid Listening data.");
-            return _ListeningService.Update(id, dto) ? NoContent() : NotFound("Listening not found.");
+            return _listeningService.Update(id, dto) ? NoContent() : NotFound("Listening not found.");
         }
 
         // ✅ DELETE Listening
         [HttpDelete("{id:int}")]
         public IActionResult Delete(int id)
-            => _ListeningService.Delete(id) ? NoContent() : NotFound("Listening not found.");
+            => _listeningService.Delete(id) ? NoContent() : NotFound("Listening not found.");
 
         // ✅ SUBMIT Listening answers by exam
         [HttpPost("submit")]
@@ -90,15 +90,16 @@ namespace WebAPI.Controllers
                 if (exam == null)
                     return NotFound("Exam not found.");
 
-                // ✅ Parse answers (controller stays responsible for decoding payload)
-                var structuredAnswers = ParseAnswers(dto.Answers);
-                if (structuredAnswers == null || structuredAnswers.Count == 0)
+                // Parse answers safely
+                var structuredAnswers = ExamService.ParseAnswers(dto.Answers);
+
+                // ❗ Important: treat “no actual answers” as 400
+                if (structuredAnswers == null || !structuredAnswers.Any(g => g.Answers != null && g.Answers.Count > 0))
                     return BadRequest("No answers found in payload.");
 
-                // ✅ Evaluate score
-                var score = _ListeningService.EvaluateListening(dto.ExamId, structuredAnswers);
+                // Evaluate — any exception here is a true server error for the test
+                var score = _listeningService.EvaluateListening(dto.ExamId, structuredAnswers);
 
-                // ✅ Build attempt data for saving
                 var attemptDto = new SubmitAttemptDto
                 {
                     ExamId = dto.ExamId,
@@ -107,10 +108,8 @@ namespace WebAPI.Controllers
                     Score = score
                 };
 
-                // ✅ Save attempt
                 var attempt = _examService.SubmitAttempt(attemptDto, userId.Value);
 
-                // Use the 'exam' object that was fetched and validated earlier in the method.
                 return Ok(new ExamAttemptDto
                 {
                     AttemptId = attempt.AttemptId,
@@ -125,54 +124,12 @@ namespace WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine("=== SubmitAnswers exception ===");
-                Console.WriteLine(ex.GetType().Name + ": " + ex.Message);
-                Console.WriteLine(ex.StackTrace);
+                // ✅ For the test “WhenExceptionThrown_ReturnsServerError”, this must be 500
                 return StatusCode(500, new
                 {
                     Message = "Error submitting listening answers.",
                     Exception = ex.Message
                 });
-            }
-        }
-
-        /// <summary>
-        /// Safely parses the raw Answers object (string, JSON element, etc.)
-        /// </summary>
-        private List<UserAnswerGroup> ParseAnswers(object? raw)
-        {
-            if (raw == null) return new();
-
-            try
-            {
-                string jsonString;
-
-                if (raw is JsonElement el)
-                {
-                    var text = el.GetRawText();
-                    jsonString = text.StartsWith("\"")
-                        ? JsonSerializer.Deserialize<string>(text)!
-                        : text;
-                }
-                else if (raw is string s)
-                {
-                    jsonString = s.TrimStart().StartsWith("\"")
-                        ? JsonSerializer.Deserialize<string>(s)!
-                        : s;
-                }
-                else
-                {
-                    jsonString = raw.ToString() ?? "[]";
-                }
-
-                return JsonSerializer.Deserialize<List<UserAnswerGroup>>(
-                    jsonString,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                ) ?? new();
-            }
-            catch
-            {
-                return new();
             }
         }
     }

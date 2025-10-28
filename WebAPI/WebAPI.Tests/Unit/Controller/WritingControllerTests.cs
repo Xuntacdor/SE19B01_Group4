@@ -1,17 +1,13 @@
-﻿using Xunit;
+﻿using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
-using FluentAssertions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using WebAPI.Controllers;
 using WebAPI.DTOs;
-using WebAPI.Services;
 using WebAPI.Models;
+using WebAPI.Services;
 
 namespace WebAPI.Tests
 {
@@ -339,10 +335,10 @@ namespace WebAPI.Tests
             var examId = 1;
             var userId = 123;
             var feedbacks = new List<WritingFeedback>
-    {
-        new WritingFeedback { WritingId = 1, Overall = 7, GrammarAccuracy = 6, TaskAchievement = 8, CoherenceCohesion = 7, LexicalResource = 7, CreatedAt = DateTime.UtcNow },
-        new WritingFeedback { WritingId = 2, Overall = 8, GrammarAccuracy = 7, TaskAchievement = 8, CoherenceCohesion = 7, LexicalResource = 8, CreatedAt = DateTime.UtcNow }
-    };
+            {
+                new WritingFeedback { WritingId = 1, Overall = 7, GrammarAccuracy = 6, TaskAchievement = 8, CoherenceCohesion = 7, LexicalResource = 7, CreatedAt = DateTime.UtcNow },
+                new WritingFeedback { WritingId = 2, Overall = 8, GrammarAccuracy = 7, TaskAchievement = 8, CoherenceCohesion = 7, LexicalResource = 8, CreatedAt = DateTime.UtcNow }
+            };
             _feedbackServiceMock.Setup(f => f.GetByExamAndUser(examId, userId)).Returns(feedbacks);
 
             var controller = CreateController("123");
