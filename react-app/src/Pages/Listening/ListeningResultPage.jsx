@@ -7,6 +7,21 @@ import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 import styles from "./ListeningResultPage.module.css";
 import { Headphones } from "lucide-react";
 
+// Wrap [H*id]...[/H] regions in the TRANSCRIPT with inert anchors (no highlight by default)
+function wrapTranscriptAnchors(raw) {
+  if (!raw) return "";
+  return String(raw).replace(
+    /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
+    (_, rawId, inner) => {
+      const hid = (rawId || "").trim();
+      const body = inner.replace(/\r?\n/g, "<br/>");
+      const data = hid ? ` data-hid="${hid.replace(/"/g, "&quot;")}"` : "";
+      // no highlight class by default; we only add it when explanation opens
+      return `<span class="passageTarget"${data}>${body}</span>`;
+    }
+  );
+}
+
 export default function ListeningResultPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -15,6 +30,53 @@ export default function ListeningResultPage() {
   const [listenings, setListenings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+
+  // Keep highlight state in sync with <details.explainBlock> on the RIGHT panel:
+  // - When opened: add highlight to the matching transcript span and scroll into view.
+  // - When closed: remove highlight unless another open block with the same id exists.
+  useEffect(() => {
+    function handleToggle(e) {
+      const details =
+        e.target instanceof HTMLElement &&
+        e.target.matches("details.explainBlock")
+          ? e.target
+          : null;
+      if (!details) return;
+
+      const hid =
+        details.getAttribute("data-hid") ||
+        details.querySelector("summary.explainBtn")?.getAttribute("data-hid");
+      if (!hid) return;
+
+      const container = details.closest(`.${styles.resultContainer}`);
+      if (!container) return;
+
+      const leftPanel = container.querySelector(`.${styles.leftPanel}`);
+      if (!leftPanel) return;
+
+      const target = leftPanel.querySelector(
+        `.passageTarget[data-hid="${CSS.escape(hid)}"]`
+      );
+      if (!target) return;
+
+      if (details.open) {
+        target.classList.add("passageHighlight");
+        target.classList.add("pulseOnce");
+        setTimeout(() => target.classList.remove("pulseOnce"), 1200);
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        const anyOtherOpen = container.querySelectorAll(
+          `details.explainBlock[open][data-hid="${CSS.escape(hid)}"]`
+        ).length;
+        if (!anyOtherOpen) {
+          target.classList.remove("passageHighlight", "pulseOnce");
+        }
+      }
+    }
+
+    document.addEventListener("toggle", handleToggle, true);
+    return () => document.removeEventListener("toggle", handleToggle, true);
+  }, []);
 
   if (!state) {
     return (
@@ -142,7 +204,7 @@ export default function ListeningResultPage() {
 
     correctAnswers.forEach((ans, i) => {
       const userAns = userAnswers[i] || "_";
-      if (userAns.trim().toLowerCase() === ans.trim().toLowerCase()) {
+      if (String(userAns).trim().toLowerCase() === String(ans).trim().toLowerCase()) {
         correctCount++;
       }
     });
@@ -202,6 +264,7 @@ export default function ListeningResultPage() {
             <div key={i} className={styles.resultContainer}>
               <div className={styles.leftPanel}>
                 <h3>Part {l.displayOrder || i + 1}</h3>
+
                 {l.audioUrl ? (
                   <audio controls className={styles.audioPlayer}>
                     <source src={l.audioUrl} type="audio/mpeg" />
@@ -210,12 +273,13 @@ export default function ListeningResultPage() {
                 ) : (
                   <p className={styles.noAudio}>No audio available</p>
                 )}
+
                 {l.listeningTranscript && (
                   <div className={styles.transcriptBox}>
                     <h4>Transcript</h4>
                     <div
                       dangerouslySetInnerHTML={{
-                        __html: l.listeningTranscript,
+                        __html: wrapTranscriptAnchors(l.listeningTranscript),
                       }}
                     />
                   </div>

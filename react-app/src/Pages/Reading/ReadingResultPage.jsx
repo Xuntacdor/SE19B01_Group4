@@ -6,6 +6,21 @@ import * as ExamApi from "../../Services/ExamApi";
 import styles from "./ReadingResultPage.module.css";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 
+// Wrap [H*id]...[/H] regions in the PASSAGE with inert anchors (no highlight by default)
+function wrapPassageAnchors(raw) {
+  if (!raw) return "";
+  return String(raw).replace(
+    /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
+    (_, rawId, inner) => {
+      const hid = (rawId || "").trim();
+      const body = inner.replace(/\r?\n/g, "<br/>");
+      const data = hid ? ` data-hid="${hid.replace(/"/g, "&quot;")}"` : "";
+      // no highlight class by default; we only add it when explanation opens
+      return `<span class="passageTarget"${data}>${body}</span>`;
+    }
+  );
+}
+
 export default function ReadingResultPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -14,6 +29,57 @@ export default function ReadingResultPage() {
   const [readings, setReadings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+
+  // Keep highlight state in sync with the <details> element:
+  // - When a details.explainBlock opens: scroll + add highlight
+  // - When it closes: remove highlight (only if no other open block shares the same id)
+  useEffect(() => {
+    function handleToggle(e) {
+      const details =
+        e.target instanceof HTMLElement &&
+        e.target.matches("details.explainBlock")
+          ? e.target
+          : null;
+      if (!details) return;
+
+      const hid =
+        details.getAttribute("data-hid") ||
+        details.querySelector("summary.explainBtn")?.getAttribute("data-hid");
+      if (!hid) return;
+
+      const container = details.closest(`.${styles.resultContainer}`);
+      if (!container) return;
+      const leftPanel = container.querySelector(`.${styles.leftPanel}`);
+      if (!leftPanel) return;
+
+      const target = leftPanel.querySelector(
+        `.passageTarget[data-hid="${CSS.escape(hid)}"]`
+      );
+      if (!target) return;
+
+      if (details.open) {
+        // Opening -> add highlight and pulse, then scroll into view
+        target.classList.add("passageHighlight");
+        target.classList.add("pulseOnce");
+        setTimeout(() => {
+          target.classList.remove("pulseOnce");
+        }, 1200);
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        // Closing -> only remove highlight if NO other open details with same id exist in this container
+        const anyOtherOpen = container.querySelectorAll(
+          `details.explainBlock[open][data-hid="${CSS.escape(hid)}"]`
+        ).length;
+        if (!anyOtherOpen) {
+          target.classList.remove("passageHighlight", "pulseOnce");
+        }
+      }
+    }
+
+    // Use capture so we catch native <details> toggle even if it doesn't bubble in all browsers
+    document.addEventListener("toggle", handleToggle, true);
+    return () => document.removeEventListener("toggle", handleToggle, true);
+  }, []);
 
   if (!state) {
     return (
@@ -102,21 +168,14 @@ export default function ReadingResultPage() {
     }
   })();
 
-  // Build map: readingId → userAnswers
   const userAnswerMap = new Map();
   parsedAnswers.forEach((g) => {
-    if (g.SkillId && g.Answers) {
-      userAnswerMap.set(g.SkillId, g.Answers);
-    }
+    if (g.SkillId && g.Answers) userAnswerMap.set(g.SkillId, g.Answers);
   });
 
-  // 🟢 NEW: Detect full vs partial attempt
   const attemptedSkillIds = [...userAnswerMap.keys()];
-  const totalSkills = readings.length;
-  const attemptedSkills = attemptedSkillIds.length;
-  const isFullExam = totalSkills > 0 && attemptedSkills === totalSkills;
 
-  // ===== Compute totals =====
+  // ===== Totals =====
   let totalQuestions = 0;
   let correctCount = 0;
 
@@ -126,7 +185,6 @@ export default function ReadingResultPage() {
     return [];
   };
 
-  // 🟢 Only evaluate readings that were actually attempted
   const readingsWithCorrect = readings
     .filter((r) => attemptedSkillIds.includes(r.readingId))
     .map((r) => {
@@ -136,49 +194,32 @@ export default function ReadingResultPage() {
       } catch {
         correctAnswers = {};
       }
-
       const userAnswers = userAnswerMap.get(r.readingId) || {};
       const correctKeys = Object.keys(correctAnswers);
 
-      // 🟢 Count total correct options instead of questions
       correctKeys.forEach((key) => {
         const userVal = normalize(userAnswers[key] || []);
         const correctVal = normalize(correctAnswers[key] || []);
-
-        // Each correct option counts individually
         totalQuestions += correctVal.length;
-
-        // Count how many of those the user got right
         correctVal.forEach((opt) => {
-          if (userVal.map((v) => v.toLowerCase()).includes(opt.toLowerCase())) {
-            correctCount++;
-          }
+          if (userVal.includes(opt.toLowerCase())) correctCount++;
         });
       });
-      
+
       return { ...r, correctAnswers, userAnswers };
     });
 
   const accuracy =
     totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
 
-  // ===== Render =====
   return (
     <div className={styles.pageLayout}>
       <GeneralSidebar />
       <div className={styles.mainContent}>
-        {/* ===== Header ===== */}
         <div className={styles.header}>
           <h2>Reading Result — {examName || attempt.examName}</h2>
-          {!isFullExam && (
-            <p className={styles.partialNotice}>
-              ⚠️ You completed only {attemptedSkills}/{totalSkills} part(s) of
-              this exam. The score shown below reflects a partial attempt.
-            </p>
-          )}
         </div>
 
-        {/* ===== Band Summary ===== */}
         <div className={styles.bandScoreBox}>
           <div className={styles.bandOverall}>
             <h4>IELTS Band</h4>
@@ -202,37 +243,35 @@ export default function ReadingResultPage() {
           </div>
         </div>
 
-        {/* ===== Embedded Correction ===== */}
-        {readingsWithCorrect
-          .filter((r) => attemptedSkillIds.includes(r.readingId)) // 🟢 NEW: show only attempted parts
-          .map((r, i) => (
-            <div key={i} className={styles.resultContainer}>
-              <div className={styles.leftPanel}>
-                <h3>Passage {r.displayOrder || i + 1}</h3>
-                <div
-                  className={styles.passageContent}
-                  dangerouslySetInnerHTML={{
-                    __html: r.readingContent || "<i>No passage content</i>",
-                  }}
-                />
-              </div>
-
-              <div className={styles.rightPanel}>
-                <h3>Questions & Answers</h3>
-                <ExamMarkdownRenderer
-                  markdown={r.readingQuestion}
-                  showAnswers={true}
-                  userAnswers={[
-                    { SkillId: r.readingId, Answers: r.userAnswers },
-                  ]}
-                  correctAnswers={[
-                    { SkillId: r.readingId, Answers: r.correctAnswers },
-                  ]}
-                  readingId={r.readingId}
-                />
-              </div>
+        {readingsWithCorrect.map((r, i) => (
+          <div key={i} className={styles.resultContainer}>
+            <div className={styles.leftPanel}>
+              <h3>Passage {r.displayOrder || i + 1}</h3>
+              <div
+                className={styles.passageContent}
+                dangerouslySetInnerHTML={{
+                  __html:
+                    wrapPassageAnchors(r.readingContent) ||
+                    "<i>No passage content</i>",
+                }}
+              />
             </div>
-          ))}
+
+            <div className={styles.rightPanel}>
+              <h3>Questions & Answers</h3>
+              <ExamMarkdownRenderer
+                markdown={r.readingQuestion}
+                showAnswers={true}
+                userAnswers={[{ SkillId: r.readingId, Answers: r.userAnswers }]}
+                correctAnswers={[
+                  { SkillId: r.readingId, Answers: r.correctAnswers },
+                ]}
+                readingId={r.readingId}
+              />
+            </div>
+          </div>
+        ))}
+
         <div className={styles.footer}>
           <button
             className={styles.backBtn}
