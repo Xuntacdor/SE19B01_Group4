@@ -4,17 +4,15 @@ using WebAPI.Models;
 
 namespace WebAPI.ExternalServices
 {
-    public class DictionaryApiClient
+    public class DictionaryApiClient : IDictionaryApiClient
     {
         const string BaseUrl = "https://api.dictionaryapi.dev/api/v2/entries/en/";
         private readonly HttpClient _httpClient;
-
         public DictionaryApiClient(HttpClient httpClient)
         {
             _httpClient = httpClient;
             _httpClient.BaseAddress = new Uri(BaseUrl);
         }
-
         public Word? GetWord(string term)
         {
             var url = BaseUrl + term;
@@ -34,25 +32,19 @@ namespace WebAPI.ExternalServices
 
             string? meaning = null;
             string? example = null;
-
-            // ✅ Lấy nghĩa đầu tiên duy nhất
             if (entry.TryGetProperty("meanings", out var meanings) && meanings.GetArrayLength() > 0)
             {
                 var firstMeaning = meanings[0];
-
                 if (firstMeaning.TryGetProperty("definitions", out var definitions) && definitions.GetArrayLength() > 0)
                 {
                     var firstDef = definitions[0];
 
                     if (firstDef.TryGetProperty("definition", out var defProp))
                         meaning = defProp.GetString();
-
                     if (firstDef.TryGetProperty("example", out var exProp))
                         example = exProp.GetString();
                 }
             }
-
-            // ✅ Lấy audio (nếu có)
             string? audio = null;
             if (entry.TryGetProperty("phonetics", out var phonetics) && phonetics.GetArrayLength() > 0)
             {
@@ -65,7 +57,6 @@ namespace WebAPI.ExternalServices
                     }
                 }
             }
-
             return new Word
             {
                 Term = wordText,

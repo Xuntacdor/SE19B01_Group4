@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <Folder Include="coverage\" />
+    <Folder Include="TestResults\" />
   </ItemGroup>
 
 </Project>

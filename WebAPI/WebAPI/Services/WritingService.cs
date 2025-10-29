@@ -10,13 +10,13 @@ namespace WebAPI.Services
     {
         private readonly IWritingRepository _writingRepo;
         private readonly IWritingFeedbackRepository _feedbackRepo;
-        private readonly IOpenAIService _openAI; // ✅ Dùng interface thay vì class cụ thể
+        private readonly IOpenAIService _openAI;
         private readonly IExamService _examService;
 
         public WritingService(
             IWritingRepository writingRepo,
             IWritingFeedbackRepository feedbackRepo,
-            IOpenAIService openAI, // ✅ Inject interface
+            IOpenAIService openAI, 
             IExamService examService)
         {
             _writingRepo = writingRepo;
@@ -24,10 +24,6 @@ namespace WebAPI.Services
             _openAI = openAI;
             _examService = examService;
         }
-
-        // =====================
-        // == CRUD METHODS ==
-        // =====================
         public WritingDTO? GetById(int id)
         {
             var w = _writingRepo.GetById(id);
@@ -158,19 +154,15 @@ namespace WebAPI.Services
                 {
                     attempt = _examService.GetAttemptById(attemptSummary.AttemptId)
                               ?? throw new Exception("ExamAttempt not found in database.");
-
                     if (string.IsNullOrEmpty(attempt.AnswerText))
                     {
                         attempt.AnswerText = answerText;
                         _examService.Save();
                     }
                 }
-
                 var band = feedback.RootElement.GetProperty("band_estimate");
-
                 var existing = _feedbackRepo.GetAll()
                     .FirstOrDefault(f => f.AttemptId == attempt.AttemptId && f.WritingId == writingId);
-
                 if (existing != null)
                 {
                     existing.TaskAchievement = band.GetProperty("task_achievement").GetDecimal();
@@ -181,7 +173,6 @@ namespace WebAPI.Services
                     existing.GrammarVocabJson = feedback.RootElement.GetProperty("grammar_vocab").GetRawText();
                     existing.FeedbackSections = feedback.RootElement.GetProperty("overall_feedback").GetRawText();
                     existing.CreatedAt = DateTime.UtcNow;
-
                     _feedbackRepo.Update(existing);
                 }
                 else
@@ -202,7 +193,6 @@ namespace WebAPI.Services
 
                     _feedbackRepo.Add(entity);
                 }
-
                 _feedbackRepo.SaveChanges();
             }
             catch (Exception ex)
@@ -210,7 +200,6 @@ namespace WebAPI.Services
                 Console.WriteLine($"[SaveFeedback] Failed: {ex.Message}");
             }
         }
-
         private static WritingDTO MapToDto(Writing w) =>
             new WritingDTO
             {
