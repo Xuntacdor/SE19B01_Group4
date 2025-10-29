@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using WebAPI.Models;
 
+namespace WebAPI.Models;
+
 public partial class Writing
 {
     public int WritingId { get; set; }
