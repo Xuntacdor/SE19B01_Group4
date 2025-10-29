@@ -2,6 +2,7 @@ using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI.DTOs;
+using WebAPI.Services;
 
 namespace WebAPI.Controllers
 {
@@ -9,16 +10,11 @@ namespace WebAPI.Controllers
     [Route("api/[controller]")]
     public class UploadController : ControllerBase
     {
-        private readonly Cloudinary _cloudinary;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public UploadController(IConfiguration config)
+        public UploadController(ICloudinaryService cloudinaryService)
         {
-            var acc = new Account(
-                config["Cloudinary:CloudName"],
-                config["Cloudinary:ApiKey"],
-                config["Cloudinary:ApiSecret"]
-            );
-            _cloudinary = new Cloudinary(acc);
+            _cloudinaryService = cloudinaryService;
         }
 
         [HttpPost("image")]
@@ -37,7 +33,7 @@ namespace WebAPI.Controllers
                 Overwrite = false
             };
 
-            var result = _cloudinary.Upload(uploadParams);
+            var result = _cloudinaryService.Upload(uploadParams);
             return Ok(new { url = result.SecureUrl.ToString() });
         }
 
@@ -57,7 +53,7 @@ namespace WebAPI.Controllers
                 Overwrite = false,
             };
 
-            var result = _cloudinary.Upload(uploadParams, "video");
+            var result = _cloudinaryService.Upload(uploadParams, "video");
 
             if (result.Error != null)
             {
@@ -71,7 +67,6 @@ namespace WebAPI.Controllers
             return Ok(new { url = result.SecureUrl.ToString() });
         }
 
-
         [HttpPost("document")]
         [Consumes("multipart/form-data")]
         public IActionResult UploadDocument([FromForm] UploadFileDto dto)
@@ -79,14 +74,12 @@ namespace WebAPI.Controllers
             if (dto.File == null || dto.File.Length == 0)
                 return BadRequest("No document uploaded.");
 
-            // Validate file type
             var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".txt", ".rtf", ".xls", ".xlsx", ".ppt", ".pptx" };
             var fileExtension = Path.GetExtension(dto.File.FileName).ToLowerInvariant();
 
             if (!allowedExtensions.Contains(fileExtension))
                 return BadRequest($"File type {fileExtension} is not allowed. Allowed types: {string.Join(", ", allowedExtensions)}");
 
-            // Validate file size (10MB limit)
             if (dto.File.Length > 10 * 1024 * 1024)
                 return BadRequest("File size must be less than 10MB.");
 
@@ -99,7 +92,7 @@ namespace WebAPI.Controllers
                 Overwrite = false
             };
 
-            var result = _cloudinary.Upload(uploadParams);
+            var result = _cloudinaryService.Upload(uploadParams);
             return Ok(new
             {
                 url = result.SecureUrl.ToString(),
@@ -120,7 +113,6 @@ namespace WebAPI.Controllers
             var fileName = dto.File.FileName;
             var fileSize = dto.File.Length;
 
-            // Determine file type and folder
             string folder;
             if (IsImageFile(fileExtension))
             {
@@ -133,12 +125,12 @@ namespace WebAPI.Controllers
                     UniqueFilename = true,
                     Overwrite = false
                 };
-                var result = _cloudinary.Upload(uploadParams);
-                
+                var result = _cloudinaryService.Upload(uploadParams);
+
                 var secureUrl = result.SecureUrl?.ToString() ?? result.Url?.ToString();
-                
+
                 Console.WriteLine($"Uploaded image URL: {secureUrl}");
-                
+
                 return Ok(new
                 {
                     url = secureUrl,
@@ -151,7 +143,6 @@ namespace WebAPI.Controllers
             else if (IsDocumentFile(fileExtension))
             {
                 folder = "ieltsphobic/documents";
-                // Validate file size (10MB limit for documents)
                 if (fileSize > 10 * 1024 * 1024)
                     return BadRequest("Document file size must be less than 10MB.");
             }
@@ -173,7 +164,7 @@ namespace WebAPI.Controllers
                 Overwrite = false
             };
 
-            var rawResult = _cloudinary.Upload(rawUploadParams);
+            var rawResult = _cloudinaryService.Upload(rawUploadParams);
             return Ok(new
             {
                 url = rawResult.SecureUrl.ToString(),
