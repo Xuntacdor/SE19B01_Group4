@@ -53,11 +53,12 @@ namespace WebAPI.Controllers
             {
                 var user = _userService.Authenticate(dto.Email, dto.Password);
 
+                HttpContext.Session.SetInt32("UserId", user.UserId);
+
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                                new Claim("UserId", user.UserId.ToString()),
-
+                    new Claim("UserId", user.UserId.ToString()),
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim(ClaimTypes.Role, user.Role)
@@ -73,7 +74,6 @@ namespace WebAPI.Controllers
                         ExpiresUtc = DateTimeOffset.UtcNow.AddHours(2)
                     }).GetAwaiter().GetResult();
 
-                HttpContext.Session.SetInt32("UserId", user.UserId);
                 try
                 {
                     var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -85,16 +85,15 @@ namespace WebAPI.Controllers
                     Console.WriteLine($"[AuthController] Failed to log sign-in: {ex.Message}");
                 }
 
-
                 return Ok(ToDto(user));
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Unauthorized(new { message = ex.Message });
+                return Unauthorized(new AuthResponse { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred during login" });
+                return StatusCode(500, new AuthResponse { message = "An error occurred during login" });
             }
         }
 
