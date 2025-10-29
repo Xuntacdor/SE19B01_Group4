@@ -200,6 +200,40 @@ namespace WebAPI.Tests.Units.Repository
         }
 
         [Fact]
+        public void RemoveWordFromGroup_GroupNotExists_DoesNothing()
+        {
+            using var context = CreateInMemoryContext();
+            var word = new Word { WordId = 1, Term = "test word" };
+            context.Word.Add(word);
+            context.SaveChanges();
+
+            var api = new DictionaryApiClient(new HttpClient());
+            var repo = new WordRepository(context, api);
+
+            repo.RemoveWordFromGroup(999, 1);
+
+            var updatedWord = context.Word.FirstOrDefault(w => w.WordId == 1);
+            Assert.NotNull(updatedWord);
+        }
+
+        [Fact]
+        public void RemoveWordFromGroup_WordNotExists_DoesNothing()
+        {
+            using var context = CreateInMemoryContext();
+            var group = new VocabGroup { GroupId = 1, Groupname = "Test Group", UserId = 1, CreatedAt = DateTime.Now };
+            context.VocabGroup.Add(group);
+            context.SaveChanges();
+
+            var api = new DictionaryApiClient(new HttpClient());
+            var repo = new WordRepository(context, api);
+
+            repo.RemoveWordFromGroup(1, 999);
+
+            var updatedGroup = context.VocabGroup.FirstOrDefault(g => g.GroupId == 1);
+            Assert.NotNull(updatedGroup);
+        }
+
+        [Fact]
         public void GetWordsByGroup_ReturnsWordsInGroup()
         {
             using var context = CreateInMemoryContext();

@@ -136,6 +136,111 @@ namespace WebAPI.Tests.Unit.Repositories
         }
 
         [Fact]
+        public void Delete_ShouldRemoveEntityAndCascadeDeleteAttempts_WhenAttemptsExist()
+        {
+            // Arrange - Create speaking with attempts
+            var speaking = new Speaking
+            {
+                ExamId = 1,
+                SpeakingQuestion = "ToDelete",
+                SpeakingType = "Part1",
+                DisplayOrder = 1,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Speakings.Add(speaking);
+            _context.SaveChanges();
+
+            var examAttempt = new ExamAttempt
+            {
+                ExamId = 1,
+                UserId = 100,
+                StartedAt = DateTime.UtcNow,
+                SubmittedAt = DateTime.UtcNow
+            };
+            _context.ExamAttempt.Add(examAttempt);
+            _context.SaveChanges();
+
+            var attempt = new SpeakingAttempt
+            {
+                AttemptId = examAttempt.AttemptId,
+                SpeakingId = speaking.SpeakingId,
+                AudioUrl = "test.mp3",
+                Transcript = "test transcript",
+                StartedAt = DateTime.UtcNow,
+                SubmittedAt = DateTime.UtcNow
+            };
+            _context.SpeakingAttempts.Add(attempt);
+            _context.SaveChanges();
+
+            var feedback = new SpeakingFeedback
+            {
+                SpeakingAttemptId = attempt.SpeakingAttemptId,
+                Pronunciation = 8.5m,
+                Fluency = 9.0m,
+                AiAnalysisJson = "{}",
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.SpeakingFeedbacks.Add(feedback);
+            _context.SaveChanges();
+
+            // Act
+            var result = _repo.Delete(speaking.SpeakingId);
+
+            // Assert
+            result.Should().BeTrue();
+            _context.Speakings.Should().BeEmpty();
+            _context.SpeakingAttempts.Should().BeEmpty();
+            _context.SpeakingFeedbacks.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Delete_ShouldRemoveEntityAndCascadeDeleteAttempts_WhenOnlyAttemptsExist()
+        {
+            // Arrange - Create speaking with attempts but no feedbacks
+            var speaking = new Speaking
+            {
+                ExamId = 1,
+                SpeakingQuestion = "ToDelete",
+                SpeakingType = "Part1",
+                DisplayOrder = 1,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Speakings.Add(speaking);
+            _context.SaveChanges();
+
+            var examAttempt = new ExamAttempt
+            {
+                ExamId = 1,
+                UserId = 100,
+                StartedAt = DateTime.UtcNow,
+                SubmittedAt = DateTime.UtcNow
+            };
+            _context.ExamAttempt.Add(examAttempt);
+            _context.SaveChanges();
+
+            var attempt = new SpeakingAttempt
+            {
+                AttemptId = examAttempt.AttemptId,
+                SpeakingId = speaking.SpeakingId,
+                AudioUrl = "test.mp3",
+                Transcript = "test transcript",
+                StartedAt = DateTime.UtcNow,
+                SubmittedAt = DateTime.UtcNow
+            };
+            _context.SpeakingAttempts.Add(attempt);
+            _context.SaveChanges();
+
+            // Act
+            var result = _repo.Delete(speaking.SpeakingId);
+
+            // Assert
+            result.Should().BeTrue();
+            _context.Speakings.Should().BeEmpty();
+            _context.SpeakingAttempts.Should().BeEmpty();
+            _context.SpeakingFeedbacks.Should().BeEmpty();
+        }
+
+        [Fact]
         public void GetOrCreateAttempt_ShouldCreateNew_WhenNoExisting()
         {
             var result = _repo.GetOrCreateAttempt(1, 10, 100, "audio.mp3", "text");
