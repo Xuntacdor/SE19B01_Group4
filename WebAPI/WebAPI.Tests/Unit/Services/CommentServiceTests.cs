@@ -499,6 +499,64 @@ namespace WebAPI.Tests.Unit.Services
             result!.VoteCount.Should().Be(2);
             result.LikeNumber.Should().Be(2);
         }
+
+        // ============ REPORT COMMENT ============
+
+        [Fact]
+        public void ReportComment_ValidComment_CreatesReport()
+        {
+            _commentService.ReportComment(1, "Spam content", 2);
+
+            var report = _context.Report.FirstOrDefault(r => r.CommentId == 1 && r.UserId == 2);
+            report.Should().NotBeNull();
+            report!.Content.Should().Be("Spam content");
+            report.Status.Should().Be("Pending");
+            report.CommentAuthorUserId.Should().Be(1); // Comment 1 is owned by user 1
+        }
+
+        [Fact]
+        public void ReportComment_NonExistentComment_ThrowsException()
+        {
+            Action act = () => _commentService.ReportComment(999, "Spam", 1);
+
+            act.Should().Throw<KeyNotFoundException>().WithMessage("Comment not found");
+        }
+
+        [Fact]
+        public void ReportComment_MultipleReports_AllSaved()
+        {
+            _commentService.ReportComment(1, "Inappropriate", 1);
+            _commentService.ReportComment(1, "Spam", 2);
+
+            var reports = _context.Report.Where(r => r.CommentId == 1).ToList();
+            reports.Should().HaveCount(2);
+            reports.Should().Contain(r => r.UserId == 1 && r.Content == "Inappropriate");
+            reports.Should().Contain(r => r.UserId == 2 && r.Content == "Spam");
+        }
+
+        [Fact]
+        public void ReportComment_SetsCorrectCreatedAt()
+        {
+            var beforeReport = DateTime.UtcNow;
+            _commentService.ReportComment(1, "Test report", 2);
+            var afterReport = DateTime.UtcNow;
+
+            var report = _context.Report.FirstOrDefault(r => r.CommentId == 1 && r.UserId == 2);
+            report.Should().NotBeNull();
+            report!.CreatedAt.Should().BeOnOrAfter(beforeReport);
+            report.CreatedAt.Should().BeOnOrBefore(afterReport);
+        }
+
+        [Fact]
+        public void ReportComment_StoresCommentAuthorUserId()
+        {
+            // Comment 2 is owned by user 2
+            _commentService.ReportComment(2, "Offensive language", 1);
+
+            var report = _context.Report.FirstOrDefault(r => r.CommentId == 2);
+            report.Should().NotBeNull();
+            report!.CommentAuthorUserId.Should().Be(2);
+        }
     }
 }
 
