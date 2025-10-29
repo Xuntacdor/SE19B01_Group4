@@ -1,174 +1,127 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using WebAPI.Data;
 using WebAPI.Models;
 using WebAPI.Repositories;
 using Xunit;
 
-namespace WebAPI.Tests
+namespace WebAPI.Tests.Units.Repository
 {
     public class ReadingRepositoryTests
     {
-        private Mock<ApplicationDbContext>? _dbContextMock;
-        private Mock<DbSet<Reading>>? _dbSetMock;
-
-        private void SetupMockRepository(List<Reading> data)
+        private ApplicationDbContext CreateInMemoryContext()
         {
-            var options = new DbContextOptionsBuilder<ApplicationDbContext>().Options;
-            _dbContextMock = new Mock<ApplicationDbContext>(options);
-
-            var queryable = data.AsQueryable();
-
-            _dbSetMock = new Mock<DbSet<Reading>>();
-            _dbSetMock.As<IQueryable<Reading>>().Setup(m => m.Provider).Returns(queryable.Provider);
-            _dbSetMock.As<IQueryable<Reading>>().Setup(m => m.Expression).Returns(queryable.Expression);
-            _dbSetMock.As<IQueryable<Reading>>().Setup(m => m.ElementType).Returns(queryable.ElementType);
-            _dbSetMock.As<IQueryable<Reading>>().Setup(m => m.GetEnumerator()).Returns(() => queryable.GetEnumerator());
-
-            _dbSetMock.Setup(m => m.Add(It.IsAny<Reading>())).Callback<Reading>(r => data.Add(r));
-            _dbSetMock.Setup(m => m.Update(It.IsAny<Reading>())).Callback<Reading>(r =>
-            {
-                var idx = data.FindIndex(x => x.ReadingId == r.ReadingId);
-                if (idx >= 0)
-                    data[idx] = r;
-            });
-            _dbSetMock.Setup(m => m.Remove(It.IsAny<Reading>())).Callback<Reading>(r =>
-            {
-                data.RemoveAll(x => x.ReadingId == r.ReadingId);
-            });
-
-            _dbContextMock.SetupGet(c => c.Reading).Returns(_dbSetMock.Object);
-            _dbContextMock.Setup(c => c.SaveChanges()).Returns(1);
-        }
-
-        private Reading CreateSampleReading(int id = 1, int examId = 1, string content = "Sample Content")
-        {
-            return new Reading
-            {
-                ReadingId = id,
-                ExamId = examId,
-                ReadingContent = content,
-                ReadingQuestion = "Question",
-                ReadingType = "Markdown",
-                DisplayOrder = 1,
-                CorrectAnswer = "answer",
-                QuestionHtml = "<p>HTML</p>",
-                CreatedAt = DateTime.UtcNow
-            };
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+            return new ApplicationDbContext(options);
         }
 
         [Fact]
         public void GetById_WhenExists_ReturnsReading()
         {
-            var data = new List<Reading>
-            {
-                CreateSampleReading(1),
-                CreateSampleReading(2)
-            };
-            SetupMockRepository(data);
-            var repo = new ReadingRepository(_dbContextMock!.Object);
+            using var context = CreateInMemoryContext();
+            var reading = new Reading { ReadingId = 1, ExamId = 1, ReadingContent = "content", ReadingQuestion = "question" };
+            context.Reading.Add(reading);
+            context.SaveChanges();
 
-            var result = repo.GetById(2);
+            var repo = new ReadingRepository(context);
 
-            result.Should().NotBeNull();
-            result!.ReadingId.Should().Be(2);
+            var result = repo.GetById(1);
+
+            Assert.NotNull(result);
+            Assert.Equal(1, result.ReadingId);
         }
 
         [Fact]
         public void GetById_WhenNotExists_ReturnsNull()
         {
-            var data = new List<Reading> { CreateSampleReading(1) };
-            SetupMockRepository(data);
-            var repo = new ReadingRepository(_dbContextMock!.Object);
+            using var context = CreateInMemoryContext();
+            var repo = new ReadingRepository(context);
 
-            var result = repo.GetById(99);
+            var result = repo.GetById(1);
 
-            result.Should().BeNull();
+            Assert.Null(result);
         }
 
         [Fact]
         public void GetAll_ReturnsAllReadings()
         {
-            var data = new List<Reading>
-            {
-                CreateSampleReading(1),
-                CreateSampleReading(2)
-            };
-            SetupMockRepository(data);
-            var repo = new ReadingRepository(_dbContextMock!.Object);
+            using var context = CreateInMemoryContext();
+            context.Reading.Add(new Reading { ReadingId = 1, ReadingContent = "c1", ReadingQuestion = "q1" });
+            context.Reading.Add(new Reading { ReadingId = 2, ReadingContent = "c2", ReadingQuestion = "q2" });
+            context.SaveChanges();
+
+            var repo = new ReadingRepository(context);
 
             var result = repo.GetAll();
 
-            result.Should().HaveCount(2);
-            result.Select(r => r.ReadingId).Should().BeEquivalentTo(new[] { 1, 2 });
+            Assert.Equal(2, result.Count());
         }
 
         [Fact]
-        public void GetByExamId_ReturnsFilteredReadings()
+        public void GetByExamId_ReturnsFiltered()
         {
-            var data = new List<Reading>
-            {
-                CreateSampleReading(1, examId: 1),
-                CreateSampleReading(2, examId: 1),
-                CreateSampleReading(3, examId: 2)
-            };
-            SetupMockRepository(data);
-            var repo = new ReadingRepository(_dbContextMock!.Object);
+            using var context = CreateInMemoryContext();
+            context.Reading.Add(new Reading { ReadingId = 1, ExamId = 1, ReadingContent = "c1", ReadingQuestion = "q1" });
+            context.Reading.Add(new Reading { ReadingId = 2, ExamId = 2, ReadingContent = "c2", ReadingQuestion = "q2" });
+            context.SaveChanges();
+
+            var repo = new ReadingRepository(context);
 
             var result = repo.GetByExamId(1);
 
-            result.Should().HaveCount(2);
-            result.All(r => r.ExamId == 1).Should().BeTrue();
+            Assert.Single(result);
         }
 
         [Fact]
-        public void Add_AddsReadingAndSavesChanges()
+        public void Add_AddsReading()
         {
-            var data = new List<Reading>();
-            SetupMockRepository(data);
-            var repo = new ReadingRepository(_dbContextMock!.Object);
-            var reading = CreateSampleReading(10);
+            using var context = CreateInMemoryContext();
+            var reading = new Reading { ReadingId = 1, ExamId = 1, ReadingContent = "content", ReadingQuestion = "question" };
+            var repo = new ReadingRepository(context);
 
             repo.Add(reading);
+            repo.SaveChanges();
 
-            data.Should().ContainSingle(r => r.ReadingId == 10);
-            _dbSetMock!.Verify(m => m.Add(It.IsAny<Reading>()), Times.Once);
-            _dbContextMock!.Verify(c => c.SaveChanges(), Times.Once);
+            var added = context.Reading.FirstOrDefault(r => r.ReadingId == 1);
+            Assert.NotNull(added);
         }
 
         [Fact]
-        public void Update_UpdatesReadingAndSavesChanges()
+        public void Update_UpdatesReading()
         {
-            var data = new List<Reading> { CreateSampleReading(1) };
-            SetupMockRepository(data);
-            var repo = new ReadingRepository(_dbContextMock!.Object);
-            var updated = CreateSampleReading(1, content: "Updated Content");
+            using var context = CreateInMemoryContext();
+            var reading = new Reading { ReadingId = 1, ExamId = 1, ReadingContent = "Update Content", ReadingQuestion = "Update Question", DisplayOrder = 1, CreatedAt = DateTime.Now };
+            context.Reading.Add(reading);
+            context.SaveChanges();
 
-            repo.Update(updated);
+            reading.ExamId = 2;
+            var repo = new ReadingRepository(context);
 
-            data[0].ReadingContent.Should().Be("Updated Content");
-            _dbSetMock!.Verify(m => m.Update(It.IsAny<Reading>()), Times.Once);
-            _dbContextMock!.Verify(c => c.SaveChanges(), Times.Once);
+            repo.Update(reading);
+            repo.SaveChanges();
+
+            var updated = context.Reading.FirstOrDefault(r => r.ReadingId == 1);
+            Assert.Equal(2, updated.ExamId);
         }
 
         [Fact]
-        public void Delete_RemovesReadingAndSavesChanges()
+        public void Delete_DeletesReading()
         {
-            var data = new List<Reading> { CreateSampleReading(1), CreateSampleReading(2) };
-            SetupMockRepository(data);
-            var repo = new ReadingRepository(_dbContextMock!.Object);
-            var readingToDelete = data[0];
+            using var context = CreateInMemoryContext();
+            var reading = new Reading { ReadingId = 1, ReadingContent = "Delete Content", ReadingQuestion = "Delete Question", DisplayOrder = 1, CreatedAt = DateTime.Now };
+            context.Reading.Add(reading);
+            context.SaveChanges();
 
-            repo.Delete(readingToDelete);
+            var repo = new ReadingRepository(context);
 
-            data.Should().HaveCount(1);
-            data[0].ReadingId.Should().Be(2);
-            _dbSetMock!.Verify(m => m.Remove(It.IsAny<Reading>()), Times.Once);
-            _dbContextMock!.Verify(c => c.SaveChanges(), Times.Once);
+            repo.Delete(reading);
+            repo.SaveChanges();
+
+            var deleted = context.Reading.FirstOrDefault(r => r.ReadingId == 1);
+            Assert.Null(deleted);
         }
     }
 }

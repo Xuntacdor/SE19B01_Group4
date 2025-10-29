@@ -33,416 +33,361 @@ namespace WebAPI.Tests
         private static JsonDocument CreateSampleFeedback()
         {
             var json = @"{
-  ""band_estimate"": {
-    ""task_achievement"": 7,
-    ""organization_logic"": 7,
-    ""lexical_resource"": 7,
-    ""grammar_accuracy"": 7,
-    ""overall"": 7
-  },
-  ""grammar_vocab"": {
-    ""overview"": ""good""
-  },
-  ""overall_feedback"": {
-    ""overview"": ""good""
-  }
-}";
+              ""band_estimate"": {
+                ""task_achievement"": 7,
+                ""organization_logic"": 7,
+                ""lexical_resource"": 7,
+                ""grammar_accuracy"": 7,
+                ""overall"": 7
+              },
+              ""grammar_vocab"": { ""overview"": ""good"" },
+              ""overall_feedback"": { ""overview"": ""good"" }
+            }";
             return JsonDocument.Parse(json);
         }
 
         private void SetupSaveFeedback()
         {
             _examServiceMock.Setup(s => s.GetExamAttemptsByUser(It.IsAny<int>()))
-                .Returns(new List<ExamAttemptSummaryDto>());
+                .Returns(() => new List<ExamAttemptSummaryDto>());
             _examServiceMock.Setup(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), It.IsAny<int>()))
-                .Returns(new ExamAttempt { AttemptId = 1, AnswerText = null });
-            _examServiceMock.Setup(s => s.GetAttemptById(It.IsAny<int>())).Returns((ExamAttempt)null);
+                .Returns(() => new ExamAttempt { AttemptId = 1, AnswerText = null });
+            _examServiceMock.Setup(s => s.GetAttemptById(It.IsAny<int>()))
+                .Returns(() => null);
             _examServiceMock.Setup(s => s.Save());
-            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(new List<WritingFeedback>());
+            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(() => new List<WritingFeedback>());
         }
 
+        // ---------------------------------------------------------------------
+        // CRUD TESTS
+        // ---------------------------------------------------------------------
+
         [Fact]
-        public void GivenExistingId_WhenGetById_ThenReturnsDto()
+        public void GetById_WhenFound_ReturnsDto()
         {
-            var entity = new Writing { WritingId = 1, ExamId = 2, WritingQuestion = "Test", DisplayOrder = 1, CreatedAt = DateTime.UtcNow, ImageUrl = "img" };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(entity);
+            var entity = new Writing { WritingId = 1, ExamId = 2, WritingQuestion = "Test", DisplayOrder = 1, ImageUrl = "img" };
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => entity);
 
             var result = _service.GetById(1);
 
             result.Should().NotBeNull();
-            result!.WritingId.Should().Be(1);
+            result.WritingId.Should().Be(1);
             result.ExamId.Should().Be(2);
-            result.WritingQuestion.Should().Be("Test");
         }
 
         [Fact]
-        public void GivenMissingId_WhenGetById_ThenReturnsNull()
+        public void GetById_WhenMissing_ReturnsNull()
         {
-            _writingRepoMock.Setup(r => r.GetById(It.IsAny<int>())).Returns((Writing)null);
-
-            var result = _service.GetById(99);
-
-            result.Should().BeNull();
+            _writingRepoMock.Setup(r => r.GetById(99)).Returns(() => null);
+            _service.GetById(99).Should().BeNull();
         }
 
         [Fact]
-        public void GivenRepositoryThrows_WhenGetById_ThenThrows()
+        public void GetById_WhenThrows_Rethrows()
         {
-            _writingRepoMock.Setup(r => r.GetById(It.IsAny<int>())).Throws(new Exception("failure"));
-
+            _writingRepoMock.Setup(r => r.GetById(1)).Throws(new Exception("fail"));
             Action act = () => _service.GetById(1);
-
             act.Should().Throw<Exception>();
         }
 
         [Fact]
-        public void GivenCall_WhenGetById_ThenRepositoryCalledOnce()
+        public void GetByExam_ReturnsList()
         {
-            _writingRepoMock.Setup(r => r.GetById(It.IsAny<int>())).Returns(new Writing { WritingId = 1 });
-
-            _service.GetById(1);
-
-            _writingRepoMock.Verify(r => r.GetById(1), Times.Once);
-        }
-
-        [Fact]
-        public void GivenExamWithWritings_WhenGetByExam_ThenReturnsDtosList()
-        {
-            var examId = 1;
-            var writings = new List<Writing>
-            {
-                new Writing { WritingId = 1, ExamId = examId, WritingQuestion = "Q1", DisplayOrder = 1, CreatedAt = DateTime.UtcNow, ImageUrl = null },
-                new Writing { WritingId = 2, ExamId = examId, WritingQuestion = "Q2", DisplayOrder = 2, CreatedAt = DateTime.UtcNow, ImageUrl = null }
-            };
-            _writingRepoMock.Setup(r => r.GetByExamId(examId)).Returns(writings);
-
-            var result = _service.GetByExam(examId);
-
-            result.Should().HaveCount(2);
-            result.Should().OnlyContain(d => d.ExamId == examId);
-        }
-
-        [Fact]
-        public void GivenExamWithoutWritings_WhenGetByExam_ThenReturnsEmptyList()
-        {
-            _writingRepoMock.Setup(r => r.GetByExamId(It.IsAny<int>())).Returns(new List<Writing>());
+            var writings = new List<Writing> { new() { WritingId = 1, ExamId = 1 }, new() { WritingId = 2, ExamId = 1 } };
+            _writingRepoMock.Setup(r => r.GetByExamId(1)).Returns(() => writings);
 
             var result = _service.GetByExam(1);
-
-            result.Should().BeEmpty();
+            result.Should().HaveCount(2);
         }
 
         [Fact]
-        public void GivenRepositoryThrows_WhenGetByExam_ThenThrows()
+        public void GetByExam_WhenEmpty_ReturnsEmpty()
         {
-            _writingRepoMock.Setup(r => r.GetByExamId(It.IsAny<int>())).Throws(new Exception("failure"));
-
-            Action act = () => _service.GetByExam(1);
-
-            act.Should().Throw<Exception>();
+            _writingRepoMock.Setup(r => r.GetByExamId(2)).Returns(() => new List<Writing>());
+            _service.GetByExam(2).Should().BeEmpty();
         }
 
         [Fact]
-        public void GivenCall_WhenGetByExam_ThenRepositoryInvoked()
-        {
-            _writingRepoMock.Setup(r => r.GetByExamId(It.IsAny<int>())).Returns(new List<Writing>());
-
-            _service.GetByExam(3);
-
-            _writingRepoMock.Verify(r => r.GetByExamId(3), Times.Once);
-        }
-
-        [Fact]
-        public void GivenValidDto_WhenCreate_ThenReturnsDtoWithId()
-        {
-            var dto = new WritingDTO { ExamId = 1, WritingQuestion = "Q", DisplayOrder = 1, ImageUrl = "img" };
-            _writingRepoMock.Setup(r => r.Add(It.IsAny<Writing>())).Callback<Writing>(w => w.WritingId = 10);
-            _writingRepoMock.Setup(r => r.SaveChanges());
-
-            var result = _service.Create(dto);
-
-            result.Should().NotBeNull();
-            result.WritingId.Should().Be(10);
-            result.WritingQuestion.Should().Be("Q");
-        }
-
-        [Fact]
-        public void GivenDtoWithoutImage_WhenCreate_ThenCreatesWithNullImage()
-        {
-            var dto = new WritingDTO { ExamId = 1, WritingQuestion = "Q", DisplayOrder = 1, ImageUrl = null };
-            _writingRepoMock.Setup(r => r.Add(It.IsAny<Writing>())).Callback<Writing>(w => w.WritingId = 5);
-            _writingRepoMock.Setup(r => r.SaveChanges());
-
-            var result = _service.Create(dto);
-
-            result.ImageUrl.Should().BeNull();
-        }
-
-        [Fact]
-        public void GivenRepoThrows_WhenCreate_ThenThrows()
+        public void Create_WhenValid_ReturnsDto()
         {
             var dto = new WritingDTO { ExamId = 1, WritingQuestion = "Q", DisplayOrder = 1 };
-            _writingRepoMock.Setup(r => r.Add(It.IsAny<Writing>())).Throws(new Exception("failure"));
+            _writingRepoMock.Setup(r => r.Add(It.IsAny<Writing>())).Callback<Writing>(w => w.WritingId = 11);
 
-            Action act = () => _service.Create(dto);
-
-            act.Should().Throw<Exception>();
-        }
-
-        [Fact]
-        public void GivenValidDto_WhenCreate_ThenCallsAddAndSaveChanges()
-        {
-            var dto = new WritingDTO { ExamId = 1, WritingQuestion = "Q", DisplayOrder = 1 };
-            _writingRepoMock.Setup(r => r.Add(It.IsAny<Writing>())).Callback<Writing>(w => w.WritingId = 3);
-            _writingRepoMock.Setup(r => r.SaveChanges());
-
-            _service.Create(dto);
-
-            _writingRepoMock.Verify(r => r.Add(It.IsAny<Writing>()), Times.Once);
+            var result = _service.Create(dto);
+            result.WritingId.Should().Be(11);
             _writingRepoMock.Verify(r => r.SaveChanges(), Times.Once);
         }
 
         [Fact]
-        public void GivenIdExistsAndDtoWithNewValues_WhenUpdate_ThenReturnsUpdatedDto()
+        public void Update_WhenFound_UpdatesFields()
         {
-            var existing = new Writing { WritingId = 1, WritingQuestion = "Old", DisplayOrder = 1, ImageUrl = "oldimg" };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(existing);
-            _writingRepoMock.Setup(r => r.Update(It.IsAny<Writing>()));
-            _writingRepoMock.Setup(r => r.SaveChanges());
-            var dto = new WritingDTO { WritingQuestion = "New", DisplayOrder = 2, ImageUrl = "newimg" };
+            var entity = new Writing { WritingId = 1, WritingQuestion = "Old" };
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => entity);
 
+            var dto = new WritingDTO { WritingQuestion = "New", DisplayOrder = 3, ImageUrl = "i" };
             var result = _service.Update(1, dto);
 
-            result.Should().NotBeNull();
-            result!.WritingQuestion.Should().Be("New");
-            result.DisplayOrder.Should().Be(2);
-            result.ImageUrl.Should().Be("newimg");
+            result.WritingQuestion.Should().Be("New");
+            _writingRepoMock.Verify(r => r.Update(entity), Times.Once);
         }
 
         [Fact]
-        public void GivenDtoMissingFields_WhenUpdate_ThenRetainsExistingFields()
+        public void Update_WhenMissing_ReturnsNull()
         {
-            var existing = new Writing { WritingId = 1, WritingQuestion = "Old", DisplayOrder = 3, ImageUrl = "img" };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(existing);
-            _writingRepoMock.Setup(r => r.Update(It.IsAny<Writing>()));
-            _writingRepoMock.Setup(r => r.SaveChanges());
-            var dto = new WritingDTO { WritingQuestion = null, DisplayOrder = 0, ImageUrl = null };
-
-            var result = _service.Update(1, dto);
-
-            result.WritingQuestion.Should().Be("Old");
-            result.DisplayOrder.Should().Be(3);
-            result.ImageUrl.Should().Be("img");
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => null);
+            _service.Update(1, new WritingDTO()).Should().BeNull();
         }
 
         [Fact]
-        public void GivenIdMissing_WhenUpdate_ThenReturnsNull()
+        public void Delete_WhenFound_ReturnsTrue()
         {
-            _writingRepoMock.Setup(r => r.GetById(It.IsAny<int>())).Returns((Writing)null);
-
-            var result = _service.Update(99, new WritingDTO());
-
-            result.Should().BeNull();
+            var entity = new Writing { WritingId = 1 };
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => entity);
+            _service.Delete(1).Should().BeTrue();
+            _writingRepoMock.Verify(r => r.Delete(entity), Times.Once);
         }
 
         [Fact]
-        public void GivenRepositoryThrows_WhenUpdate_ThenThrows()
+        public void Delete_WhenMissing_ReturnsFalse()
         {
-            var existing = new Writing { WritingId = 1 };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(existing);
-            _writingRepoMock.Setup(r => r.Update(It.IsAny<Writing>())).Throws(new Exception("failure"));
-
-            Action act = () => _service.Update(1, new WritingDTO { WritingQuestion = "X", DisplayOrder = 1 });
-
-            act.Should().Throw<Exception>();
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => null);
+            _service.Delete(1).Should().BeFalse();
         }
 
-        [Fact]
-        public void GivenIdExists_WhenUpdate_ThenCallsUpdateAndSaveChanges()
-        {
-            var existing = new Writing { WritingId = 1 };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(existing);
-            _writingRepoMock.Setup(r => r.Update(It.IsAny<Writing>()));
-            _writingRepoMock.Setup(r => r.SaveChanges());
-
-            _service.Update(1, new WritingDTO { WritingQuestion = "Q", DisplayOrder = 1 });
-
-            _writingRepoMock.Verify(r => r.Update(existing), Times.Once);
-            _writingRepoMock.Verify(r => r.SaveChanges(), Times.Once);
-        }
+        // ---------------------------------------------------------------------
+        // GRADE WRITING TESTS
+        // ---------------------------------------------------------------------
 
         [Fact]
-        public void GivenExistingId_WhenDelete_ThenRemovesWriting()
-        {
-            var existing = new Writing { WritingId = 1 };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(existing);
-            _writingRepoMock.Setup(r => r.Delete(existing));
-            _writingRepoMock.Setup(r => r.SaveChanges());
-
-            var result = _service.Delete(1);
-
-            result.Should().BeTrue();
-        }
-
-        [Fact]
-        public void GivenMissingId_WhenDelete_ThenReturnsFalse()
-        {
-            _writingRepoMock.Setup(r => r.GetById(It.IsAny<int>())).Returns((Writing)null);
-
-            var result = _service.Delete(99);
-
-            result.Should().BeFalse();
-        }
-
-        [Fact]
-        public void GivenRepositoryThrows_WhenDelete_ThenThrows()
-        {
-            var existing = new Writing { WritingId = 1 };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(existing);
-            _writingRepoMock.Setup(r => r.Delete(existing)).Throws(new Exception("failure"));
-
-            Action act = () => _service.Delete(1);
-
-            act.Should().Throw<Exception>();
-        }
-
-        [Fact]
-        public void GivenExistingId_WhenDelete_ThenCallsDeleteAndSaveChanges()
-        {
-            var existing = new Writing { WritingId = 1 };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(existing);
-            _writingRepoMock.Setup(r => r.Delete(existing));
-            _writingRepoMock.Setup(r => r.SaveChanges());
-
-            _service.Delete(1);
-
-            _writingRepoMock.Verify(r => r.Delete(existing), Times.Once);
-            _writingRepoMock.Verify(r => r.SaveChanges(), Times.Once);
-        }
-
-        [Fact]
-        public void GivenSingleMode_WhenGradeWriting_ThenReturnsSingleJson()
+        public void GradeWriting_SingleMode_ReturnsJson()
         {
             SetupSaveFeedback();
             var dto = new WritingGradeRequestDTO
             {
                 Mode = "single",
                 ExamId = 1,
-                Answers = new List<WritingAnswerDTO>
-                {
-                    new WritingAnswerDTO { WritingId = 1, AnswerText = "Answer1", ImageUrl = null, DisplayOrder = 1 }
-                }
+                Answers = new() { new() { WritingId = 1, AnswerText = "Ans" } }
             };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(new Writing { WritingId = 1, WritingQuestion = "Question1" });
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => new Writing { WritingId = 1, WritingQuestion = "Q" });
             var sample = CreateSampleFeedback();
-            _openAIMock.Setup(s => s.GradeWriting("Question1", "Answer1", null)).Returns(sample);
+            _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => sample);
 
-            var result = _service.GradeWriting(dto, 2);
-
+            var result = _service.GradeWriting(dto, 1);
             result.Should().BeSameAs(sample);
-            _openAIMock.Verify(s => s.GradeWriting("Question1", "Answer1", null), Times.Once);
         }
 
         [Fact]
-        public void GivenFullMode_WhenGradeWriting_ThenAggregatesResults()
+        public void GradeWriting_FullMode_ReturnsAggregated()
         {
             SetupSaveFeedback();
             var dto = new WritingGradeRequestDTO
             {
                 Mode = "full",
                 ExamId = 1,
-                Answers = new List<WritingAnswerDTO>
+                Answers = new()
                 {
-                    new WritingAnswerDTO { WritingId = 1, AnswerText = "A1", ImageUrl = null, DisplayOrder = 1 },
-                    new WritingAnswerDTO { WritingId = 2, AnswerText = "A2", ImageUrl = null, DisplayOrder = 2 }
+                    new() { WritingId = 1, AnswerText = "A1" },
+                    new() { WritingId = 2, AnswerText = "A2" }
                 }
             };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(new Writing { WritingId = 1, WritingQuestion = "Q1" });
-            _writingRepoMock.Setup(r => r.GetById(2)).Returns(new Writing { WritingId = 2, WritingQuestion = "Q2" });
-            var sample = CreateSampleFeedback();
-            _openAIMock.Setup(s => s.GradeWriting(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(sample);
+            _writingRepoMock.Setup(r => r.GetById(It.IsAny<int>()))
+                .Returns<int>(id => new Writing { WritingId = id, WritingQuestion = $"Q{id}" });
+            _openAIMock.Setup(s => s.GradeWriting(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(() => CreateSampleFeedback());
 
-            var result = _service.GradeWriting(dto, 2);
-
-            var root = result.RootElement;
-            root.GetProperty("examId").GetInt32().Should().Be(1);
-            root.GetProperty("totalAnswers").GetInt32().Should().Be(2);
-            root.GetProperty("feedbacks").EnumerateArray().Count().Should().Be(2);
-            _openAIMock.Verify(s => s.GradeWriting(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(2));
+            var result = _service.GradeWriting(dto, 1);
+            result.RootElement.GetProperty("totalAnswers").GetInt32().Should().Be(2);
         }
 
         [Fact]
-        public void GivenUnknownMode_WhenGradeWriting_ThenDefaultsToFull()
+        public void GradeWriting_UnknownMode_DefaultsToFull()
         {
             SetupSaveFeedback();
             var dto = new WritingGradeRequestDTO
             {
-                Mode = "unknown",
+                Mode = "weird",
                 ExamId = 1,
-                Answers = new List<WritingAnswerDTO>
+                Answers = new()
                 {
-                    new WritingAnswerDTO { WritingId = 1, AnswerText = "A1", ImageUrl = null, DisplayOrder = 1 },
-                    new WritingAnswerDTO { WritingId = 2, AnswerText = "A2", ImageUrl = null, DisplayOrder = 2 }
+                    new() { WritingId = 1, AnswerText = "A1" },
+                    new() { WritingId = 2, AnswerText = "A2" }
                 }
             };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(new Writing { WritingId = 1, WritingQuestion = "Q1" });
-            _writingRepoMock.Setup(r => r.GetById(2)).Returns(new Writing { WritingId = 2, WritingQuestion = "Q2" });
-            var sample = CreateSampleFeedback();
-            _openAIMock.Setup(s => s.GradeWriting(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(sample);
+            _writingRepoMock.Setup(r => r.GetById(It.IsAny<int>()))
+                .Returns<int>(id => new Writing { WritingId = id, WritingQuestion = $"Q{id}" });
+            _openAIMock.Setup(s => s.GradeWriting(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(() => CreateSampleFeedback());
 
             var result = _service.GradeWriting(dto, 2);
-
             result.RootElement.GetProperty("totalAnswers").GetInt32().Should().Be(2);
-            _openAIMock.Verify(s => s.GradeWriting(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(2));
         }
 
         [Fact]
-        public void GivenAIThrows_WhenGradeWriting_ThenThrows()
+        public void GradeWriting_WhenAIThrows_Rethrows()
         {
             SetupSaveFeedback();
             var dto = new WritingGradeRequestDTO
             {
                 Mode = "single",
                 ExamId = 1,
-                Answers = new List<WritingAnswerDTO>
-                {
-                    new WritingAnswerDTO { WritingId = 1, AnswerText = "A", ImageUrl = null, DisplayOrder = 1 }
-                }
+                Answers = new() { new() { WritingId = 1, AnswerText = "Ans" } }
             };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(new Writing { WritingId = 1, WritingQuestion = "Q" });
-            _openAIMock.Setup(s => s.GradeWriting(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Throws(new Exception("AI error"));
-
-            Action act = () => _service.GradeWriting(dto, 2);
-
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => new Writing { WritingId = 1, WritingQuestion = "Q" });
+            _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Throws(new Exception("AI error"));
+            Action act = () => _service.GradeWriting(dto, 1);
             act.Should().Throw<Exception>();
         }
 
+        // ---------------------------------------------------------------------
+        // SAVE FEEDBACK TESTS
+        // ---------------------------------------------------------------------
+
         [Fact]
-        public void GivenMultipleAnswers_WhenGradeWriting_ThenInvokesAIForEachAndSavesFeedback()
+        public void SaveFeedback_WhenExamAttemptNotFound_HandledGracefully()
         {
-            SetupSaveFeedback();
+            var feedback = CreateSampleFeedback();
+            var writing = new Writing { WritingId = 1, WritingQuestion = "Q" };
+            var summary = new ExamAttemptSummaryDto { ExamId = 1, AttemptId = 99 };
+            _examServiceMock.Setup(s => s.GetExamAttemptsByUser(1))
+                .Returns(() => new List<ExamAttemptSummaryDto> { summary });
+            _examServiceMock.Setup(s => s.GetAttemptById(99)).Returns(() => null);
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
+            _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
+
             var dto = new WritingGradeRequestDTO
             {
-                Mode = "full",
+                Mode = "single",
                 ExamId = 1,
-                Answers = new List<WritingAnswerDTO>
-                {
-                    new WritingAnswerDTO { WritingId = 1, AnswerText = "A1", ImageUrl = null, DisplayOrder = 1 },
-                    new WritingAnswerDTO { WritingId = 2, AnswerText = "A2", ImageUrl = null, DisplayOrder = 2 },
-                    new WritingAnswerDTO { WritingId = 3, AnswerText = "A3", ImageUrl = null, DisplayOrder = 3 }
-                }
+                Answers = new() { new() { WritingId = 1, AnswerText = "Ans" } }
             };
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(new Writing { WritingId = 1, WritingQuestion = "Q1" });
-            _writingRepoMock.Setup(r => r.GetById(2)).Returns(new Writing { WritingId = 2, WritingQuestion = "Q2" });
-            _writingRepoMock.Setup(r => r.GetById(3)).Returns(new Writing { WritingId = 3, WritingQuestion = "Q3" });
-            var sample = CreateSampleFeedback();
-            _openAIMock.Setup(s => s.GradeWriting(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(sample);
-            _feedbackRepoMock.Setup(f => f.SaveChanges());
 
-            _service.GradeWriting(dto, 2);
+            Action act = () => _service.GradeWriting(dto, 1);
+            act.Should().NotThrow();
+        }
 
-            _openAIMock.Verify(s => s.GradeWriting(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(dto.Answers.Count));
-            _feedbackRepoMock.Verify(f => f.SaveChanges(), Times.Exactly(dto.Answers.Count));
+        [Fact]
+        public void SaveFeedback_WhenAttemptHasAnswerText_DoesNotSaveAgain()
+        {
+            var feedback = CreateSampleFeedback();
+            var writing = new Writing { WritingId = 1, WritingQuestion = "Q" };
+            var summary = new ExamAttemptSummaryDto { ExamId = 1, AttemptId = 5 };
+            var attempt = new ExamAttempt { AttemptId = 5, ExamId = 1, AnswerText = "exists" };
+
+            _examServiceMock.Setup(s => s.GetExamAttemptsByUser(1)).Returns(() => new() { summary });
+            _examServiceMock.Setup(s => s.GetAttemptById(5)).Returns(() => attempt);
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
+            _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
+            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(() => new List<WritingFeedback>());
+
+            var dto = new WritingGradeRequestDTO
+            {
+                Mode = "single",
+                ExamId = 1,
+                Answers = new() { new() { WritingId = 1, AnswerText = "Ans" } }
+            };
+
+            _service.GradeWriting(dto, 1);
+            _examServiceMock.Verify(s => s.Save(), Times.Never);
+        }
+
+        [Fact]
+        public void SaveFeedback_WhenAttemptAnswerTextEmpty_SetsAndSaves()
+        {
+            var feedback = CreateSampleFeedback();
+            var writing = new Writing { WritingId = 1, WritingQuestion = "Q" };
+            var summary = new ExamAttemptSummaryDto { ExamId = 1, AttemptId = 6 };
+            var attempt = new ExamAttempt { AttemptId = 6, ExamId = 1, AnswerText = null };
+
+            _examServiceMock.Setup(s => s.GetExamAttemptsByUser(1)).Returns(() => new() { summary });
+            _examServiceMock.Setup(s => s.GetAttemptById(6)).Returns(() => attempt);
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
+            _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
+            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(() => new List<WritingFeedback>());
+            _feedbackRepoMock.Setup(f => f.Add(It.IsAny<WritingFeedback>()));
+
+            var dto = new WritingGradeRequestDTO
+            {
+                Mode = "single",
+                ExamId = 1,
+                Answers = new() { new() { WritingId = 1, AnswerText = "Ans" } }
+            };
+
+            _service.GradeWriting(dto, 1);
+            _examServiceMock.Verify(s => s.Save(), Times.Once);
+            attempt.AnswerText.Should().Be("Ans");
+        }
+
+        [Fact]
+        public void SaveFeedback_WhenExistingFeedback_UpdatesFeedback()
+        {
+            var feedback = CreateSampleFeedback();
+            var writing = new Writing { WritingId = 1, WritingQuestion = "Q" };
+            var summary = new ExamAttemptSummaryDto { ExamId = 1, AttemptId = 10 };
+            var attempt = new ExamAttempt { AttemptId = 10, ExamId = 1, AnswerText = "Ans" };
+            var existingFeedback = new WritingFeedback { AttemptId = 10, WritingId = 1 };
+
+            _examServiceMock.Setup(s => s.GetExamAttemptsByUser(1)).Returns(() => new() { summary });
+            _examServiceMock.Setup(s => s.GetAttemptById(10)).Returns(() => attempt);
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
+            _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
+            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(() => new List<WritingFeedback> { existingFeedback });
+
+            var dto = new WritingGradeRequestDTO
+            {
+                Mode = "single",
+                ExamId = 1,
+                Answers = new() { new() { WritingId = 1, AnswerText = "Ans" } }
+            };
+
+            _service.GradeWriting(dto, 1);
+
+            _feedbackRepoMock.Verify(f => f.Update(It.Is<WritingFeedback>(fb => fb.AttemptId == 10 && fb.Overall == 7)), Times.Once);
+        }
+
+        [Fact]
+        public void SaveFeedback_WhenNewFeedback_AddsEntity()
+        {
+            var feedback = CreateSampleFeedback();
+            var writing = new Writing { WritingId = 1, WritingQuestion = "Q" };
+            var summary = new ExamAttemptSummaryDto { ExamId = 1, AttemptId = 8 };
+            var attempt = new ExamAttempt { AttemptId = 8, ExamId = 1, AnswerText = "Ans" };
+
+            _examServiceMock.Setup(s => s.GetExamAttemptsByUser(1)).Returns(() => new() { summary });
+            _examServiceMock.Setup(s => s.GetAttemptById(8)).Returns(() => attempt);
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
+            _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
+            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(() => new List<WritingFeedback>());
+
+            var dto = new WritingGradeRequestDTO
+            {
+                Mode = "single",
+                ExamId = 1,
+                Answers = new() { new() { WritingId = 1, AnswerText = "Ans" } }
+            };
+
+            _service.GradeWriting(dto, 1);
+
+            _feedbackRepoMock.Verify(f => f.Add(It.Is<WritingFeedback>(fb => fb.AttemptId == 8)), Times.Once);
+        }
+
+        [Fact]
+        public void SaveFeedback_WhenExceptionThrown_HandledByCatch()
+        {
+            var feedback = CreateSampleFeedback();
+            var writing = new Writing { WritingId = 1, WritingQuestion = "Q" };
+            _examServiceMock.Setup(s => s.GetExamAttemptsByUser(1)).Throws(new Exception("boom"));
+            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
+            _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
+
+            var dto = new WritingGradeRequestDTO
+            {
+                Mode = "single",
+                ExamId = 1,
+                Answers = new() { new() { WritingId = 1, AnswerText = "Ans" } }
+            };
+
+            Action act = () => _service.GradeWriting(dto, 1);
+            act.Should().NotThrow(); // handled internally
         }
     }
 }

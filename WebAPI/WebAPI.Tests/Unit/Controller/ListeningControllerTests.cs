@@ -152,6 +152,63 @@ namespace WebAPI.Tests
             result.Should().BeOfType<NoContentResult>();
         }
 
+        [Fact]
+        public void GetByExam_ReturnsMappedListenings()
+        {
+            // Arrange
+            var listenings = new List<Listening>
+            {
+                new Listening
+                {
+                    ListeningId = 1,
+                    ExamId = 10,
+                    ListeningContent = "Content 1",
+                    ListeningQuestion = "Question 1",
+                    ListeningType = "Type A",
+                    DisplayOrder = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    CorrectAnswer = "A",
+                    QuestionHtml = "<p>Q1</p>"
+                },
+                new Listening
+                {
+                    ListeningId = 2,
+                    ExamId = 10,
+                    ListeningContent = "Content 2",
+                    ListeningQuestion = "Question 2",
+                    ListeningType = "Type B",
+                    DisplayOrder = 2,
+                    CreatedAt = DateTime.UtcNow,
+                    CorrectAnswer = "B",
+                    QuestionHtml = "<p>Q2</p>"
+                }
+            };
+
+            _listeningService.Setup(s => s.GetListeningsByExam(10)).Returns(listenings);
+
+            // Act
+            var result = _controller.GetByExam(10);
+
+            // Assert
+            result.Should().BeOfType<ActionResult<IEnumerable<ListeningDto>>>();
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var dtos = (IEnumerable<ListeningDto>)okResult!.Value!;
+            var dtoList = dtos.ToList();
+            dtoList.Should().HaveCount(2);
+
+            dtoList[0].ListeningId.Should().Be(1);
+            dtoList[0].ExamId.Should().Be(10);
+            dtoList[0].ListeningContent.Should().Be("Content 1");
+            dtoList[0].ListeningQuestion.Should().Be("Question 1");
+            dtoList[0].ListeningType.Should().Be("Type A");
+            dtoList[0].DisplayOrder.Should().Be(1);
+            dtoList[0].CorrectAnswer.Should().Be("A");
+            dtoList[0].QuestionHtml.Should().Be("<p>Q1</p>");
+
+            dtoList[1].ListeningId.Should().Be(2);
+        }
+
         // ------------------ SUBMIT ANSWERS TESTS ------------------
 
         [Fact]
@@ -209,7 +266,7 @@ namespace WebAPI.Tests
             var exam = new Exam { ExamId = 1, ExamType = "Listening" };
             _examService.Setup(s => s.GetById(1)).Returns(exam);
 
-            var dto = new SubmitSectionDto { ExamId = 1, Answers = "[{\"SkillId\":1}]" };
+            var dto = new SubmitSectionDto { ExamId = 1, Answers = "[{\"SkillId\":1,\"Answers\":{\"1_q1\":\"B\"}}]" };
             _listeningService.Setup(s => s.EvaluateListening(It.IsAny<int>(), It.IsAny<List<UserAnswerGroup>>()))
                              .Throws(new Exception("fail"));
 
@@ -219,25 +276,54 @@ namespace WebAPI.Tests
         }
 
         [Fact]
-        public void SubmitAnswers_WhenSuccessful_ReturnsOk()
+        public void SubmitAnswers_WhenSuccess_ReturnsOk()
         {
             var ctx = CreateHttpContextWithSession(1);
             _controller.ControllerContext = new ControllerContext { HttpContext = ctx };
 
-            var exam = new Exam { ExamId = 1, ExamName = "Listening Test", ExamType = "Listening" };
+            var exam = new Exam { ExamId = 1, ExamName = "Test Listening Exam", ExamType = "Listening" };
             _examService.Setup(s => s.GetById(1)).Returns(exam);
-            _listeningService.Setup(s => s.EvaluateListening(It.IsAny<int>(), It.IsAny<List<UserAnswerGroup>>()))
-                             .Returns(8.0m);
 
-            _examService.Setup(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), 1))
-                        .Returns(new ExamAttempt { AttemptId = 10, ExamId = 1, Score = 8, Exam = exam });
+            var dto = new SubmitSectionDto
+            {
+                ExamId = 1,
+                Answers = "[{\"SkillId\":1,\"Answers\":{\"1_q1\":\"A\"}}]",
+                StartedAt = DateTime.UtcNow.AddMinutes(-10)
+            };
 
-            var dto = new SubmitSectionDto { ExamId = 1, Answers = "[{\"SkillId\":1}]" };
+            var expectedScore = 8.5m;
+            _listeningService.Setup(s => s.EvaluateListening(1, It.IsAny<List<UserAnswerGroup>>())).Returns(expectedScore);
 
+            var mockAttempt = new ExamAttempt
+            {
+                AttemptId = 42,
+                ExamId = 1,
+                UserId = 1,
+                AnswerText = JsonSerializer.Serialize(new List<UserAnswerGroup> { new() { SkillId = 1, Answers = new Dictionary<string, object> { ["1_q1"] = "A" } } }),
+                Score = expectedScore,
+                StartedAt = dto.StartedAt,
+                SubmittedAt = DateTime.UtcNow
+            };
+            _examService.Setup(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), 1)).Returns(mockAttempt);
+
+            // Act
             var result = _controller.SubmitAnswers(dto);
 
-            result.Result.Should().BeOfType<OkObjectResult>()
-                  .Which.StatusCode.Should().Be(200);
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            okResult!.Value.Should().BeOfType<ExamAttemptDto>();
+            var responseDto = okResult.Value as ExamAttemptDto;
+
+            responseDto.Should().NotBeNull();
+            responseDto!.AttemptId.Should().Be(42);
+            responseDto.ExamId.Should().Be(1);
+            responseDto.ExamName.Should().Be("Test Listening Exam");
+            responseDto.ExamType.Should().Be("Listening");
+            responseDto.StartedAt.Should().Be(dto.StartedAt);
+            responseDto.SubmittedAt.Should().Be(mockAttempt.SubmittedAt);
+            responseDto.TotalScore.Should().Be(expectedScore);
+            responseDto.AnswerText.Should().NotBeNullOrEmpty();
         }
     }
 }

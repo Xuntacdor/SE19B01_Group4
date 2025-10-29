@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using FluentAssertions;
+﻿using FluentAssertions;
 using Moq;
 using WebAPI.DTOs;
 using WebAPI.Models;
 using WebAPI.Repositories;
 using WebAPI.Services;
-using Xunit;
 
 namespace WebAPI.Tests
 {
@@ -240,7 +236,7 @@ namespace WebAPI.Tests
         public void EvaluateReading_CalculatesScoreForPlainTextAnswers()
         {
             // Arrange
-            var reading = CreateSampleReading(1, correctAnswer: "{\"q1\": [\"a\",\"b\"]}");
+            var reading = CreateSampleReading(1, correctAnswer: "{\"1_q1\":[\"B\",\"A\"],\"1_q2\":\"B\"}");
             var readings = new List<Reading> { reading };
             SetupMockRepository(readings);
 
@@ -251,7 +247,8 @@ namespace WebAPI.Tests
             SkillId = 1,
             Answers = new Dictionary<string, object>
             {
-                { "q1", new List<string> { "a", "wrong" } }
+                { "1_q1", new List<string> { "B","A"} },
+                        {"1_q2", "A" }
             }
         }
     };
@@ -260,24 +257,25 @@ namespace WebAPI.Tests
             var result = _readingService.EvaluateReading(1, answers);
 
             // Assert
-            result.Should().Be(4.5m);
+            result.Should().Be(6m);
         }
 
 
         [Fact]
         public void EvaluateReading_CalculatesScoreForJsonAnswers()
         {
-            var reading = CreateSampleReading(1, correctAnswer: "{\"1\": [\"a\",\"b\"]}");
+            var reading = CreateSampleReading(1, correctAnswer: "{\"1_q1\":[\"B\",\"A\"],\"1_q2\":\"B\"}");
             var readings = new List<Reading> { reading };
             SetupMockRepository(readings);
             var answers = new List<UserAnswerGroup>
-    {
+        {
         new UserAnswerGroup
         {
             SkillId = 1,
             Answers = new Dictionary<string, object>
             {
-                { "1", new List<string> { "a", "b" } }
+                { "1_q1", new List<string> { "B","A"} },
+                        {"1_q2", "B" }
             }
         }
     };
