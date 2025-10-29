@@ -2,7 +2,7 @@
 {
     public class UserDTO
     {
-          public int UserId { get; set; }
+        public int UserId { get; set; }
         public string Username { get; set; } = String.Empty;
         public string Email { get; set; } = String.Empty;
         
@@ -10,6 +10,12 @@
         public string? Lastname { get; set; }
         public string Role { get; set; } = "user";
         public string? Avatar { get; set; }
+    }
+
+    public class UserContextDTO
+    {
+        public int UserId { get; set; }
+        public string Role { get; set; } = string.Empty;
     }
   
 }

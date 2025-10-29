@@ -47,8 +47,8 @@ export function unhidePost(postId) {
   return API.post(`/posts/${postId}/unhide`);
 }
 
-export function reportPost(postId, reason) {
-  return API.post(`/posts/${postId}/report`, { reason });
+export function reportComment(commentId, reason) {
+  return API.post(`/comments/${commentId}/report`, { reason });
 }
 
 export function votePost(postId) {

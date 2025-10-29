@@ -27,6 +27,8 @@ namespace WebAPI.Services
         // Moderator methods
         IEnumerable<UserStatsDTO> GetUsersWithStats(int page, int limit);
         UserStatsDTO? GetUserStats(int userId);
+        void RestrictUser(int userId);
+        void UnrestrictUser(int userId);
         
         // User profile methods
         UserProfileStatsDTO? GetUserProfileStats(int userId);

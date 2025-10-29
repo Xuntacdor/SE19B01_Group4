@@ -47,13 +47,6 @@ namespace WebAPI.DTOs
         public List<CreatePostAttachmentDTO>? Attachments { get; set; }
     }
 
-    public class ReportPostDTO
-    {
-        [Required]
-        [StringLength(500)]
-        public string Reason { get; set; } = null!;
-    }
-
     public class PostAttachmentDTO
     {
         public int AttachmentId { get; set; }

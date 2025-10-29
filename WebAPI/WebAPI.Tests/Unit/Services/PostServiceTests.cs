@@ -311,6 +311,105 @@ namespace WebAPI.Tests.Unit.Services
             result.Tags.Should().Contain(t => t.TagName == "NewTag");
         }
 
+        [Fact]
+        public void CreatePost_WithAttachments_CreatesPostWithAttachments()
+        {
+            _userRepositoryMock.Setup(u => u.GetById(1)).Returns(_context.User.Find(1)!);
+
+            var dto = new CreatePostDTO
+            {
+                Title = "Post with Attachments",
+                Content = "Content with files",
+                TagNames = new List<string>(),
+                Attachments = new List<CreatePostAttachmentDTO>
+                {
+                    new CreatePostAttachmentDTO
+                    {
+                        FileName = "document.pdf",
+                        FileUrl = "https://example.com/files/document.pdf",
+                        FileType = "application/pdf",
+                        FileExtension = ".pdf",
+                        FileSize = 102400
+                    },
+                    new CreatePostAttachmentDTO
+                    {
+                        FileName = "image.png",
+                        FileUrl = "https://example.com/files/image.png",
+                        FileType = "image/png",
+                        FileExtension = ".png",
+                        FileSize = 51200
+                    }
+                }
+            };
+
+            var result = _postService.CreatePost(dto, 1);
+
+            result.Should().NotBeNull();
+            result.Title.Should().Be("Post with Attachments");
+            result.Attachments.Should().HaveCount(2);
+            
+            var firstAttachment = result.Attachments.First();
+            firstAttachment.FileName.Should().Be("document.pdf");
+            firstAttachment.FileUrl.Should().Be("https://example.com/files/document.pdf");
+            firstAttachment.FileType.Should().Be("application/pdf");
+            firstAttachment.FileExtension.Should().Be(".pdf");
+            firstAttachment.FileSize.Should().Be(102400);
+            
+            var secondAttachment = result.Attachments.Last();
+            secondAttachment.FileName.Should().Be("image.png");
+            secondAttachment.FileSize.Should().Be(51200);
+        }
+
+        [Fact]
+        public void CreatePost_WithSingleAttachment_CreatesPostSuccessfully()
+        {
+            _userRepositoryMock.Setup(u => u.GetById(1)).Returns(_context.User.Find(1)!);
+
+            var dto = new CreatePostDTO
+            {
+                Title = "Post with Single File",
+                Content = "Content with one file",
+                TagNames = new List<string>(),
+                Attachments = new List<CreatePostAttachmentDTO>
+                {
+                    new CreatePostAttachmentDTO
+                    {
+                        FileName = "spreadsheet.xlsx",
+                        FileUrl = "https://example.com/files/spreadsheet.xlsx",
+                        FileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        FileExtension = ".xlsx",
+                        FileSize = 204800
+                    }
+                }
+            };
+
+            var result = _postService.CreatePost(dto, 1);
+
+            result.Should().NotBeNull();
+            result.Attachments.Should().HaveCount(1);
+            result.Attachments.First().FileName.Should().Be("spreadsheet.xlsx");
+            result.Attachments.First().FileSize.Should().Be(204800);
+        }
+
+        [Fact]
+        public void CreatePost_WithEmptyAttachments_CreatesPostWithoutAttachments()
+        {
+            _userRepositoryMock.Setup(u => u.GetById(1)).Returns(_context.User.Find(1)!);
+
+            var dto = new CreatePostDTO
+            {
+                Title = "Post without Files",
+                Content = "Just text content",
+                TagNames = new List<string>(),
+                Attachments = new List<CreatePostAttachmentDTO>()
+            };
+
+            var result = _postService.CreatePost(dto, 1);
+
+            result.Should().NotBeNull();
+            result.Attachments.Should().BeEmpty();
+        }
+
         // ============ UPDATE POST ============
 
         [Fact]
@@ -573,6 +672,162 @@ namespace WebAPI.Tests.Unit.Services
 
             result.Should().HaveCount(1);
             result.First().Title.Should().Be("Test Post 2");
+        }
+
+        // ============ NOTIFICATION DTO TESTS ============
+
+        [Fact]
+        public void GetModeratorNotifications_ReturnsNotificationsList()
+        {
+            var result = _postService.GetModeratorNotifications();
+
+            result.Should().NotBeNull();
+            result.Should().BeAssignableTo<IEnumerable<NotificationDTO>>();
+        }
+
+        [Fact]
+        public void GetModeratorNotifications_ReturnsNotificationsWithCorrectStructure()
+        {
+            var result = _postService.GetModeratorNotifications().ToList();
+
+            result.Should().NotBeEmpty();
+            result.Should().OnlyContain(n => 
+                n.NotificationId > 0 &&
+                !string.IsNullOrEmpty(n.Title) &&
+                !string.IsNullOrEmpty(n.Content) &&
+                !string.IsNullOrEmpty(n.Type));
+        }
+
+        [Fact]
+        public void GetModeratorNotifications_ReturnsNotificationsWithValidTypes()
+        {
+            var result = _postService.GetModeratorNotifications().ToList();
+
+            result.Should().Contain(n => n.Type == "pending");
+            result.Should().Contain(n => n.Type == "reported");
+        }
+
+        [Fact]
+        public void GetModeratorNotifications_ReturnsNotificationsWithTimestamps()
+        {
+            var result = _postService.GetModeratorNotifications().ToList();
+
+            result.Should().OnlyContain(n => n.CreatedAt <= DateTime.UtcNow);
+            result.Should().OnlyContain(n => n.CreatedAt > DateTime.UtcNow.AddDays(-1));
+        }
+
+        // ============ POST_TAG MODEL TESTS ============
+
+        [Fact]
+        public void DeletePost_WithTags_RemovesPostTagRelationships()
+        {
+            _userRepositoryMock.Setup(u => u.GetById(1)).Returns(_context.User.Find(1)!);
+
+            // Create post with tags
+            var dto = new CreatePostDTO
+            {
+                Title = "Post with Tags",
+                Content = "Content",
+                TagNames = new List<string> { "General", "TestTag" },
+                Attachments = new List<CreatePostAttachmentDTO>()
+            };
+
+            var createdPost = _postService.CreatePost(dto, 1);
+            var postId = createdPost.PostId;
+
+            // Verify tags were added
+            var postWithTags = _context.Post
+                .Include(p => p.Tags)
+                .FirstOrDefault(p => p.PostId == postId);
+            postWithTags!.Tags.Should().HaveCount(2);
+
+            // Delete the post
+            _postService.DeletePost(postId, 1);
+
+            // Verify post is deleted
+            var deletedPost = _context.Post.Find(postId);
+            deletedPost.Should().BeNull();
+
+            // Verify Post_Tag relationships are removed (tags still exist)
+            var tagsStillExist = _context.Tag.Count();
+            tagsStillExist.Should().BeGreaterThanOrEqualTo(2); // Tags should not be deleted
+        }
+
+        [Fact]
+        public void CreatePost_WithMultipleTags_CreatesPostTagRelationships()
+        {
+            _userRepositoryMock.Setup(u => u.GetById(1)).Returns(_context.User.Find(1)!);
+
+            var dto = new CreatePostDTO
+            {
+                Title = "Multi-tag Post",
+                Content = "Content with multiple tags",
+                TagNames = new List<string> { "General", "Tech", "News" },
+                Attachments = new List<CreatePostAttachmentDTO>()
+            };
+
+            var result = _postService.CreatePost(dto, 1);
+
+            result.Should().NotBeNull();
+            result.Tags.Should().HaveCount(3);
+            result.Tags.Should().Contain(t => t.TagName == "General");
+            result.Tags.Should().Contain(t => t.TagName == "Tech");
+            result.Tags.Should().Contain(t => t.TagName == "News");
+        }
+
+        [Fact]
+        public void UpdatePost_WithNewTags_UpdatesPostTagRelationships()
+        {
+            _userRepositoryMock.Setup(u => u.GetById(1)).Returns(_context.User.Find(1)!);
+
+            // Create post with initial tags
+            var createDto = new CreatePostDTO
+            {
+                Title = "Original",
+                Content = "Content",
+                TagNames = new List<string> { "General" },
+                Attachments = new List<CreatePostAttachmentDTO>()
+            };
+
+            var createdPost = _postService.CreatePost(createDto, 1);
+            createdPost.Tags.Should().HaveCount(1);
+
+            // Update with new tags
+            var updateDto = new UpdatePostDTO
+            {
+                Title = "Updated",
+                Content = "Updated content",
+                TagNames = new List<string> { "Tech", "News" }
+            };
+
+            _postService.UpdatePost(createdPost.PostId, updateDto, 1);
+
+            // Verify tags were updated
+            var updatedPost = _postService.GetPostById(createdPost.PostId);
+            updatedPost!.Tags.Should().HaveCount(2);
+            updatedPost.Tags.Should().Contain(t => t.TagName == "Tech");
+            updatedPost.Tags.Should().Contain(t => t.TagName == "News");
+            updatedPost.Tags.Should().NotContain(t => t.TagName == "General");
+        }
+
+        [Fact]
+        public void CreatePost_WithDuplicateTags_CreatesUniquePostTagRelationships()
+        {
+            _userRepositoryMock.Setup(u => u.GetById(1)).Returns(_context.User.Find(1)!);
+
+            var dto = new CreatePostDTO
+            {
+                Title = "Duplicate Tags Post",
+                Content = "Content",
+                TagNames = new List<string> { "General", "General", "Tech" }, // Duplicate "General"
+                Attachments = new List<CreatePostAttachmentDTO>()
+            };
+
+            var result = _postService.CreatePost(dto, 1);
+
+            result.Should().NotBeNull();
+            result.Tags.Should().HaveCount(2); // Should only have 2 unique tags
+            result.Tags.Where(t => t.TagName == "General").Should().HaveCount(1);
         }
     }
 }

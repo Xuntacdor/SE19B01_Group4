@@ -320,17 +320,17 @@ namespace WebAPI.Data
                     .HasDefaultValue("Pending")
                     .HasColumnName("status");
                 entity.Property(e => e.UserId).HasColumnName("user_id");
-                entity.Property(e => e.PostId).HasColumnName("post_id");
+                entity.Property(e => e.CommentId).HasColumnName("comment_id");
 
                 entity.HasOne(d => d.User).WithMany(p => p.Reports)
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK__Report__user_id__60A75C0F");
 
-                entity.HasOne(d => d.Post).WithMany(p => p.Reports)
-                    .HasForeignKey(d => d.PostId)
+                entity.HasOne(d => d.Comment).WithMany(p => p.Reports)
+                    .HasForeignKey(d => d.CommentId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
-                    .HasConstraintName("FK_Report_Post");
+                    .HasConstraintName("FK_Report_Comment");
             });
 
             modelBuilder.Entity<Speaking>(entity =>

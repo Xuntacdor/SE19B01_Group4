@@ -195,11 +195,23 @@ export default function CreatePost() {
       })
       .catch((error) => {
         console.error("Error creating post:", error);
-        showNotification(
-          "error",
-          "Error creating post",
-          error.response?.data?.message || "Error creating post. Please try again."
-        );
+        
+        // Check if the error is due to account restriction
+        const errorMessage = error.response?.data?.message || error.response?.data || error.message || "";
+        
+        if (errorMessage.toLowerCase().includes("restricted")) {
+          showNotification(
+            "error",
+            "Account Restricted",
+            "Your account has been restricted from posting on the forum due to violations of community guidelines. Please contact support if you believe this is an error."
+          );
+        } else {
+          showNotification(
+            "error",
+            "Error Creating Post",
+            errorMessage || "Unable to create your post. Please try again later."
+          );
+        }
       })
       .finally(() => {
         setLoading(false);

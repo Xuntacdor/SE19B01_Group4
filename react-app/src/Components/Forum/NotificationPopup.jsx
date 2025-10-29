@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle, XCircle, AlertCircle, Info } from "lucide-react";
+import { Check, X, AlertTriangle, Info } from "lucide-react";
 import PopupBase from "../Common/PopupBase";
 import "./NotificationPopup.css";
 
@@ -24,11 +24,11 @@ export default function NotificationPopup({
   const getIcon = () => {
     switch (type) {
       case "success":
-        return CheckCircle;
+        return Check;
       case "error":
-        return XCircle;
+        return X;
       case "warning":
-        return AlertCircle;
+        return AlertTriangle;
       default:
         return Info;
     }
@@ -47,6 +47,19 @@ export default function NotificationPopup({
     }
   };
 
+  const getIconContainerClass = () => {
+    switch (type) {
+      case "success":
+        return "notification-icon-large success-bg";
+      case "error":
+        return "notification-icon-large error-bg";
+      case "warning":
+        return "notification-icon-large warning-bg";
+      default:
+        return "notification-icon-large info-bg";
+    }
+  };
+
   const Icon = getIcon();
 
   return (
@@ -58,8 +71,8 @@ export default function NotificationPopup({
         onClose={onClose}
       >
         <div className="notification-content">
-          <div className="notification-icon-large">
-            <Icon size={32} className={getIconClass()} />
+          <div className={getIconContainerClass()}>
+            <Icon size={48} className={getIconClass()} strokeWidth={3} />
           </div>
           {title && <h3 className="notification-title">{title}</h3>}
           <p className="notification-message">{message}</p>
