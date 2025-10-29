@@ -1,174 +1,114 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using WebAPI.Data;
 using WebAPI.Models;
 using WebAPI.Repositories;
 using Xunit;
 
-namespace WebAPI.Tests
+namespace WebAPI.Tests.Units.Repository
 {
     public class ListeningRepositoryTests
     {
-        private Mock<ApplicationDbContext>? _dbContextMock;
-        private Mock<DbSet<Listening>>? _dbSetMock;
-
-        private void SetupMockRepository(List<Listening> data)
+        private ApplicationDbContext CreateInMemoryContext()
         {
-            var options = new DbContextOptionsBuilder<ApplicationDbContext>().Options;
-            _dbContextMock = new Mock<ApplicationDbContext>(options);
-
-            var queryable = data.AsQueryable();
-
-            _dbSetMock = new Mock<DbSet<Listening>>();
-            _dbSetMock.As<IQueryable<Listening>>().Setup(m => m.Provider).Returns(queryable.Provider);
-            _dbSetMock.As<IQueryable<Listening>>().Setup(m => m.Expression).Returns(queryable.Expression);
-            _dbSetMock.As<IQueryable<Listening>>().Setup(m => m.ElementType).Returns(queryable.ElementType);
-            _dbSetMock.As<IQueryable<Listening>>().Setup(m => m.GetEnumerator()).Returns(() => queryable.GetEnumerator());
-
-            _dbSetMock.Setup(m => m.Add(It.IsAny<Listening>())).Callback<Listening>(r => data.Add(r));
-            _dbSetMock.Setup(m => m.Update(It.IsAny<Listening>())).Callback<Listening>(r =>
-            {
-                var idx = data.FindIndex(x => x.ListeningId == r.ListeningId);
-                if (idx >= 0)
-                    data[idx] = r;
-            });
-            _dbSetMock.Setup(m => m.Remove(It.IsAny<Listening>())).Callback<Listening>(r =>
-            {
-                data.RemoveAll(x => x.ListeningId == r.ListeningId);
-            });
-
-            _dbContextMock.SetupGet(c => c.Listening).Returns(_dbSetMock.Object);
-            _dbContextMock.Setup(c => c.SaveChanges()).Returns(1);
-        }
-
-        private Listening CreateSampleListening(int id = 1, int examId = 1, string content = "Sample Content")
-        {
-            return new Listening
-            {
-                ListeningId = id,
-                ExamId = examId,
-                ListeningContent = content,
-                ListeningQuestion = "Question",
-                ListeningType = "Markdown",
-                DisplayOrder = 1,
-                CorrectAnswer = "answer",
-                QuestionHtml = "<p>HTML</p>",
-                CreatedAt = DateTime.UtcNow
-            };
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+            return new ApplicationDbContext(options);
         }
 
         [Fact]
         public void GetById_WhenExists_ReturnsListening()
         {
-            var data = new List<Listening>
-            {
-                CreateSampleListening(1),
-                CreateSampleListening(2)
-            };
-            SetupMockRepository(data);
-            var repo = new ListeningRepository(_dbContextMock!.Object);
+            using var context = CreateInMemoryContext();
+            var listening = new Listening { ListeningId = 1, ExamId = 1, ListeningContent = "Content", ListeningQuestion = "Question", DisplayOrder = 1, CreatedAt = DateTime.Now };
+            context.Listening.Add(listening);
+            context.SaveChanges();
 
-            var result = repo.GetById(2);
+            var repo = new ListeningRepository(context);
 
-            result.Should().NotBeNull();
-            result!.ListeningId.Should().Be(2);
-        }
+            var result = repo.GetById(1);
 
-        [Fact]
-        public void GetById_WhenNotExists_ReturnsNull()
-        {
-            var data = new List<Listening> { CreateSampleListening(1) };
-            SetupMockRepository(data);
-            var repo = new ListeningRepository(_dbContextMock!.Object);
-
-            var result = repo.GetById(99);
-
-            result.Should().BeNull();
+            Assert.NotNull(result);
+            Assert.Equal(1, result.ListeningId);
         }
 
         [Fact]
         public void GetAll_ReturnsAllListenings()
         {
-            var data = new List<Listening>
-            {
-                CreateSampleListening(1),
-                CreateSampleListening(2)
-            };
-            SetupMockRepository(data);
-            var repo = new ListeningRepository(_dbContextMock!.Object);
+            using var context = CreateInMemoryContext();
+            context.Listening.Add(new Listening { ListeningId = 1, ListeningContent = "c1", ListeningQuestion = "q1" });
+            context.Listening.Add(new Listening { ListeningId = 2, ListeningContent = "c2", ListeningQuestion = "q2" });
+            context.SaveChanges();
+
+            var repo = new ListeningRepository(context);
 
             var result = repo.GetAll();
 
-            result.Should().HaveCount(2);
-            result.Select(r => r.ListeningId).Should().BeEquivalentTo(new[] { 1, 2 });
+            Assert.Equal(2, result.Count());
         }
 
         [Fact]
-        public void GetByExamId_ReturnsFilteredListenings()
+        public void GetByExamId_ReturnsFiltered()
         {
-            var data = new List<Listening>
-            {
-                CreateSampleListening(1, examId: 1),
-                CreateSampleListening(2, examId: 1),
-                CreateSampleListening(3, examId: 2)
-            };
-            SetupMockRepository(data);
-            var repo = new ListeningRepository(_dbContextMock!.Object);
+            using var context = CreateInMemoryContext();
+            context.Listening.Add(new Listening { ListeningId = 1, ExamId = 1, ListeningContent = "C1", ListeningQuestion = "Q1", DisplayOrder = 1, CreatedAt = DateTime.Now });
+            context.Listening.Add(new Listening { ListeningId = 2, ExamId = 2, ListeningContent = "C2", ListeningQuestion = "Q2", DisplayOrder = 1, CreatedAt = DateTime.Now });
+            context.SaveChanges();
+
+            var repo = new ListeningRepository(context);
 
             var result = repo.GetByExamId(1);
 
-            result.Should().HaveCount(2);
-            result.All(r => r.ExamId == 1).Should().BeTrue();
+            Assert.Single(result);
         }
 
         [Fact]
-        public void Add_AddsListeningAndSavesChanges()
+        public void Add_AddsListening()
         {
-            var data = new List<Listening>();
-            SetupMockRepository(data);
-            var repo = new ListeningRepository(_dbContextMock!.Object);
-            var listening = CreateSampleListening(10);
+            using var context = CreateInMemoryContext();
+            var listening = new Listening { ListeningId = 1, ExamId = 1, ListeningContent = "Add Content", ListeningQuestion = "Add Question", DisplayOrder = 1, CreatedAt = DateTime.Now };
+            var repo = new ListeningRepository(context);
 
             repo.Add(listening);
+            repo.SaveChanges();
 
-            data.Should().ContainSingle(r => r.ListeningId == 10);
-            _dbSetMock!.Verify(m => m.Add(It.IsAny<Listening>()), Times.Once);
-            _dbContextMock!.Verify(c => c.SaveChanges(), Times.Once);
+            Assert.True(context.Listening.Any(l => l.ListeningId == 1));
         }
 
         [Fact]
-        public void Update_UpdatesListeningAndSavesChanges()
+        public void Update_UpdatesListening()
         {
-            var data = new List<Listening> { CreateSampleListening(1) };
-            SetupMockRepository(data);
-            var repo = new ListeningRepository(_dbContextMock!.Object);
-            var updated = CreateSampleListening(1, content: "Updated Content");
+            using var context = CreateInMemoryContext();
+            var listening = new Listening { ListeningId = 1, ExamId = 1, ListeningContent = "Update Content", ListeningQuestion = "Update Question", DisplayOrder = 1, CreatedAt = DateTime.Now };
+            context.Listening.Add(listening);
+            context.SaveChanges();
 
-            repo.Update(updated);
+            listening.ExamId = 2;
+            var repo = new ListeningRepository(context);
 
-            data[0].ListeningContent.Should().Be("Updated Content");
-            _dbSetMock!.Verify(m => m.Update(It.IsAny<Listening>()), Times.Once);
-            _dbContextMock!.Verify(c => c.SaveChanges(), Times.Once);
+            repo.Update(listening);
+            repo.SaveChanges();
+
+            var updated = context.Listening.FirstOrDefault(l => l.ListeningId == 1);
+            Assert.Equal(2, updated.ExamId);
         }
 
         [Fact]
-        public void Delete_RemovesListeningAndSavesChanges()
+        public void Delete_DeletesListening()
         {
-            var data = new List<Listening> { CreateSampleListening(1), CreateSampleListening(2) };
-            SetupMockRepository(data);
-            var repo = new ListeningRepository(_dbContextMock!.Object);
-            var listeningToDelete = data[0];
+            using var context = CreateInMemoryContext();
+            var listening = new Listening { ListeningId = 1, ListeningContent = "Delete Content", ListeningQuestion = "Delete Question", DisplayOrder = 1, CreatedAt = DateTime.Now };
+            context.Listening.Add(listening);
+            context.SaveChanges();
 
-            repo.Delete(listeningToDelete);
+            var repo = new ListeningRepository(context);
 
-            data.Should().HaveCount(1);
-            data[0].ListeningId.Should().Be(2);
-            _dbSetMock!.Verify(m => m.Remove(It.IsAny<Listening>()), Times.Once);
-            _dbContextMock!.Verify(c => c.SaveChanges(), Times.Once);
+            repo.Delete(listening);
+            repo.SaveChanges();
+
+            Assert.False(context.Listening.Any(l => l.ListeningId == 1));
         }
     }
 }
