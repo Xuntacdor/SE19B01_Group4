@@ -421,6 +421,75 @@ namespace WebAPI.Tests.Unit.Controller
             notFound!.Value.Should().Be("Wrapper");
         }
 
+        // ============ REPORT COMMENT ============
+
+        [Fact]
+        public void ReportComment_WhenNotLoggedIn_ReturnsUnauthorized()
+        {
+            ClearSession();
+            var request = new ReportCommentRequest { Reason = "Spam" };
+
+            var result = _controller.ReportComment(1, request);
+
+            result.Should().BeOfType<UnauthorizedObjectResult>();
+            var unauthorized = result as UnauthorizedObjectResult;
+            unauthorized!.Value.Should().Be("User not logged in");
+        }
+
+        [Fact]
+        public void ReportComment_WhenSuccessful_ReturnsOk()
+        {
+            SetSession(1);
+            var request = new ReportCommentRequest { Reason = "Inappropriate content" };
+
+            var result = _controller.ReportComment(1, request);
+
+            result.Should().BeOfType<OkObjectResult>();
+            var ok = result as OkObjectResult;
+            ok!.Value.Should().BeEquivalentTo(new { message = "Comment reported successfully" });
+        }
+
+        [Fact]
+        public void ReportComment_WhenCommentNotFound_ReturnsNotFound()
+        {
+            SetSession(1);
+            var request = new ReportCommentRequest { Reason = "Spam" };
+            _commentService.Setup(s => s.ReportComment(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()))
+                           .Throws(new KeyNotFoundException("Comment not found"));
+
+            var result = _controller.ReportComment(999, request);
+
+            result.Should().BeOfType<NotFoundObjectResult>();
+            var notFound = result as NotFoundObjectResult;
+            notFound!.Value.Should().Be("Comment not found");
+        }
+
+        [Fact]
+        public void ReportComment_WhenException_ReturnsBadRequest()
+        {
+            SetSession(1);
+            var request = new ReportCommentRequest { Reason = "Spam" };
+            _commentService.Setup(s => s.ReportComment(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()))
+                           .Throws(new Exception("Database error"));
+
+            var result = _controller.ReportComment(1, request);
+
+            result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequest = result as BadRequestObjectResult;
+            badRequest!.Value.Should().Be("Database error");
+        }
+
+        [Fact]
+        public void ReportComment_CallsServiceWithCorrectParameters()
+        {
+            SetSession(1);
+            var request = new ReportCommentRequest { Reason = "Offensive language" };
+
+            _controller.ReportComment(2, request);
+
+            _commentService.Verify(s => s.ReportComment(2, "Offensive language", It.IsAny<int>()), Times.Once);
+        }
+
     }
 }
 
