@@ -32,7 +32,12 @@ namespace WebAPI.Tests.Unit.Controller
             context.Session = session;
             if (userId.HasValue)
             {
-                var bytes = BitConverter.GetBytes(userId.Value);
+                // Use proper byte conversion for Int32
+                var bytes = new byte[4];
+                bytes[0] = (byte)(userId.Value & 0xFF);
+                bytes[1] = (byte)((userId.Value >> 8) & 0xFF);
+                bytes[2] = (byte)((userId.Value >> 16) & 0xFF);
+                bytes[3] = (byte)((userId.Value >> 24) & 0xFF);
                 session.Set("UserId", bytes);
             }
             _controller.ControllerContext = new ControllerContext { HttpContext = context };
