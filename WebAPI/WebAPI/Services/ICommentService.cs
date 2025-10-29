@@ -12,5 +12,9 @@ namespace WebAPI.Services
         void DeleteComment(int id, int userId);
         void LikeComment(int id, int userId);
         void UnlikeComment(int id, int userId);
+        void ReportComment(int id, string reason, int userId);
+        IEnumerable<ReportedCommentDTO> GetReportedComments(int page, int limit);
+        void ApproveReport(int reportId);
+        void DismissReport(int reportId);
     }
 }

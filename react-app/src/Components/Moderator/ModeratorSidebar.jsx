@@ -40,7 +40,7 @@ export default function ModeratorSidebar({ currentView, onViewChange }) {
     },
     {
       icon: <Flag size={20} />,
-      label: "Reported Posts",
+      label: "Reported Comments",
       view: "reported",
       active: currentView === "reported"
     },

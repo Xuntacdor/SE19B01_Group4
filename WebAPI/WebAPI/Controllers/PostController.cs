@@ -288,30 +288,5 @@ namespace WebAPI.Controllers
             }
         }
 
-        [HttpPost("{id}/report")]
-        public ActionResult ReportPost(int id, [FromBody] ReportPostRequest request)
-        {
-            try
-            {
-                var userId = HttpContext.Session.GetInt32("UserId");
-                if (!userId.HasValue) return Unauthorized("User not logged in");
-
-                _postService.ReportPost(id, request.Reason, userId.Value);
-                return Ok(new { message = "Post reported successfully" });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-    }
-
-    public class ReportPostRequest
-    {
-        public string Reason { get; set; }
     }
 }

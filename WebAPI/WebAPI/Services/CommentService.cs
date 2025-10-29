@@ -55,6 +55,10 @@ namespace WebAPI.Services
 
             var user = _userRepository.GetById(userId);
             if (user == null) throw new KeyNotFoundException("User not found");
+            
+            // Check if user is restricted
+            if (user.IsRestricted)
+                throw new UnauthorizedAccessException("Your account has been restricted from commenting on the forum. Please contact support.");
 
             var comment = new Comment
             {
@@ -203,6 +207,239 @@ namespace WebAPI.Services
             _context.SaveChanges();
         }
 
+        public void ReportComment(int id, string reason, int userId)
+        {
+            var comment = _context.Comment.Find(id);
+            if (comment == null) throw new KeyNotFoundException("Comment not found");
+
+            var report = new Report
+            {
+                UserId = userId,
+                CommentId = id,
+                CommentAuthorUserId = comment.UserId, // Store original comment author for statistics
+                Content = reason,
+                Status = "Pending",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Report.Add(report);
+            _context.SaveChanges();
+        }
+
+        public IEnumerable<ReportedCommentDTO> GetReportedComments(int page, int limit)
+        {
+            var reportedComments = _context.Report
+                .Include(r => r.Comment)
+                .ThenInclude(c => c.User)
+                .Include(r => r.Comment)
+                .ThenInclude(c => c.Post)
+                .Where(r => r.Status == "Pending" && r.CommentId.HasValue)
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .ToList();
+
+            return reportedComments.Select(r => new ReportedCommentDTO
+            {
+                ReportId = r.ReportId,
+                CommentId = r.CommentId ?? 0,
+                Content = r.Comment?.Content ?? "",
+                Author = r.Comment?.User?.Username ?? "",
+                CreatedAt = r.Comment?.CreatedAt ?? DateTime.UtcNow,
+                PostTitle = r.Comment?.Post?.Title ?? "",
+                ReportReason = r.Content,
+                ReportCount = 1, // In a real implementation, you might count multiple reports for the same comment
+                Status = "Reported"
+            });
+        }
+
+        public void ApproveReport(int reportId)
+        {
+            var report = _context.Report
+                .Include(r => r.Comment)
+                .ThenInclude(c => c.CommentLikes)
+                .FirstOrDefault(r => r.ReportId == reportId);
+            
+            if (report == null) throw new KeyNotFoundException("Report not found");
+
+            using var transaction = _context.Database.BeginTransaction();
+            try
+            {
+                if (report.Comment != null)
+                {
+                    // Ensure CommentAuthorUserId is populated for this report and related reports
+                    var allReportsForComment = _context.Report
+                        .Include(r => r.Comment)
+                        .Where(r => r.CommentId.HasValue && r.CommentId == report.Comment.CommentId)
+                        .ToList();
+                    
+                    bool isFirstReport = true;
+                    foreach (var r in allReportsForComment)
+                    {
+                        // Only mark the first report (the one moderator clicked) as "Approved"
+                        // Others are marked as "Resolved" so they don't count in statistics
+                        if (isFirstReport && r.ReportId == reportId)
+                        {
+                            r.Status = "Approved";
+                            isFirstReport = false;
+                        }
+                        else
+                        {
+                            r.Status = "Resolved"; // Don't count in statistics
+                        }
+                        
+                        // Ensure CommentAuthorUserId is set
+                        if (!r.CommentAuthorUserId.HasValue && r.Comment != null)
+                        {
+                            r.CommentAuthorUserId = r.Comment.UserId;
+                        }
+                    }
+                    _context.SaveChanges(); // Save the approved status first
+                    
+                    // Create notification for comment author
+                    var commentAuthorUserId = report.CommentAuthorUserId ?? report.Comment.UserId;
+                    Console.WriteLine($"[DEBUG] Creating notification for user {commentAuthorUserId}");
+                    var notification = new Notification
+                    {
+                        UserId = commentAuthorUserId,
+                        Content = $"Your comment has been deleted because it violated community guidelines. If you has beed reported more than 3 times, your account will be not allowed to comment or post on forum. Please contact the moderator if you think this is a mistake.",
+                        Type = "comment_deleted",
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Notification.Add(notification);
+                    _context.SaveChanges(); // Save notification before deleting comment
+                    Console.WriteLine($"[DEBUG] Notification created successfully with ID: {notification.NotificationId}");
+                    
+                    // Then delete the reported comment and all related data EXCEPT reports
+                    DeleteCommentForModeratorKeepReports(report.Comment.CommentId);
+                }
+                else
+                {
+                    // If comment no longer exists, just mark the report as approved
+                    report.Status = "Approved";
+                }
+                
+                _context.SaveChanges();
+                transaction.Commit();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Exception in ApproveReport: {ex.Message}");
+                Console.WriteLine($"[ERROR] Stack Trace: {ex.StackTrace}");
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        private void DeleteCommentForModerator(int commentId)
+        {
+            // Get all comments in this tree (including nested ones)
+            var allCommentIds = GetAllCommentIdsInTree(commentId);
+            
+            // First, break all parent-child relationships by setting parent_comment_id to NULL
+            var commentsToUpdate = _context.Comment
+                .Where(c => allCommentIds.Contains(c.CommentId) && c.ParentCommentId.HasValue)
+                .ToList();
+            
+            foreach (var comment in commentsToUpdate)
+            {
+                comment.ParentCommentId = null;
+            }
+            _context.SaveChanges(); // Save the relationship changes first
+            
+            // Now delete all related data
+            var commentLikes = _context.CommentLike
+                .Where(cl => allCommentIds.Contains(cl.CommentId))
+                .ToList();
+            _context.CommentLike.RemoveRange(commentLikes);
+            
+            var reports = _context.Report
+                .Where(r => r.CommentId.HasValue && allCommentIds.Contains(r.CommentId.Value))
+                .ToList();
+            _context.Report.RemoveRange(reports);
+            
+            // Finally, delete all comments
+            var commentsToDelete = _context.Comment
+                .Where(c => allCommentIds.Contains(c.CommentId))
+                .ToList();
+            _context.Comment.RemoveRange(commentsToDelete);
+        }
+        
+        private void DeleteCommentForModeratorKeepReports(int commentId)
+        {
+            // Get all comments in this tree (including nested ones)
+            var allCommentIds = GetAllCommentIdsInTree(commentId);
+            
+            // First, break all parent-child relationships by setting parent_comment_id to NULL
+            var commentsToUpdate = _context.Comment
+                .Where(c => allCommentIds.Contains(c.CommentId) && c.ParentCommentId.HasValue)
+                .ToList();
+            
+            foreach (var comment in commentsToUpdate)
+            {
+                comment.ParentCommentId = null;
+            }
+            _context.SaveChanges(); // Save the relationship changes first
+            
+            // Delete CommentLikes
+            var commentLikes = _context.CommentLike
+                .Where(cl => allCommentIds.Contains(cl.CommentId))
+                .ToList();
+            _context.CommentLike.RemoveRange(commentLikes);
+            
+            // Update Reports to break comment reference but keep the CommentAuthorUserId for statistics
+            var reports = _context.Report
+                .Include(r => r.Comment)
+                .Where(r => r.CommentId.HasValue && allCommentIds.Contains(r.CommentId.Value))
+                .ToList();
+            foreach (var report in reports)
+            {
+                // If CommentAuthorUserId is not set, get it from the comment before breaking the reference
+                if (!report.CommentAuthorUserId.HasValue && report.Comment != null)
+                {
+                    report.CommentAuthorUserId = report.Comment.UserId;
+                }
+                // Break the reference to the comment by setting CommentId to NULL
+                // This keeps the report for statistics but removes the foreign key constraint
+                report.CommentId = null;
+            }
+            
+            // Finally, delete all comments
+            var commentsToDelete = _context.Comment
+                .Where(c => allCommentIds.Contains(c.CommentId))
+                .ToList();
+            _context.Comment.RemoveRange(commentsToDelete);
+        }
+        
+        private List<int> GetAllCommentIdsInTree(int commentId)
+        {
+            var allIds = new List<int> { commentId };
+            
+            // Get all direct children
+            var childComments = _context.Comment
+                .Where(c => c.ParentCommentId == commentId)
+                .Select(c => c.CommentId)
+                .ToList();
+            
+            // Recursively get all nested children
+            foreach (var childId in childComments)
+            {
+                allIds.AddRange(GetAllCommentIdsInTree(childId));
+            }
+            
+            return allIds;
+        }
+
+        public void DismissReport(int reportId)
+        {
+            var report = _context.Report.Find(reportId);
+            if (report == null) throw new KeyNotFoundException("Report not found");
+
+            // Mark report as dismissed
+            report.Status = "Dismissed";
+            _context.SaveChanges();
+        }
 
         private CommentDTO ToDTO(Comment comment, int? currentUserId = null)
         {

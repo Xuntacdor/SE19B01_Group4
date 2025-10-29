@@ -4,10 +4,10 @@ import "./PostDetail.css";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import HeaderBar from "../../Components/Layout/HeaderBar";
 import CommentSection from "../../Components/Forum/CommentSection";
-import { getPost, votePost, unvotePost, reportPost, deletePost, pinPost, unpinPost, hidePost, unhidePost } from "../../Services/ForumApi";
+import { getPost, votePost, unvotePost, deletePost, pinPost, unpinPost, hidePost, unhidePost } from "../../Services/ForumApi";
 import { getUserProfileStats } from "../../Services/UserApi";
 import useAuth from "../../Hook/UseAuth";
-import { MoreVertical, Trash2, Pin, EyeOff, Flag, ArrowLeft, MessageCircle, Image as ImageIcon, Share, Download, ThumbsUp, Edit } from "lucide-react";
+import { MoreVertical, Trash2, Pin, EyeOff, ArrowLeft, MessageCircle, Image as ImageIcon, Share, Download, ThumbsUp, Edit } from "lucide-react";
 import { formatFullDateVietnam } from "../../utils/date";
 import { marked } from "marked";
 import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
@@ -23,8 +23,6 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [isVoted, setIsVoted] = useState(false);
   const [voteCount, setVoteCount] = useState(0);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState("");
   const [showMenu, setShowMenu] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [userStats, setUserStats] = useState(null);
@@ -121,20 +119,6 @@ export default function PostDetail() {
     }
   };
 
-  const handleReport = () => {
-    if (!reportReason.trim()) return;
-
-    reportPost(post.postId, reportReason)
-      .then(() => {
-        setShowReportModal(false);
-        setReportReason("");
-        alert("Post reported successfully");
-      })
-      .catch(error => {
-        console.error("Error reporting post:", error);
-        alert("Error reporting post");
-      });
-  };
 
   const handleMenuToggle = (e) => {
     e.stopPropagation();
@@ -229,11 +213,6 @@ export default function PostDetail() {
     }
   };
 
-  const handleReportPost = (e) => {
-    e.stopPropagation();
-    setShowReportModal(true);
-    setShowMenu(false);
-  };
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -363,10 +342,6 @@ export default function PostDetail() {
                               <Pin size={16} />
                               {isPinned ? "Unpin Post" : "Pin Post"}
                             </button>
-                            <button className="menu-item report" onClick={handleReportPost}>
-                              <Flag size={16} />
-                              Report Post
-                            </button>
                           </>
                         )}
                       </div>
@@ -486,34 +461,6 @@ export default function PostDetail() {
       </div>
       </main>
 
-      {showReportModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h3>Report Post</h3>
-            <textarea
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              placeholder="Please explain why you're reporting this post..."
-              rows={4}
-            />
-            <div className="modal-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowReportModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleReport}
-                disabled={!reportReason.trim()}
-              >
-                Report
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Confirmation Popup for Hide Post */}
       <ConfirmationPopup

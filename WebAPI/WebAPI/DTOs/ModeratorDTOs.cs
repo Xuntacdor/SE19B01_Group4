@@ -6,20 +6,22 @@ namespace WebAPI.DTOs
     {
         public int TotalPosts { get; set; }
         public int PendingPosts { get; set; }
-        public int ReportedPosts { get; set; }
+        public int ReportedComments { get; set; }
         public int RejectedPosts { get; set; }
+        public int TotalComments { get; set; }
     }
 
-    public class ReportedPostDTO
+    public class ReportedCommentDTO
     {
-        public int PostId { get; set; }
-        public string Title { get; set; } = string.Empty;
+        public int ReportId { get; set; }
+        public int CommentId { get; set; }
         public string Content { get; set; } = string.Empty;
         public string Author { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public string ReportReason { get; set; } = string.Empty;
         public int ReportCount { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string PostTitle { get; set; } = string.Empty; // Context of which post the comment belongs to
     }
 
     public class UserStatsDTO
@@ -31,8 +33,9 @@ namespace WebAPI.DTOs
         public int TotalComments { get; set; }
         public int ApprovedPosts { get; set; }
         public int RejectedPosts { get; set; }
-        public int ReportedPosts { get; set; }
+        public int ReportedComments { get; set; }
         public DateTime CreatedAt { get; set; }
+        public bool IsRestricted { get; set; }
     }
 
     public class ChartDataDTO
@@ -51,6 +54,11 @@ namespace WebAPI.DTOs
         public bool IsRead { get; set; }
         public DateTime CreatedAt { get; set; }
         public int? PostId { get; set; }
+    }
+
+    public class RejectPostRequestDTO
+    {
+        public string Reason { get; set; } = string.Empty;
     }
 }
 

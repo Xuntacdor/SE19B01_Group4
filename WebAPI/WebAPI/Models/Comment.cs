@@ -28,4 +28,6 @@ public partial class Comment
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<CommentLike> CommentLikes { get; set; } = new List<CommentLike>();
+
+    public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
 }

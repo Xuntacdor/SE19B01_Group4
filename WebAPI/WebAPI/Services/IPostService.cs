@@ -12,7 +12,6 @@ namespace WebAPI.Services
         void DeletePost(int id, int userId);
         void VotePost(int id, int userId);
         void UnvotePost(int id, int userId);
-        void ReportPost(int id, string reason, int userId);
         bool IsPostVotedByUser(int postId, int userId);
         bool IsPostHiddenByUser(int postId, int userId);
         void IncrementViewCount(int postId);
@@ -24,7 +23,6 @@ namespace WebAPI.Services
         // Moderator methods
         ModeratorStatsDTO GetModeratorStats();
         IEnumerable<PostDTO> GetPendingPosts(int page, int limit);
-        IEnumerable<ReportedPostDTO> GetReportedPosts(int page, int limit);
         IEnumerable<PostDTO> GetRejectedPosts(int page, int limit);
         void ApprovePost(int postId);
         void RejectPost(int postId, string reason);

@@ -99,6 +99,10 @@ namespace WebAPI.Services
         {
             var user = _userRepository.GetById(userId);
             if (user == null) throw new KeyNotFoundException("User not found");
+            
+            // Check if user is restricted
+            if (user.IsRestricted)
+                throw new UnauthorizedAccessException("Your account has been restricted from posting on the forum. Please contact support.");
 
             var post = new Post
             {
@@ -226,7 +230,6 @@ namespace WebAPI.Services
             var post = _context.Post
                 .Include(p => p.Comments)
                 .Include(p => p.PostLikes)
-                .Include(p => p.Reports)
                 .Include(p => p.Tags)
                 .FirstOrDefault(p => p.PostId == id);
                 
@@ -252,12 +255,9 @@ namespace WebAPI.Services
                 
                 // 3. Xóa tất cả comments của post (bao gồm nested comments)
                 _context.Comment.RemoveRange(allComments);
-                
+
                 // 4. Xóa tất cả likes của post
                 _context.PostLike.RemoveRange(post.PostLikes);
-                
-                // 5. Xóa tất cả reports của post
-                _context.Report.RemoveRange(post.Reports);
                 
                 // 6. Xóa Post_Tag relationships (many-to-many)
                 // Clear tags collection trước khi xóa post
@@ -308,23 +308,6 @@ namespace WebAPI.Services
             _context.SaveChanges();
         }
 
-        public void ReportPost(int id, string reason, int userId)
-        {
-            var post = _context.Post.Find(id);
-            if (post == null) throw new KeyNotFoundException("Post not found");
-
-            var report = new Report
-            {
-                UserId = userId,
-                PostId = id,
-                Content = reason,
-                Status = "Pending",
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Report.Add(report);
-            _context.SaveChanges();
-        }
 
         private void AddTagsToPost(int postId, List<string> tagNames)
         {
@@ -503,8 +486,9 @@ namespace WebAPI.Services
             {
                 TotalPosts = _context.Post.Count(p => p.Status == "approved"),
                 PendingPosts = _context.Post.Count(p => p.Status == "pending"),
-                ReportedPosts = _context.Report.Count(),
-                RejectedPosts = _context.Post.Count(p => p.Status == "rejected")
+                ReportedComments = _context.Report.Count(r => r.Status == "Pending"),
+                RejectedPosts = _context.Post.Count(p => p.Status == "rejected"),
+                TotalComments = _context.Comment.Count()
             };
         }
 
@@ -523,28 +507,6 @@ namespace WebAPI.Services
             return posts.Select(p => ToDTO(p));
         }
 
-        public IEnumerable<ReportedPostDTO> GetReportedPosts(int page, int limit)
-        {
-            var reportedPosts = _context.Report
-                .Include(r => r.Post)
-                .ThenInclude(p => p.User)
-                .OrderByDescending(r => r.CreatedAt)
-                .Skip((page - 1) * limit)
-                .Take(limit)
-                .ToList();
-
-            return reportedPosts.Select(r => new ReportedPostDTO
-            {
-                PostId = r.PostId,
-                Title = r.Post?.Title ?? "",
-                Content = r.Post?.Content ?? "",
-                Author = r.Post?.User?.Username ?? "",
-                CreatedAt = r.Post?.CreatedAt ?? DateTime.UtcNow,
-                ReportReason = r.Content,
-                ReportCount = 1, // Mock count
-                Status = "Reported"
-            });
-        }
 
         public IEnumerable<PostDTO> GetRejectedPosts(int page, int limit)
         {

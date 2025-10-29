@@ -234,7 +234,6 @@ namespace WebAPI.Services
             var users = _context.User
                 .Include(u => u.Posts)
                 .Include(u => u.Comments)
-                .Include(u => u.Reports)
                 .Skip((page - 1) * limit)
                 .Take(limit)
                 .ToList();
@@ -248,8 +247,10 @@ namespace WebAPI.Services
                 TotalComments = user.Comments?.Count ?? 0,
                 ApprovedPosts = user.Posts?.Count(p => p.Status == "approved") ?? 0,
                 RejectedPosts = user.Posts?.Count(p => p.Status == "rejected") ?? 0,
-                ReportedPosts = user.Reports?.Count ?? 0,
-                CreatedAt = user.CreatedAt
+                // Count only "Approved" reports (not "Resolved") to avoid double-counting when multiple users report the same comment
+                ReportedComments = _context.Report.Count(r => r.Status == "Approved" && r.CommentAuthorUserId == user.UserId),
+                CreatedAt = user.CreatedAt,
+                IsRestricted = user.IsRestricted
             });
         }
 
@@ -258,7 +259,6 @@ namespace WebAPI.Services
             var user = _context.User
                 .Include(u => u.Posts)
                 .Include(u => u.Comments)
-                .Include(u => u.Reports)
                 .FirstOrDefault(u => u.UserId == userId);
             
             if (user == null) return null;
@@ -272,8 +272,10 @@ namespace WebAPI.Services
                 TotalComments = user.Comments?.Count ?? 0,
                 ApprovedPosts = user.Posts?.Count(p => p.Status == "approved") ?? 0,
                 RejectedPosts = user.Posts?.Count(p => p.Status == "rejected") ?? 0,
-                ReportedPosts = user.Reports?.Count ?? 0,
-                CreatedAt = user.CreatedAt
+                // Count only "Approved" reports (not "Resolved") to avoid double-counting when multiple users report the same comment
+                ReportedComments = _context.Report.Count(r => r.Status == "Approved" && r.CommentAuthorUserId == userId),
+                CreatedAt = user.CreatedAt,
+                IsRestricted = user.IsRestricted
             };
         }
 
@@ -301,6 +303,54 @@ namespace WebAPI.Services
         {
             var user = _repo.GetById(userId);
             return user?.VipExpireAt != null && user.VipExpireAt > DateTime.UtcNow;
+        }
+
+        public void RestrictUser(int userId)
+        {
+            var user = _repo.GetById(userId);
+            if (user == null)
+                throw new KeyNotFoundException("User not found");
+            
+            user.IsRestricted = true;
+            user.UpdatedAt = DateTime.UtcNow;
+            _repo.Update(user);
+            _repo.SaveChanges();
+            
+            // Send notification to user
+            var notification = new Notification
+            {
+                UserId = userId,
+                Content = "Your account has been restricted from posting and commenting on the forum due to multiple violations of community guidelines. Please contact support if you believe this is an error.",
+                Type = "account_restricted",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Notification.Add(notification);
+            _context.SaveChanges();
+        }
+
+        public void UnrestrictUser(int userId)
+        {
+            var user = _repo.GetById(userId);
+            if (user == null)
+                throw new KeyNotFoundException("User not found");
+            
+            user.IsRestricted = false;
+            user.UpdatedAt = DateTime.UtcNow;
+            _repo.Update(user);
+            _repo.SaveChanges();
+            
+            // Send notification to user
+            var notification = new Notification
+            {
+                UserId = userId,
+                Content = "Your account restriction has been lifted. You can now post and comment on the forum again. Please follow our community guidelines to avoid future restrictions.",
+                Type = "account_unrestricted",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Notification.Add(notification);
+            _context.SaveChanges();
         }
 
     }
