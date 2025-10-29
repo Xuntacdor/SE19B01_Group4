@@ -1,6 +1,7 @@
 ﻿using WebAPI.Models;
 using WebAPI.Repositories;
 
+namespace WebAPI.Services;
 public class SpeakingFeedbackService : ISpeakingFeedbackService
 {
     private readonly ISpeakingFeedbackRepository _repo;
