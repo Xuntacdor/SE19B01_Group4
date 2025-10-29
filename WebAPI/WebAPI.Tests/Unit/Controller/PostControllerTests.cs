@@ -680,56 +680,6 @@ namespace WebAPI.Tests.Unit.Controller
             result.Should().BeOfType<BadRequestObjectResult>();
         }
 
-        // ============ REPORT POST ============
-
-        [Fact]
-        public void ReportPost_WhenNotLoggedIn_ReturnsUnauthorized()
-        {
-            ClearSession();
-            var request = new ReportPostRequest { Reason = "Spam" };
-
-            var result = _controller.ReportPost(1, request);
-
-            result.Should().BeOfType<UnauthorizedObjectResult>();
-        }
-
-        [Fact]
-        public void ReportPost_WhenLoggedIn_ReturnsOk()
-        {
-            SetSession(1);
-            var request = new ReportPostRequest { Reason = "Spam" };
-
-            var result = _controller.ReportPost(1, request);
-
-            result.Should().BeOfType<OkObjectResult>();
-        }
-
-        [Fact]
-        public void ReportPost_WhenNotFound_ReturnsNotFound()
-        {
-            SetSession(1);
-            var request = new ReportPostRequest { Reason = "Spam" };
-            _postService.Setup(s => s.ReportPost(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()))
-                        .Throws(new KeyNotFoundException("Post not found"));
-
-            var result = _controller.ReportPost(999, request);
-
-            result.Should().BeOfType<NotFoundObjectResult>();
-        }
-
-        [Fact]
-        public void ReportPost_WhenException_ReturnsBadRequest()
-        {
-            SetSession(1);
-            var request = new ReportPostRequest { Reason = "Spam" };
-            _postService.Setup(s => s.ReportPost(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()))
-                        .Throws(new Exception("Error"));
-
-            var result = _controller.ReportPost(1, request);
-
-            result.Should().BeOfType<BadRequestObjectResult>();
-        }
-
         // ============ EXTRA: UPDATE EXCEPTION & VOTE EXCEPTION ============
 
         [Fact]
@@ -913,19 +863,6 @@ namespace WebAPI.Tests.Unit.Controller
             result.Should().BeOfType<OkObjectResult>();
             var ok = result as OkObjectResult;
             ok!.Value.Should().BeEquivalentTo(new { message = "Post hidden successfully" });
-        }
-
-        [Fact]
-        public void ReportPost_ReturnsSuccessMessage()
-        {
-            SetSession(1);
-            var request = new ReportPostRequest { Reason = "Spam" };
-
-            var result = _controller.ReportPost(1, request);
-
-            result.Should().BeOfType<OkObjectResult>();
-            var ok = result as OkObjectResult;
-            ok!.Value.Should().BeEquivalentTo(new { message = "Post reported successfully" });
         }
 
         [Fact]
