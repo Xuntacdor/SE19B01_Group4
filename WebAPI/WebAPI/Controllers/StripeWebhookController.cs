@@ -10,11 +10,16 @@ namespace WebAPI.Controllers
     {
         private readonly IStripeWebhookService _webhookService;
         private readonly IConfiguration _config;
+        private readonly ILogger<StripeWebhookController> _logger;
 
-        public StripeWebhookController(IStripeWebhookService webhookService, IConfiguration config)
+        public StripeWebhookController(
+            IStripeWebhookService webhookService,
+            IConfiguration config,
+            ILogger<StripeWebhookController> logger)
         {
             _webhookService = webhookService;
             _config = config;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -23,10 +28,9 @@ namespace WebAPI.Controllers
             using var reader = new StreamReader(HttpContext.Request.Body);
             var json = await reader.ReadToEndAsync();
 
-            // Lấy Webhook Secret từ cấu hình (appsettings hoặc biến môi trường)
             var endpointSecret = _config["Stripe:WebhookSecret"];
             if (string.IsNullOrWhiteSpace(endpointSecret))
-                return StatusCode(StatusCodes.Status500InternalServerError, "WebhookSecret is not configured.");
+                return StatusCode(StatusCodes.Status500InternalServerError, new { error = "WebhookSecret is not configured." });
 
             try
             {
@@ -36,15 +40,19 @@ namespace WebAPI.Controllers
                     endpointSecret
                 );
 
-                // Gọi service xử lý webhook (đồng bộ)
                 _webhookService.ProcessWebhook(stripeEvent);
 
-                return Ok();
+                return Ok(new { message = "Webhook processed successfully." });
             }
             catch (StripeException e)
             {
-                Console.WriteLine($"[Stripe] Signature or parse error: {e.Message}");
-                return BadRequest();
+                _logger.LogError(e, "[StripeWebhook] Invalid signature or parse error: {Message}", e.Message);
+                return BadRequest(new { error = "Invalid Stripe signature or malformed payload." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[StripeWebhook] Unexpected error: {Message}", ex.Message);
+                return BadRequest(new { error = ex.Message });
             }
         }
     }

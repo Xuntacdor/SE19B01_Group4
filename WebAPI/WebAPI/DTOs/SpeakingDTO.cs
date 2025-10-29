@@ -36,22 +36,6 @@ namespace WebAPI.DTOs
         public List<SpeakingAnswerDTO> Answers { get; set; }
     }
 
-    // === KẾT QUẢ CHẤM AI TRẢ VỀ ===
-    public class SpeakingFeedbackDTO
-    {
-        public int AttemptId { get; set; }
-        public int SpeakingId { get; set; }
 
-        // Thang điểm 0-9
-        public decimal Pronunciation { get; set; }
-        public decimal Fluency { get; set; }
-        public decimal Coherence { get; set; }
-        public decimal LexicalResource { get; set; }
-        public decimal GrammarRange { get; set; }
-        public decimal Overall { get; set; }
-
-        // Lưu JSON của chi tiết chấm (AI feedback text)
-        public string AiFeedbackJson { get; set; }
-        public DateTime CreatedAt { get; set; }
-    }
+   
 }
