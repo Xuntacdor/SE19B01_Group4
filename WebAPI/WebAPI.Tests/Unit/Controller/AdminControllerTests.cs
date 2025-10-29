@@ -25,6 +25,11 @@ namespace WebAPI.Tests.Unit.Controllers
             _controller = new AdminController(_userServiceMock.Object, _adminServiceMock.Object);
         }
 
+        private static T GetValue<T>(object obj, string prop)
+        {
+            return (T)obj.GetType().GetProperty(prop)!.GetValue(obj)!;
+        }
+
         [Fact]
         public void RegisterAdmin_ReturnsCreated_WhenSuccess()
         {
@@ -36,7 +41,6 @@ namespace WebAPI.Tests.Unit.Controllers
 
             result.Should().NotBeNull();
             var value = result!.Value as UserDTO;
-            value.Should().NotBeNull();
             value!.Username.Should().Be("admin");
             result.StatusCode.Should().Be(201);
         }
@@ -48,7 +52,6 @@ namespace WebAPI.Tests.Unit.Controllers
             _userServiceMock.Setup(s => s.RegisterAdmin(dto)).Throws(new InvalidOperationException("duplicate"));
 
             var result = _controller.RegisterAdmin(dto).Result as ConflictObjectResult;
-
             result.Should().NotBeNull();
             result!.Value.Should().Be("duplicate");
         }
@@ -78,7 +81,6 @@ namespace WebAPI.Tests.Unit.Controllers
             _userServiceMock.Setup(s => s.GetById(1)).Returns(new User { Role = "admin" });
 
             var result = _controller.GrantRole(1, "user") as BadRequestObjectResult;
-
             result.Should().NotBeNull();
             result!.Value.Should().Be("Cannot modify another admin.");
         }
@@ -89,7 +91,6 @@ namespace WebAPI.Tests.Unit.Controllers
             _userServiceMock.Setup(s => s.GetById(1)).Returns(new User { Role = "user" });
 
             var result = _controller.GrantRole(1, "invalid") as BadRequestObjectResult;
-
             result.Should().NotBeNull();
             result!.Value.Should().Be("Invalid role. Allowed values: user, moderator.");
         }
@@ -103,10 +104,11 @@ namespace WebAPI.Tests.Unit.Controllers
             var result = _controller.GrantRole(1, "moderator") as OkObjectResult;
 
             result.Should().NotBeNull();
-            var value = result!.Value?.GetType().GetProperty("message")?.GetValue(result.Value, null)?.ToString();
+            var value = result!.Value;
+            string message = GetValue<string>(value, "message");
 
-            value.Should().Contain("john");
-            value.Should().Contain("moderator");
+            message.Should().Contain("john");
+            message.Should().Contain("moderator");
             _userServiceMock.Verify(s => s.Update(It.Is<User>(u => u.Role == "moderator")), Times.Once);
         }
 
@@ -124,7 +126,7 @@ namespace WebAPI.Tests.Unit.Controllers
 
             result.Should().NotBeNull();
             var list = result!.Value as List<UserDTO>;
-            list.Should().HaveCount(2);
+            list!.Should().HaveCount(2);
         }
 
         [Fact]
@@ -145,10 +147,8 @@ namespace WebAPI.Tests.Unit.Controllers
             _userServiceMock.Setup(s => s.GetById(1)).Returns(user);
 
             var result = _controller.GetUserById(1).Result as OkObjectResult;
-
             result.Should().NotBeNull();
             var dto = result!.Value as UserDTO;
-            dto.Should().NotBeNull();
             dto!.Username.Should().Be("bob");
         }
 
@@ -161,15 +161,11 @@ namespace WebAPI.Tests.Unit.Controllers
             var result = _controller.GetDashboardStats() as OkObjectResult;
 
             result.Should().NotBeNull();
-            var value = result!.Value!;
-            var props = value.GetType().GetProperties();
-
-            var dict = props.ToDictionary(p => p.Name, p => p.GetValue(value));
-
-            dict["totalUsers"].Should().Be(5);
-            dict["totalExams"].Should().Be(3);
-            dict["totalTransactions"].Should().Be(2000m);
-            dict["totalAttempts"].Should().Be(10);
+            var val = result!.Value;
+            GetValue<int>(val, "totalUsers").Should().Be(5);
+            GetValue<int>(val, "totalExams").Should().Be(3);
+            GetValue<decimal>(val, "totalTransactions").Should().Be(2000m);
+            GetValue<int>(val, "totalAttempts").Should().Be(10);
         }
 
         [Fact]
@@ -183,10 +179,9 @@ namespace WebAPI.Tests.Unit.Controllers
             _adminServiceMock.Setup(s => s.GetSalesTrend()).Returns(trend);
 
             var result = _controller.GetSalesTrend() as OkObjectResult;
-
             result.Should().NotBeNull();
             var list = result!.Value as IEnumerable<object>;
-            list.Should().HaveCount(2);
+            list!.Should().HaveCount(2);
         }
     }
 }
