@@ -15,8 +15,8 @@ export function getPendingPosts(page = 1, limit = 10) {
   return API.get(`/posts/pending?page=${page}&limit=${limit}`);
 }
 
-export function getReportedPosts(page = 1, limit = 10) {
-  return API.get(`/posts/reported?page=${page}&limit=${limit}`);
+export function getReportedComments(page = 1, limit = 10) {
+  return API.get(`/comments/reported?page=${page}&limit=${limit}`);
 }
 
 export function getRejectedPosts(page = 1, limit = 10) {
@@ -57,4 +57,22 @@ export function getNotifications() {
 
 export function markNotificationAsRead(notificationId) {
   return API.put(`/notifications/${notificationId}/read`);
+}
+
+// Report actions
+export function approveReport(reportId) {
+  return API.post(`/reports/${reportId}/approve`);
+}
+
+export function dismissReport(reportId) {
+  return API.post(`/reports/${reportId}/dismiss`);
+}
+
+// User restriction actions
+export function restrictUser(userId) {
+  return API.post(`/users/${userId}/restrict`);
+}
+
+export function unrestrictUser(userId) {
+  return API.post(`/users/${userId}/unrestrict`);
 }

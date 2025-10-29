@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import CommentItem from "./CommentItem";
 import { getComments, createComment } from "../../Services/ForumApi";
+import NotificationPopup from "./NotificationPopup";
 import "./CommentSection.css";
 
 export default function CommentSection({ postId, postOwnerId }) {
@@ -8,13 +9,34 @@ export default function CommentSection({ postId, postOwnerId }) {
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [notification, setNotification] = useState({
+    isOpen: false,
+    type: "success",
+    title: "",
+    message: ""
+  });
+
+  const showNotification = (type, title, message) => {
+    setNotification({ isOpen: true, type, title, message });
+  };
+
+  const closeNotification = () => {
+    setNotification(prev => ({ ...prev, isOpen: false }));
+  };
 
   useEffect(() => {
     loadComments();
+    
+    // Auto-refresh comments every 30 seconds to catch moderator deletions
+    const refreshInterval = setInterval(() => {
+      loadComments(false); // Don't show loading for background refreshes
+    }, 30000);
+
+    return () => clearInterval(refreshInterval);
   }, [postId]);
 
-  const loadComments = () => {
-    setLoading(true);
+  const loadComments = (showLoading = true) => {
+    if (showLoading) setLoading(true);
     getComments(postId)
       .then((response) => {
         console.log("Loaded comments:", response.data);
@@ -24,7 +46,7 @@ export default function CommentSection({ postId, postOwnerId }) {
         console.error("Error loading comments:", error);
       })
       .finally(() => {
-        setLoading(false);
+        if (showLoading) setLoading(false);
       });
   };
 
@@ -37,10 +59,27 @@ export default function CommentSection({ postId, postOwnerId }) {
       .then((response) => {
         setComments((prev) => [response.data, ...prev]);
         setNewComment("");
+        showNotification("success", "Comment Posted!", "Your comment has been added successfully.");
       })
       .catch((error) => {
         console.error("Error creating comment:", error);
-        alert("Error creating comment. Please try again.");
+        
+        // Check if the error is due to account restriction
+        const errorMessage = error.response?.data?.message || error.response?.data || error.message || "";
+        
+        if (errorMessage.toLowerCase().includes("restricted")) {
+          showNotification(
+            "error",
+            "Account Restricted",
+            "Your account has been restricted from commenting on the forum due to violations of community guidelines. Please contact support if you believe this is an error."
+          );
+        } else {
+          showNotification(
+            "error",
+            "Error Creating Comment",
+            "Unable to post your comment. Please try again later."
+          );
+        }
       })
       .finally(() => {
         setSubmitting(false);
@@ -144,6 +183,14 @@ export default function CommentSection({ postId, postOwnerId }) {
             ))
         )}
       </div>
+
+      <NotificationPopup
+        isOpen={notification.isOpen}
+        onClose={closeNotification}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+      />
     </div>
   );
 }

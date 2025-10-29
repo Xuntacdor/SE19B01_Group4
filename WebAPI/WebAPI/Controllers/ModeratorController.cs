@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using WebAPI.DTOs;
 using WebAPI.Services;
 
@@ -10,11 +11,43 @@ namespace WebAPI.Controllers
     {
         private readonly IPostService _postService;
         private readonly IUserService _userService;
+        private readonly ICommentService _commentService;
 
-        public ModeratorController(IPostService postService, IUserService userService)
+        public ModeratorController(IPostService postService, IUserService userService, ICommentService commentService)
         {
             _postService = postService;
             _userService = userService;
+            _commentService = commentService;
+        }
+
+        private UserContextDTO? GetCurrentUser()
+        {
+            var uid = HttpContext.Session.GetInt32("UserId");
+            if (uid != null)
+            {
+                var user = _userService.GetById(uid.Value);
+                if (user != null)
+                {
+                    return new UserContextDTO { UserId = uid.Value, Role = user.Role };
+                }
+            }
+
+            var claimId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (claimId == null) return null;
+
+            if (int.TryParse(claimId, out int id))
+            {
+                var role = User.FindFirst(ClaimTypes.Role)?.Value;
+                return new UserContextDTO { UserId = id, Role = role ?? "user" };
+            }
+
+            return null;
+        }
+
+        private bool IsModeratorOrAdmin()
+        {
+            var user = GetCurrentUser();
+            return user != null && (user.Role == "moderator" || user.Role == "admin");
         }
 
         // GET /api/moderator/stats
@@ -49,16 +82,21 @@ namespace WebAPI.Controllers
             }
         }
 
-        // GET /api/moderator/posts/reported
-        [HttpGet("posts/reported")]
-        public ActionResult<IEnumerable<ReportedPostDTO>> GetReportedPosts(
+        // GET /api/moderator/comments/reported
+        [HttpGet("comments/reported")]
+        public ActionResult<IEnumerable<ReportedCommentDTO>> GetReportedComments(
             [FromQuery] int page = 1,
             [FromQuery] int limit = 10)
         {
+            if (!IsModeratorOrAdmin())
+            {
+                return Unauthorized("Access denied. Moderator or Admin role required.");
+            }
+
             try
             {
-                var posts = _postService.GetReportedPosts(page, limit);
-                return Ok(posts);
+                var comments = _commentService.GetReportedComments(page, limit);
+                return Ok(comments);
             }
             catch (Exception ex)
             {
@@ -104,7 +142,7 @@ namespace WebAPI.Controllers
 
         // POST /api/moderator/posts/{id}/reject
         [HttpPost("posts/{id}/reject")]
-        public ActionResult RejectPost(int id, [FromBody] RejectPostRequest request)
+        public ActionResult RejectPost(int id, [FromBody] RejectPostRequestDTO request)
         {
             try
             {
@@ -220,11 +258,114 @@ namespace WebAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
-    }
 
-    public class RejectPostRequest
-    {
-        public string Reason { get; set; } = string.Empty;
+        // POST /api/moderator/reports/{id}/approve
+        [HttpPost("reports/{id}/approve")]
+        public ActionResult ApproveReport(int id)
+        {
+            var currentUser = GetCurrentUser();
+            if (currentUser == null)
+            {
+                return Unauthorized("User not authenticated. Please login again.");
+            }
+            
+            if (currentUser.Role != "moderator" && currentUser.Role != "admin")
+            {
+                return Unauthorized($"Access denied. Current role: '{currentUser.Role}'. Moderator or Admin role required.");
+            }
+
+            try
+            {
+                _commentService.ApproveReport(id);
+                return Ok(new { message = "Report approved successfully" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // POST /api/moderator/reports/{id}/dismiss
+        [HttpPost("reports/{id}/dismiss")]
+        public ActionResult DismissReport(int id)
+        {
+            var currentUser = GetCurrentUser();
+            if (currentUser == null)
+            {
+                return Unauthorized("User not authenticated. Please login again.");
+            }
+            
+            if (currentUser.Role != "moderator" && currentUser.Role != "admin")
+            {
+                return Unauthorized($"Access denied. Current role: '{currentUser.Role}'. Moderator or Admin role required.");
+            }
+
+            try
+            {
+                _commentService.DismissReport(id);
+                return Ok(new { message = "Report dismissed successfully" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // POST /api/moderator/users/{userId}/restrict
+        [HttpPost("users/{userId}/restrict")]
+        public ActionResult RestrictUser(int userId)
+        {
+            if (!IsModeratorOrAdmin())
+            {
+                return Unauthorized("Only moderators and admins can restrict users");
+            }
+
+            try
+            {
+                _userService.RestrictUser(userId);
+                return Ok(new { message = "User restricted successfully" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // POST /api/moderator/users/{userId}/unrestrict
+        [HttpPost("users/{userId}/unrestrict")]
+        public ActionResult UnrestrictUser(int userId)
+        {
+            if (!IsModeratorOrAdmin())
+            {
+                return Unauthorized("Only moderators and admins can unrestrict users");
+            }
+
+            try
+            {
+                _userService.UnrestrictUser(userId);
+                return Ok(new { message = "User unrestricted successfully" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
 

@@ -31,8 +31,6 @@ public partial class Post
 
     public virtual ICollection<PostLike> PostLikes { get; set; } = new List<PostLike>();
 
-    public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
-
     public virtual ICollection<PostAttachment> Attachments { get; set; } = new List<PostAttachment>();
 
     public virtual User User { get; set; } = null!;
