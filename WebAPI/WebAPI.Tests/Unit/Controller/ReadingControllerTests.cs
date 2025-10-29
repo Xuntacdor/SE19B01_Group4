@@ -5,6 +5,7 @@ using Moq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using WebAPI.Controllers;
 using WebAPI.DTOs;
 using WebAPI.Models;
@@ -45,6 +46,63 @@ namespace WebAPI.Tests
             var result = _controller.GetAll();
 
             result.Result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public void GetByExam_ReturnsMappedReadings()
+        {
+            // Arrange
+            var readings = new List<Reading>
+            {
+                new Reading
+                {
+                    ReadingId = 1,
+                    ExamId = 10,
+                    ReadingContent = "Content 1",
+                    ReadingQuestion = "Question 1",
+                    ReadingType = "Type A",
+                    DisplayOrder = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    CorrectAnswer = "A",
+                    QuestionHtml = "<p>Q1</p>"
+                },
+                new Reading
+                {
+                    ReadingId = 2,
+                    ExamId = 10,
+                    ReadingContent = "Content 2",
+                    ReadingQuestion = "Question 2",
+                    ReadingType = "Type B",
+                    DisplayOrder = 2,
+                    CreatedAt = DateTime.UtcNow,
+                    CorrectAnswer = "B",
+                    QuestionHtml = "<p>Q2</p>"
+                }
+            };
+
+            _readingService.Setup(s => s.GetReadingsByExam(10)).Returns(readings);
+
+            // Act
+            var result = _controller.GetByExam(10);
+
+            // Assert
+            result.Should().BeOfType<ActionResult<IEnumerable<ReadingDto>>>();
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var dtos = (IEnumerable<ReadingDto>)okResult!.Value!;
+            var dtoList = dtos.ToList();
+            dtoList.Should().HaveCount(2);
+
+            dtoList[0].ReadingId.Should().Be(1);
+            dtoList[0].ExamId.Should().Be(10);
+            dtoList[0].ReadingContent.Should().Be("Content 1");
+            dtoList[0].ReadingQuestion.Should().Be("Question 1");
+            dtoList[0].ReadingType.Should().Be("Type A");
+            dtoList[0].DisplayOrder.Should().Be(1);
+            dtoList[0].CorrectAnswer.Should().Be("A");
+            dtoList[0].QuestionHtml.Should().Be("<p>Q1</p>");
+
+            dtoList[1].ReadingId.Should().Be(2);
         }
 
         [Fact]
@@ -200,64 +258,6 @@ namespace WebAPI.Tests
             var ctx = CreateHttpContextWithSession(1);
             _controller.ControllerContext = new ControllerContext { HttpContext = ctx };
 
-            var exam = new Exam
-            {
-                ExamId = 1,
-                ExamName = "Reading Test",
-                ExamType = "Reading"
-            };
-
-            _examService.Setup(s => s.GetById(It.IsAny<int>())).Returns(exam);
-
-            string answersJson = "[{\"SkillId\":1,\"Answers\":[\"a\",\"b\"]}]";
-
-            var dto = new SubmitSectionDto
-            {
-                ExamId = 1,
-                Answers = answersJson,
-                StartedAt = DateTime.UtcNow.AddMinutes(-30)
-            };
-
-            _readingService
-                .Setup(s => s.EvaluateReading(It.IsAny<int>(), It.IsAny<List<UserAnswerGroup>>()))
-                .Returns(8.0m);
-
-
-            _examService.Setup(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), It.IsAny<int>()))
-                        .Returns((SubmitAttemptDto attemptDto, int userId) => new ExamAttempt
-                        {
-                            AttemptId = 10,
-                            ExamId = attemptDto.ExamId,
-                            Score = attemptDto.Score,
-                            StartedAt = attemptDto.StartedAt,
-                            SubmittedAt = DateTime.UtcNow,
-                            AnswerText = attemptDto.AnswerText,
-                            Exam = exam,
-                            UserId = userId
-                        });
-
-            ActionResult<ExamAttemptDto> result = _controller.SubmitAnswers(dto);
-
-            if (result.Result is ObjectResult objResult && objResult.StatusCode == 500)
-            {
-                var errorDetails = System.Text.Json.JsonSerializer.Serialize(
-                    objResult.Value,
-                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true }
-                );
-                Assert.Fail($"Controller returned 500 error. Details:\n{errorDetails}");
-            }
-
-            result.Result.Should().BeOfType<ObjectResult>()
-                  .Which.StatusCode.Should().Be(500);
-        }
-
-
-        [Fact]
-        public void SubmitAnswers_WhenSuccess_ReturnsOk()
-        {
-            var ctx = CreateHttpContextWithSession(1);
-            _controller.ControllerContext = new ControllerContext { HttpContext = ctx };
-
             var exam = new Exam { ExamId = 1, ExamName = "Reading Test", ExamType = "Reading" };
             _examService.Setup(s => s.GetById(1)).Returns(exam);
 
@@ -265,7 +265,7 @@ namespace WebAPI.Tests
             var dto = new SubmitSectionDto
             {
                 ExamId = 1,
-                Answers = "[{\"SkillId\":1,\"Answers\":[\"x\"]}]",
+                Answers = "[{\"SkillId\":1,\"Answers\":{\"1_q1\":\"B\"}}]",
                 StartedAt = DateTime.UtcNow
             };
 
@@ -279,6 +279,57 @@ namespace WebAPI.Tests
             result.Result.Should().BeOfType<ObjectResult>();
             var obj = result.Result as ObjectResult;
             obj!.StatusCode.Should().Be(500);
+        }
+
+        [Fact]
+        public void SubmitAnswers_WhenSuccess_ReturnsOk()
+        {
+            var ctx = CreateHttpContextWithSession(1);
+            _controller.ControllerContext = new ControllerContext { HttpContext = ctx };
+
+            var exam = new Exam { ExamId = 1, ExamName = "Test Reading Exam", ExamType = "Reading" };
+            _examService.Setup(s => s.GetById(1)).Returns(exam);
+
+            var dto = new SubmitSectionDto
+            {
+                ExamId = 1,
+                Answers = "[{\"SkillId\":1,\"Answers\":{\"1_q1\":\"A\"}}]",
+                StartedAt = DateTime.UtcNow.AddMinutes(-10)
+            };
+
+            var expectedScore = 8.5m;
+            _readingService.Setup(s => s.EvaluateReading(1, It.IsAny<List<UserAnswerGroup>>())).Returns(expectedScore);
+
+            var mockAttempt = new ExamAttempt
+            {
+                AttemptId = 42,
+                ExamId = 1,
+                UserId = 1,
+                AnswerText = JsonSerializer.Serialize(new List<UserAnswerGroup> { new() { SkillId = 1, Answers = new Dictionary<string, object> { ["1_q1"] = "A" } } }),
+                Score = expectedScore,
+                StartedAt = dto.StartedAt,
+                SubmittedAt = DateTime.UtcNow
+            };
+            _examService.Setup(s => s.SubmitAttempt(It.IsAny<SubmitAttemptDto>(), 1)).Returns(mockAttempt);
+
+            // Act
+            var result = _controller.SubmitAnswers(dto);
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            okResult!.Value.Should().BeOfType<ExamAttemptDto>();
+            var responseDto = okResult.Value as ExamAttemptDto;
+
+            responseDto.Should().NotBeNull();
+            responseDto!.AttemptId.Should().Be(42);
+            responseDto.ExamId.Should().Be(1);
+            responseDto.ExamName.Should().Be("Test Reading Exam");
+            responseDto.ExamType.Should().Be("Reading");
+            responseDto.StartedAt.Should().Be(dto.StartedAt);
+            responseDto.SubmittedAt.Should().Be(mockAttempt.SubmittedAt);
+            responseDto.TotalScore.Should().Be(expectedScore);
+            responseDto.AnswerText.Should().NotBeNullOrEmpty();
         }
     }
 }

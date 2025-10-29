@@ -25,88 +25,43 @@ namespace WebAPI.Services
         public decimal EvaluateReading(int examId, List<UserAnswerGroup> structuredAnswers)
         {
             var readings = _readingRepo.GetByExamId(examId);
-            if (readings == null || readings.Count == 0)
-                return 0m;
+            if (readings == null || readings.Count == 0) return 0m;
 
-            int totalQuestions = 0;
-            int correctCount = 0;
-
-            // SkillId → normalized user answers
             var answerMap = structuredAnswers
-                .Where(g => g.Answers != null && g.Answers.Count > 0)
+                .Where(g => g.Answers?.Count > 0)
                 .ToDictionary(g => g.SkillId, g => g.ToNormalizedMap());
 
-            foreach (var reading in readings)
+            int totalOptions = 0, correctCount = 0;
+
+            foreach (var l in readings)
             {
-                if (!answerMap.TryGetValue(reading.ReadingId, out var userMap))
-                    continue;
+                if (!answerMap.TryGetValue(l.ReadingId, out var userMap)) continue;
 
-                // ✅ Parse correct answers flexibly
-                var correctMap = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+                var correctMap = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+                    l.CorrectAnswer ?? "{}", new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                ) ?? new();
 
-                try
+                foreach (var (qKey, je) in correctMap)
                 {
-                    var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
-                        reading.CorrectAnswer ?? "{}",
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                    );
-
-                    if (parsed != null)
+                    var correctVals = je.ValueKind switch
                     {
-                        foreach (var (key, je) in parsed)
-                        {
-                            switch (je.ValueKind)
-                            {
-                                case JsonValueKind.Array:
-                                    correctMap[key] = je.EnumerateArray()
-                                        .Select(x => x.GetString()?.Trim() ?? "")
-                                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                                        .ToArray();
-                                    break;
+                        JsonValueKind.Array => je.EnumerateArray().Select(x => x.GetString()?.Trim() ?? "")
+                            .Where(x => !string.IsNullOrWhiteSpace(x)).ToArray(),
+                        JsonValueKind.String => new[] { je.GetString()?.Trim() ?? "" },
+                        _ => new[] { je.ToString()?.Trim() ?? "" }
+                    };
 
-                                case JsonValueKind.String:
-                                    var s = je.GetString()?.Trim();
-                                    correctMap[key] = string.IsNullOrEmpty(s)
-                                        ? Array.Empty<string>()
-                                        : new[] { s };
-                                    break;
+                    totalOptions += correctVals.Length;
+                    if (!userMap.TryGetValue(qKey, out var userVals)) continue;
 
-                                default:
-                                    correctMap[key] = new[] { je.ToString()?.Trim() ?? "" };
-                                    break;
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"⚠️ CorrectAnswer parse failed for reading {reading.ReadingId}: {ex.Message}");
-                }
-
-                // ✅ Evaluate answers
-                foreach (var (questionKey, correctVals) in correctMap)
-                {
-                    totalQuestions++;
-
-                    if (!userMap.TryGetValue(questionKey, out var userVals) || userVals.Length == 0)
-                        continue;
-
-                    var userSet = new HashSet<string>(
-                        userVals.Select(v => v.Trim().ToLower()), StringComparer.OrdinalIgnoreCase);
-                    var correctSet = new HashSet<string>(
-                        correctVals.Select(v => v.Trim().ToLower()), StringComparer.OrdinalIgnoreCase);
-
-                    if (userSet.SetEquals(correctSet))
-                        correctCount++;
+                    var userSet = userVals.Select(v => v.Trim().ToLower()).ToHashSet();
+                    foreach (var opt in correctVals.Select(v => v.Trim().ToLower()))
+                        if (userSet.Contains(opt)) correctCount++;
                 }
             }
 
-            if (totalQuestions == 0)
-                return 0m;
-
-            return Math.Round((decimal)correctCount / totalQuestions * 9, 1);
+            return totalOptions == 0 ? 0m : Math.Round((decimal)correctCount / totalOptions * 9, 1);
         }
-
 
 
         public IEnumerable<ReadingDto> GetAll()
