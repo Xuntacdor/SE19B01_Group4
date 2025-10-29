@@ -7,9 +7,9 @@ namespace WebAPI.Repositories
     public class WordRepository : IWordRepository
     {
         private readonly ApplicationDbContext _db;
-        private readonly DictionaryApiClient _apiClient;
+        private readonly IDictionaryApiClient _apiClient;
 
-        public WordRepository(ApplicationDbContext db, DictionaryApiClient apiClient)
+        public WordRepository(ApplicationDbContext db, IDictionaryApiClient apiClient)
         {
             _db = db;
             _apiClient = apiClient;

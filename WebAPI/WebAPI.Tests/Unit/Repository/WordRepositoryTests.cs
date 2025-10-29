@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using WebAPI.Data;
 using WebAPI.Models;
 using WebAPI.Repositories;
@@ -390,14 +391,25 @@ namespace WebAPI.Tests.Units.Repository
         public void LookupOrFetch_WhenNotExists_FetchesFromAPI()
         {
             using var context = CreateInMemoryContext();
-            var api = new DictionaryApiClient(new HttpClient());
-            var repo = new WordRepository(context, api);
+            var apiMock = new Mock<IDictionaryApiClient>();
+            apiMock.Setup(a => a.GetWord("nonexistent"))
+                   .Returns(new Word 
+                   { 
+                       Term = "nonexistent", 
+                       Meaning = "Not existent word meaning",
+                       Example = null,
+                       Audio = null
+                   });
+            
+            var repo = new WordRepository(context, apiMock.Object);
 
             var result = repo.LookupOrFetch("nonexistent");
 
             Assert.NotNull(result);
             Assert.Equal("nonexistent", result.Term);
-            Assert.Contains("Not existent", result.Meaning); // Approximate
+            Assert.Contains("Not existent", result.Meaning);
+            // Verify it was saved to database
+            Assert.NotNull(context.Word.FirstOrDefault(w => w.Term == "nonexistent"));
         }
 
         [Fact]
