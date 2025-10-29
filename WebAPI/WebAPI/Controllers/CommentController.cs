@@ -182,5 +182,31 @@ namespace WebAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost("{id}/report")]
+        public ActionResult ReportComment(int id, [FromBody] ReportCommentRequest request)
+        {
+            try
+            {
+                var userId = HttpContext.Session.GetInt32("UserId");
+                if (!userId.HasValue) return Unauthorized("User not logged in");
+
+                _commentService.ReportComment(id, request.Reason, userId.Value);
+                return Ok(new { message = "Comment reported successfully" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+    }
+
+    public class ReportCommentRequest
+    {
+        public string Reason { get; set; }
     }
 }

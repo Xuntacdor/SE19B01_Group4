@@ -36,6 +36,7 @@ import "./ModeratorDashboard.css";
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend } from "chart.js";
 import * as ModeratorApi from "../../Services/ModeratorApi";
+import { approveReport, dismissReport } from "../../Services/ModeratorApi";
 import { getPostsByFilter } from "../../Services/ForumApi";
 import NotificationPopup from "../../Components/Forum/NotificationPopup";
 import RejectionReasonPopup from "../../Components/Common/RejectionReasonPopup";
@@ -72,7 +73,7 @@ export default function ModeratorDashboard() {
     },
     {
       icon: <Flag size={20} />,
-      label: "Reported Posts",
+      label: "Reported Comments",
       view: "reported"
     },
     {
@@ -91,7 +92,7 @@ export default function ModeratorDashboard() {
   const [chartData, setChartData] = useState([]);
   const [users, setUsers] = useState([]);
   const [pendingPosts, setPendingPosts] = useState([]);
-  const [reportedPosts, setReportedPosts] = useState([]);
+  const [reportedComments, setReportedComments] = useState([]);
   const [rejectedPosts, setRejectedPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [showPostDetail, setShowPostDetail] = useState(false);
@@ -184,7 +185,7 @@ export default function ModeratorDashboard() {
       setStats({
         total: statsResponse.data.totalPosts,
         pending: statsResponse.data.pendingPosts,
-        reported: statsResponse.data.reportedPosts,
+        reported: statsResponse.data.reportedComments,
         rejected: statsResponse.data.rejectedPosts
       });
 
@@ -201,9 +202,9 @@ export default function ModeratorDashboard() {
       const pendingResponse = await ModeratorApi.getPendingPosts();
       setPendingPosts(pendingResponse.data);
 
-      // Load reported posts
-      const reportedResponse = await ModeratorApi.getReportedPosts();
-      setReportedPosts(reportedResponse.data);
+      // Load reported comments  
+      const reportedResponse = await ModeratorApi.getReportedComments();
+      setReportedComments(reportedResponse.data);
 
       // Load rejected posts
       const rejectedResponse = await ModeratorApi.getRejectedPosts();
@@ -240,7 +241,7 @@ export default function ModeratorDashboard() {
           totalComments: 45,
           approvedPosts: 20,
           rejectedPosts: 3,
-          reportedPosts: 2
+          reportedComments: 2
         },
         {
           userId: 2,
@@ -250,7 +251,7 @@ export default function ModeratorDashboard() {
           totalComments: 32,
           approvedPosts: 15,
           rejectedPosts: 2,
-          reportedPosts: 1
+          reportedComments: 1
         },
         {
           userId: 3,
@@ -260,7 +261,7 @@ export default function ModeratorDashboard() {
           totalComments: 28,
           approvedPosts: 10,
           rejectedPosts: 1,
-          reportedPosts: 1
+          reportedComments: 1
         }
       ]);
 
@@ -286,13 +287,13 @@ export default function ModeratorDashboard() {
         }
       ]);
 
-      setReportedPosts([
+      setReportedComments([
         {
-          id: 3,
-          title: "Spam Post Example",
-          content: "This is a spam post...",
+          commentId: 3,
+          content: "This is a spam comment...",
           author: "spam_user",
           createdAt: "2024-12-06T14:20:00Z",
+          postTitle: "Sample Post Title",
           reportReason: "Spam content",
           reportCount: 3
         }
@@ -371,6 +372,123 @@ export default function ModeratorDashboard() {
   const handleViewPost = (post) => {
     setSelectedPost(post);
     setShowPostDetail(true);
+  };
+
+  const handleViewComment = (comment) => {
+    // For now, we'll just show an alert with comment details
+    // In a real implementation, you might want to show a modal with comment details
+    alert(`Comment: ${comment.content}\nAuthor: ${comment.author}\nPost: ${comment.postTitle}\nReport Reason: ${comment.reportReason}`);
+  };
+
+  const handleApproveReport = async (reportId) => {
+    try {
+      // Find the comment ID of the report being approved
+      const reportToApprove = reportedComments.find(comment => comment.reportId === reportId);
+      const commentIdToDelete = reportToApprove?.commentId;
+      
+      await approveReport(reportId);
+      
+      // Remove ALL reports for the same comment (since the comment and all its reports are deleted)
+      const reportsToRemove = reportedComments.filter(comment => comment.commentId === commentIdToDelete);
+      const removedCount = reportsToRemove.length;
+      
+      setReportedComments(prev => prev.filter(comment => comment.commentId !== commentIdToDelete));
+      setStats(prev => ({ ...prev, reported: prev.reported - removedCount }));
+      
+      // Reload users data to update reported comment counts
+      try {
+        const usersResponse = await ModeratorApi.getUsers();
+        setUsers(usersResponse.data);
+      } catch (userError) {
+        console.error("Error reloading users data:", userError);
+      }
+      
+      showNotification(
+        "success",
+        "Report approved successfully!",
+        `The reported comment has been removed from the forum and all ${removedCount} report(s) for this comment have been resolved.`
+      );
+    } catch (error) {
+      console.error("Error approving report:", error);
+      showNotification(
+        "error",
+        "Error approving report",
+        "An error occurred while approving the report. Please try again."
+      );
+    }
+  };
+
+  const handleDismissReport = async (reportId) => {
+    try {
+      await dismissReport(reportId);
+      // Update local state by removing the dismissed report
+      setReportedComments(prev => prev.filter(comment => comment.reportId !== reportId));
+      setStats(prev => ({ ...prev, reported: prev.reported - 1 }));
+      showNotification(
+        "success",
+        "Report dismissed successfully!",
+        "The report has been dismissed and the comment remains visible."
+      );
+    } catch (error) {
+      console.error("Error dismissing report:", error);
+      showNotification(
+        "error",
+        "Error dismissing report",
+        "An error occurred while dismissing the report. Please try again."
+      );
+    }
+  };
+
+  const handleRestrictUser = async (userId) => {
+    try {
+      await ModeratorApi.restrictUser(userId);
+      
+      // Update local state
+      setUsers(prevUsers => 
+        prevUsers.map(u => 
+          u.userId === userId ? { ...u, isRestricted: true } : u
+        )
+      );
+      
+      showNotification(
+        "success",
+        "User restricted successfully!",
+        "The user has been restricted from posting and commenting on the forum."
+      );
+    } catch (error) {
+      console.error("Error restricting user:", error);
+      showNotification(
+        "error",
+        "Error restricting user",
+        "An error occurred while restricting the user. Please try again."
+      );
+    }
+  };
+
+  const handleUnrestrictUser = async (userId) => {
+    try {
+      await ModeratorApi.unrestrictUser(userId);
+      
+      // Update local state
+      setUsers(prevUsers => 
+        prevUsers.map(u => 
+          u.userId === userId ? { ...u, isRestricted: false } : u
+        )
+      );
+      
+      showNotification(
+        "success",
+        "User unrestricted successfully!",
+        "The user can now post and comment on the forum again."
+      );
+    } catch (error) {
+      console.error("Error unrestricting user:", error);
+      showNotification(
+        "error",
+        "Error unrestricting user",
+        "An error occurred while unrestricting the user. Please try again."
+      );
+    }
   };
 
   const renderContent = (content) => {
@@ -622,33 +740,49 @@ export default function ModeratorDashboard() {
     </div>
   );
 
-  const renderReportedPosts = () => (
+  const renderReportedComments = () => (
     <div className="moderator-content">
-      <h1 className="page-title">Reported Posts</h1>
+      <h1 className="page-title">Reported Comments</h1>
       <div className="posts-list">
-        {reportedPosts.map(post => (
-          <div key={post.id} className="post-card">
+        {reportedComments.map(comment => (
+          <div key={comment.reportId} className="post-card">
             <div className="post-header">
-              <h3>{post.title}</h3>
-              <span className="post-status reported">Reported ({post.reportCount})</span>
+              <h3>Comment on: {comment.postTitle}</h3>
+              <span className="post-status reported">Reported ({comment.reportCount})</span>
             </div>
             <div className="post-meta">
-              <span>By: {post.user?.username || 'Unknown'}</span>
-              <span>{formatTimeVietnam(post.createdAt)}</span>
+              <span>By: {comment.author || 'Unknown'}</span>
+              <span>{formatTimeVietnam(comment.createdAt)}</span>
             </div>
             <div className="post-content">
-              {post.content.substring(0, 200)}...
+              {comment.content.substring(0, 200)}...
             </div>
             <div className="report-reason">
-              <strong>Report Reason:</strong> {post.reportReason}
+              <strong>Report Reason:</strong> {comment.reportReason}
             </div>
             <div className="post-actions">
               <button 
                 className="btn btn-primary"
-                onClick={() => handleViewPost(post)}
+                onClick={() => handleViewComment(comment)}
               >
                 <Eye size={16} />
                 View Detail
+              </button>
+              <button 
+                className="btn btn-success"
+                onClick={() => handleApproveReport(comment.reportId)}
+                title="Approve report and delete comment"
+              >
+                <Check size={16} />
+                Approve & Delete
+              </button>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => handleDismissReport(comment.reportId)}
+                title="Dismiss report and keep comment"
+              >
+                <X size={16} />
+                Dismiss
               </button>
             </div>
           </div>
@@ -780,8 +914,8 @@ export default function ModeratorDashboard() {
                 <th>Posts</th>
                 <th>Comments</th>
                 <th>Approved</th>
-                <th>Rejected</th>
-                <th>Reported</th>
+                <th>Rejected Post</th>
+                <th>Reported Comment</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -801,9 +935,25 @@ export default function ModeratorDashboard() {
                   <td>{user.totalComments || user.comments || 0}</td>
                   <td><span className="approved">{user.approvedPosts || user.approved || 0}</span></td>
                   <td><span className="rejected">{user.rejectedPosts || user.rejected || 0}</span></td>
-                  <td><span className="reported">{user.reportedPosts || user.reported || 0}</span></td>
+                  <td><span className="reported">{user.reportedComments || user.reported || 0}</span></td>
                   <td>
-                    <button className="btn-action view">View</button>
+                    {user.isRestricted ? (
+                      <button 
+                        className="btn-action unrestrict"
+                        onClick={() => handleUnrestrictUser(user.userId || user.id)}
+                        title="Remove restriction from this user"
+                      >
+                        Unrestrict
+                      </button>
+                    ) : (
+                      <button 
+                        className="btn-action restrict"
+                        onClick={() => handleRestrictUser(user.userId || user.id)}
+                        title="Restrict this user from posting and commenting"
+                      >
+                        Restrict
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -1003,8 +1153,8 @@ export default function ModeratorDashboard() {
         <div className="notification-item">
           <Flag size={20} />
           <div className="notification-content">
-            <h4>Post reported</h4>
-            <p>User reported "Spam Post Example" for inappropriate content</p>
+            <h4>Comment reported</h4>
+            <p>User reported a comment for inappropriate content</p>
             <span className="notification-time">4 hours ago</span>
           </div>
         </div>
@@ -1087,7 +1237,7 @@ export default function ModeratorDashboard() {
           {currentView === "statistics" && renderStatistics()}
           {currentView === "tags" && renderTags()}
           {currentView === "pending" && renderPendingPosts()}
-          {currentView === "reported" && renderReportedPosts()}
+          {currentView === "reported" && renderReportedComments()}
           {currentView === "rejected" && renderRejectedPosts()}
         </main>
       </div>

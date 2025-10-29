@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { likeComment, unlikeComment, createComment, updateComment, deleteComment } from "../../Services/ForumApi";
-import { ThumbsUp, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { likeComment, unlikeComment, createComment, updateComment, deleteComment, reportComment } from "../../Services/ForumApi";
+import { ThumbsUp, Edit, Trash2, MoreHorizontal, Flag } from "lucide-react";
 import useAuth from "../../Hook/UseAuth";
 import { formatTimeVietnam } from "../../utils/date";
+import NotificationPopup from "../Forum/NotificationPopup";
 
 export default function CommentItem({ comment, onReply, level = 0, postId, postOwnerId }) {
   const { user } = useAuth();
@@ -15,6 +16,16 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.content);
   const [showMenu, setShowMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  
+  // Notification state
+  const [notification, setNotification] = useState({
+    isOpen: false,
+    type: "success",
+    title: "",
+    message: ""
+  });
 
   // Sync state with props when component mounts or props change
   useEffect(() => {
@@ -44,6 +55,20 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
       window.removeEventListener('closeAllCommentMenus', handleCloseAllMenus);
     };
   }, [showMenu, comment.commentId]);
+
+  // Notification functions
+  const showNotification = (type, title, message) => {
+    setNotification({
+      isOpen: true,
+      type,
+      title,
+      message
+    });
+  };
+
+  const closeNotification = () => {
+    setNotification(prev => ({ ...prev, isOpen: false }));
+  };
 
   const handleVote = (e) => {
     e.stopPropagation();
@@ -117,6 +142,43 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
     }
   };
 
+  const handleReportComment = () => {
+    setShowReportModal(true);
+    setShowMenu(false);
+  };
+
+  const handleSubmitReport = () => {
+    if (!reportReason.trim()) return;
+
+    setSubmitting(true);
+    reportComment(comment.commentId, reportReason.trim())
+      .then(() => {
+        showNotification(
+          "success",
+          "Comment Reported Successfully!",
+          "Our moderators will review the reported comment."
+        );
+        setShowReportModal(false);
+        setReportReason("");
+      })
+      .catch(error => {
+        console.error("Error reporting comment:", error);
+        showNotification(
+          "error",
+          "Error Reporting Comment",
+          "An error occurred while reporting the comment. Please try again."
+        );
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
+  };
+
+  const handleCancelReport = () => {
+    setShowReportModal(false);
+    setReportReason("");
+  };
+
   const handleMenuClick = (e) => {
     e.stopPropagation();
     // Close all other comment menus by dispatching a custom event
@@ -142,10 +204,27 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
         onReply(replyData);
         setReplyText("");
         setShowReplyForm(false);
+        showNotification("success", "Reply Posted!", "Your reply has been added successfully.");
       })
       .catch(error => {
         console.error("Error creating reply:", error);
-        alert("Error creating reply. Please try again.");
+        
+        // Check if the error is due to account restriction
+        const errorMessage = error.response?.data?.message || error.response?.data || error.message || "";
+        
+        if (errorMessage.toLowerCase().includes("restricted")) {
+          showNotification(
+            "error",
+            "Account Restricted",
+            "Your account has been restricted from commenting on the forum due to violations of community guidelines. Please contact support if you believe this is an error."
+          );
+        } else {
+          showNotification(
+            "error",
+            "Error Creating Reply",
+            "Unable to post your reply. Please try again later."
+          );
+        }
       })
       .finally(() => {
         setSubmitting(false);
@@ -298,6 +377,18 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
                       Delete
                     </button>
                   )}
+                  
+                  {/* Report button - hiện cho tất cả users trừ owner của comment */}
+                  {user.userId !== comment.user.userId && (
+                    <button
+                      className="menu-item report-item"
+                      onClick={handleReportComment}
+                      disabled={submitting}
+                    >
+                      <Flag size={16} />
+                      Report
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -347,6 +438,54 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
           ))}
         </div>
       )}
+
+      {/* Report Comment Modal */}
+      {showReportModal && (
+        <div className="modal-overlay" onClick={handleCancelReport}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Report Comment</h3>
+              <button className="modal-close" onClick={handleCancelReport}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>Please provide a reason for reporting this comment:</p>
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="Enter your reason here..."
+                rows={4}
+                className="report-textarea"
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={handleCancelReport}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSubmitReport}
+                disabled={submitting || !reportReason.trim()}
+              >
+                {submitting ? "Reporting..." : "Report"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Popup */}
+      <NotificationPopup
+        isOpen={notification.isOpen}
+        onClose={closeNotification}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+      />
     </div>
   );
 }

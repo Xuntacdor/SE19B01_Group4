@@ -15,9 +15,11 @@ public partial class Report
 
     public DateTime CreatedAt { get; set; }
 
-    public int PostId { get; set; }
+    public int? CommentId { get; set; }
+    
+    public int? CommentAuthorUserId { get; set; } 
 
-    public virtual Post Post { get; set; } = null!;
+    public virtual Comment Comment { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;
 }
