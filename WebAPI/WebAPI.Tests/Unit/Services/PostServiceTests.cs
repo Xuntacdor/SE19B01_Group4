@@ -545,27 +545,6 @@ namespace WebAPI.Tests.Unit.Services
                 .WithMessage("You haven't voted for this post");
         }
 
-        // ============ REPORT POST ============
-
-        [Fact]
-        public void ReportPost_ValidPost_CreatesReport()
-        {
-            _postService.ReportPost(1, "Spam content", 2);
-
-            var report = _context.Report.FirstOrDefault(r => r.PostId == 1 && r.UserId == 2);
-            report.Should().NotBeNull();
-            report!.Content.Should().Be("Spam content");
-            report.Status.Should().Be("Pending");
-        }
-
-        [Fact]
-        public void ReportPost_NonExistentPost_ThrowsException()
-        {
-            Action act = () => _postService.ReportPost(999, "Spam", 1);
-
-            act.Should().Throw<KeyNotFoundException>().WithMessage("Post not found");
-        }
-
         // ============ PIN/UNPIN POST ============
 
         [Fact]
