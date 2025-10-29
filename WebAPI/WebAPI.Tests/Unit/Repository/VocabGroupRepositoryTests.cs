@@ -191,6 +191,17 @@ namespace WebAPI.Tests.Units.Repository
         }
 
         [Fact]
+        public void CountWords_GroupNotExists_ReturnsZero()
+        {
+            using var context = CreateInMemoryContext();
+            var repo = new VocabGroupRepository(context);
+
+            var result = repo.CountWords(999);
+
+            Assert.Equal(0, result);
+        }
+
+        [Fact]
         public void GetByUser_WhenNoGroups_ReturnsEmpty()
         {
             using var context = CreateInMemoryContext();
