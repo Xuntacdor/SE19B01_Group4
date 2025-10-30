@@ -130,3 +130,17 @@
   cursor: pointer;
   font-size: 0.85rem;
 }
+.spin {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
