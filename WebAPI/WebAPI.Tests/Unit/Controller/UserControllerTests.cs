@@ -20,29 +20,16 @@ namespace WebAPI.Tests.Unit.Controllers
         private readonly Mock<IUserService> _userServiceMock;
         private readonly Mock<ISignInHistoryService> _signInHistoryServiceMock;
         private readonly UserController _controller;
-        private readonly DefaultHttpContext _httpContext;
 
         public UserControllerTests()
         {
             _userServiceMock = new Mock<IUserService>();
             _signInHistoryServiceMock = new Mock<ISignInHistoryService>();
 
-            _controller = new UserController(
-                _userServiceMock.Object,
-                _signInHistoryServiceMock.Object);
-
-            // Setup default HttpContext for testing with authentication
-            var services = new ServiceCollection();
-            services.AddAuthentication();
-            var serviceProvider = services.BuildServiceProvider();
-
-            _httpContext = new DefaultHttpContext
-            {
-                RequestServices = serviceProvider,
-                Session = CreateTestSession()
-            };
-
-            _controller.ControllerContext = new ControllerContext { HttpContext = _httpContext };
+            _controller = new UserController(_userServiceMock.Object, _signInHistoryServiceMock.Object);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Session = CreateTestSession();
+            _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         }
 
         #region GetProfile Tests
@@ -86,10 +73,48 @@ namespace WebAPI.Tests.Unit.Controllers
             notFoundResult.Value.Should().Be("Không tìm thấy user");
         }
 
-        // // [Fact] // Commented out due to session handling bug
-        // // public void GetProfile_ReturnsUserDTO_WhenUserFound()
-        // // {
-        // // }
+        [Fact]
+        public void GetProfile_ReturnsUserDTO_WhenUserFound()
+        {
+            // Arrange
+            var controller = new UserController(_userServiceMock.Object, _signInHistoryServiceMock.Object);
+            var testSession = new TestSession();
+            testSession.SetInt32("UserId", 1);
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Session = testSession;
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+            // Debug session value
+            var sessionUserId = controller.ControllerContext.HttpContext.Session.GetInt32("UserId");
+            sessionUserId.Should().NotBeNull();
+            sessionUserId.Value.Should().Be(1);
+
+            var user = new User
+            {
+                UserId = 1,
+                Username = "testuser",
+                Email = "test@example.com",
+                Firstname = "Test",
+                Lastname = "User",
+                Role = "user",
+                Avatar = "avatar.jpg"
+            };
+            _userServiceMock.Setup(s => s.GetById(1)).Returns(user);
+
+            // Act
+            var result = controller.GetProfile();
+
+            // Assert
+            result.Value.Should().NotBeNull();
+            result.Value!.UserId.Should().Be(1);
+            result.Value.Username.Should().Be("testuser");
+            result.Value.Email.Should().Be("test@example.com");
+            result.Value.Firstname.Should().Be("Test");
+            result.Value.Lastname.Should().Be("User");
+            result.Value.Role.Should().Be("user");
+            result.Value.Avatar.Should().Be("avatar.jpg");
+        }
 
         #endregion
 
@@ -296,70 +321,70 @@ namespace WebAPI.Tests.Unit.Controllers
             unauthorizedResult.Value.Should().Be("Chưa đăng nhập");
         }
 
-        // [Fact] // Commented out due to session handling bug (UserId = 16777216 instead of 1)
-        // public void Update_ReturnsNotFound_WhenServiceThrowsKeyNotFoundException()
-        // {
-        //     // Arrange
-        //     var testSession = new TestSession();
-        //     testSession.SetInt32("UserId", 1);
-        //     _controller.ControllerContext.HttpContext.Session = testSession;
-        //
-        //     var dto = new UpdateUserDTO { Firstname = "Updated" };
-        //     _userServiceMock.Setup(s => s.Update(2, dto, 1))
-        //         .Throws(new KeyNotFoundException("User not found"));
-        //
-        //     // Act
-        //     var result = _controller.Update(2, dto);
-        //
-        //     // Assert
-        //     result.Should().BeOfType<NotFoundObjectResult>();
-        //     var notFoundResult = result as NotFoundObjectResult;
-        //     notFoundResult.Should().NotBeNull();
-        //     notFoundResult!.StatusCode.Should().Be(404);
-        //     notFoundResult.Value.Should().Be("User not found");
-        // }
+        [Fact]
+        public void Update_ReturnsNotFound_WhenServiceThrowsKeyNotFoundException()
+        {
+            // Arrange
+            var testSession = new TestSession();
+            testSession.SetInt32("UserId", 1);
+            _controller.ControllerContext.HttpContext.Session = testSession;
 
-        // [Fact] // Commented out due to session handling bug (UserId = 16777216 instead of 1)
-        // public void Update_ReturnsForbid_WhenServiceThrowsUnauthorizedAccessException()
-        // {
-        //     // Arrange
-        //     var testSession = new TestSession();
-        //     testSession.SetInt32("UserId", 1);
-        //     _controller.ControllerContext.HttpContext.Session = testSession;
-        //
-        //     var dto = new UpdateUserDTO { Firstname = "Updated" };
-        //     _userServiceMock.Setup(s => s.Update(2, dto, 1))
-        //         .Throws(new UnauthorizedAccessException("Not permitted to update"));
-        //
-        //     // Act
-        //     var result = _controller.Update(2, dto);
-        //
-        //     // Assert
-        //     result.Should().BeOfType<ForbidResult>();
-        // }
+            var dto = new UpdateUserDTO { Firstname = "Updated" };
+            _userServiceMock.Setup(s => s.Update(2, dto, 1))
+                .Throws(new KeyNotFoundException("User not found"));
 
-        // [Fact] // Commented out due to session handling bug (UserId = 16777216 instead of 1)
-        // public void Update_ReturnsConflict_WhenServiceThrowsInvalidOperationException()
-        // {
-        //     // Arrange
-        //     var testSession = new TestSession();
-        //     testSession.SetInt32("UserId", 1);
-        //     _controller.ControllerContext.HttpContext.Session = testSession;
-        //
-        //     var dto = new UpdateUserDTO { Firstname = "Updated" };
-        //     _userServiceMock.Setup(s => s.Update(2, dto, 1))
-        //         .Throws(new InvalidOperationException("Email already taken"));
-        //
-        //     // Act
-        //     var result = _controller.Update(2, dto);
-        //
-        //     // Assert
-        //     result.Should().BeOfType<ConflictObjectResult>();
-        //     var conflictResult = result as ConflictObjectResult;
-        //     conflictResult.Should().NotBeNull();
-        //     conflictResult!.StatusCode.Should().Be(409);
-        //     conflictResult.Value.Should().Be("Email already taken");
-        // }
+            // Act
+            var result = _controller.Update(2, dto);
+
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
+            var notFoundResult = result as NotFoundObjectResult;
+            notFoundResult.Should().NotBeNull();
+            notFoundResult!.StatusCode.Should().Be(404);
+            notFoundResult.Value.Should().Be("User not found");
+        }
+
+        [Fact]
+        public void Update_ReturnsForbid_WhenServiceThrowsUnauthorizedAccessException()
+        {
+            // Arrange
+            var testSession = new TestSession();
+            testSession.SetInt32("UserId", 1);
+            _controller.ControllerContext.HttpContext.Session = testSession;
+
+            var dto = new UpdateUserDTO { Firstname = "Updated" };
+            _userServiceMock.Setup(s => s.Update(2, dto, 1))
+                .Throws(new UnauthorizedAccessException("Not permitted to update"));
+
+            // Act
+            var result = _controller.Update(2, dto);
+
+            // Assert
+            result.Should().BeOfType<ForbidResult>();
+        }
+
+        [Fact]
+        public void Update_ReturnsConflict_WhenServiceThrowsInvalidOperationException()
+        {
+            // Arrange
+            var testSession = new TestSession();
+            testSession.SetInt32("UserId", 1);
+            _controller.ControllerContext.HttpContext.Session = testSession;
+
+            var dto = new UpdateUserDTO { Firstname = "Updated" };
+            _userServiceMock.Setup(s => s.Update(2, dto, 1))
+                .Throws(new InvalidOperationException("Email already taken"));
+
+            // Act
+            var result = _controller.Update(2, dto);
+
+            // Assert
+            result.Should().BeOfType<ConflictObjectResult>();
+            var conflictResult = result as ConflictObjectResult;
+            conflictResult.Should().NotBeNull();
+            conflictResult!.StatusCode.Should().Be(409);
+            conflictResult.Value.Should().Be("Email already taken");
+        }
 
         // [Fact] // Commented out due to session handling bug (UserId = 16777216 instead of 1)
         // public void Update_ReturnsInternalServerError_WhenUnexpectedException()
@@ -614,6 +639,111 @@ namespace WebAPI.Tests.Unit.Controllers
 
         #endregion
 
+        #region GetAllUsersForAdmin Tests
+
+        [Fact]
+        public void GetAllUsersForAdmin_ReturnsUnauthorized_WhenNotLoggedIn()
+        {
+            // Arrange
+            var testSession = new TestSession(); // Empty session, no UserId
+            _controller.ControllerContext.HttpContext.Session = testSession;
+
+            // Act
+            var result = _controller.GetAllUsersForAdmin();
+
+            // Assert
+            result.Result.Should().BeOfType<UnauthorizedObjectResult>();
+            var unauthorizedResult = result.Result as UnauthorizedObjectResult;
+            unauthorizedResult.Should().NotBeNull();
+            unauthorizedResult!.StatusCode.Should().Be(401);
+            unauthorizedResult.Value.Should().Be("Chưa đăng nhập");
+        }
+
+        [Fact]
+        public void GetAllUsersForAdmin_ReturnsForbid_WhenUserNotAdmin()
+        {
+            // Arrange
+            var testSession = new TestSession();
+            testSession.SetInt32("UserId", 1); // Regular user logged in
+            _controller.ControllerContext.HttpContext.Session = testSession;
+
+            var regularUser = new User { UserId = 1, Username = "regular", Role = "user" };
+            _userServiceMock.Setup(s => s.GetById(1)).Returns(regularUser);
+
+            // Act
+            var result = _controller.GetAllUsersForAdmin();
+
+            // Assert
+            result.Result.Should().BeOfType<ForbidResult>();
+        }
+
+        [Fact]
+        public void GetAllUsersForAdmin_ReturnsForbid_WhenUserNotFound()
+        {
+            // Arrange
+            var testSession = new TestSession();
+            testSession.SetInt32("UserId", 1); // UserId set but user doesn't exist
+            _controller.ControllerContext.HttpContext.Session = testSession;
+
+            _userServiceMock.Setup(s => s.GetById(1)).Returns((User)null);
+
+            // Act
+            var result = _controller.GetAllUsersForAdmin();
+
+            // Assert
+            result.Result.Should().BeOfType<ForbidResult>();
+        }
+
+        [Fact]
+        public void GetAllUsersForAdmin_ReturnsOk_WithUsersList_WhenAdminLoggedIn()
+        {
+            // Arrange - verify session is set correctly
+            var testSession = new TestSession();
+            testSession.SetInt32("UserId", 1); // Admin user logged in
+            _controller.ControllerContext.HttpContext.Session = testSession;
+
+            // Verify session value is actually set
+            // var sessionUserId = _controller.ControllerContext.HttpContext.Session.GetInt32("UserId");
+            // sessionUserId.Should().NotBeNull();
+            // sessionUserId.Should().Be(1);
+
+            var adminUser = new User { UserId = 1, Username = "admin", Role = "admin" };
+            var users = new List<User>
+            {
+                new User { UserId = 1, Username = "admin", Email = "admin@example.com", Role = "admin", Firstname = "Admin", Lastname = "User" },
+                new User { UserId = 2, Username = "user", Email = "user@example.com", Role = "user", Firstname = "Regular", Lastname = "User" }
+            };
+
+            _userServiceMock.Setup(s => s.GetById(1)).Returns(adminUser);
+            _userServiceMock.Setup(s => s.GetAll()).Returns(users);
+
+            // Act
+            var result = _controller.GetAllUsersForAdmin();
+
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            okResult.Should().NotBeNull();
+            okResult!.StatusCode.Should().Be(200);
+
+            var usersList = okResult.Value as IEnumerable<UserDTO>;
+            usersList.Should().NotBeNull();
+            usersList!.Count().Should().Be(2);
+
+            var firstUser = usersList.First();
+            firstUser.UserId.Should().Be(1);
+            firstUser.Username.Should().Be("admin");
+            firstUser.Email.Should().Be("admin@example.com");
+            firstUser.Role.Should().Be("admin");
+            firstUser.Firstname.Should().Be("Admin");
+            firstUser.Lastname.Should().Be("User");
+
+            // Verify service was called
+            _userServiceMock.Verify(s => s.GetAll(), Times.Once);
+        }
+
+        #endregion
+
         #region Test Helpers
 
         private static ISession CreateTestSession()
@@ -640,21 +770,7 @@ namespace WebAPI.Tests.Unit.Controllers
                 return _data.TryGetValue(key, out value!);
             }
 
-            // ASP.NET Core compatible session extension methods
-            public void SetInt32(string key, int value)
-            {
-                var bytes = BitConverter.GetBytes(value);
-                Set(key, bytes);
-            }
-
-            public int? GetInt32(string key)
-            {
-                if (_data.TryGetValue(key, out var bytes) && bytes != null && bytes.Length >= 4)
-                {
-                    return BitConverter.ToInt32(bytes, 0);
-                }
-                return null;
-            }
+            // Use ASP.NET Core's built-in method for proper compatibility
         }
 
         #endregion

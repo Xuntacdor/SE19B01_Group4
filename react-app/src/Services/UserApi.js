@@ -24,3 +24,8 @@ export function getSignInHistory(userId) {
   if (!userId) throw new Error("UserId is required");
   return API.get(`/${userId}/signin-history`);
 }
+
+// Admin method to get all users
+export function getAllUsersAdmin() {
+  return API.get("/admin/all");
+}
