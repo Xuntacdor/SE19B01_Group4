@@ -7,12 +7,9 @@ import * as UploadApi from "../../Services/UploadApi";
 import LoadingComponent from "../../Components/Exam/LoadingComponent";
 import MicroCheck from "../../Components/Exam/MicroCheck";
 import FloatingDictionaryChat from "../../Components/Dictionary/FloatingDictionaryChat";
-
 import {
   Mic,
   MicOff,
-  Play,
-  Pause,
   Clock,
   Volume2,
   AlertCircle,
@@ -26,10 +23,7 @@ export default function SpeakingTest() {
   const state = location.state || null;
 
   const [phase, setPhase] = useState("idle");
-  const [prepLeft, setPrepLeft] = useState(10);
   const [speakLeft, setSpeakLeft] = useState(60);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [recordings, setRecordings] = useState({});
   const [audioUrls, setAudioUrls] = useState({});
   const [uploading, setUploading] = useState({});
@@ -39,8 +33,6 @@ export default function SpeakingTest() {
   const [showPrepPopup, setShowPrepPopup] = useState(false);
 
   const mediaRecorderRef = useRef(null);
-  const audioRef = useRef(null);
-  const prepTimerRef = useRef(null);
   const speakTimerRef = useRef(null);
   const hasSubmittedRef = useRef(false);
 
@@ -60,7 +52,6 @@ export default function SpeakingTest() {
     };
     fetchTaskById();
   }, [speakingId]);
-  // ===== Load Existing Feedback (if user already did this task) =====
 
   const { exam, tasks, task, mode } = state || {};
   const currentExam =
@@ -77,6 +68,8 @@ export default function SpeakingTest() {
     currentMode === "full"
       ? currentTask?.speakingId
       : task?.speakingId || speakingTask?.speakingId;
+
+  // ===== Load Existing Feedback =====
   useEffect(() => {
     const fetchExistingFeedback = async () => {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -92,13 +85,14 @@ export default function SpeakingTest() {
           setFeedback(res.feedback);
           setPhase("result");
         }
-      } catch (err) {
-        console.warn("ℹ️ No previous feedback found or fetch failed:", err);
+      } catch {
+        console.warn("ℹ️ No previous feedback found or fetch failed");
       }
     };
 
     fetchExistingFeedback();
   }, [currentId]);
+
   // ===== Recording =====
   const startRecording = async () => {
     try {
@@ -115,7 +109,6 @@ export default function SpeakingTest() {
         hasStopped = true;
 
         const blob = new Blob(chunks, { type: "audio/webm" });
-        setIsRecording(false);
         setUploading((p) => ({ ...p, [currentId]: true }));
 
         try {
@@ -138,7 +131,6 @@ export default function SpeakingTest() {
 
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
-      setIsRecording(true);
     } catch (err) {
       alert("Cannot access microphone!");
       console.error("❌ Microphone error:", err);
@@ -152,7 +144,6 @@ export default function SpeakingTest() {
     }
   };
 
-  // ===== Speak Question =====
   const speakQuestion = (text) => {
     if (!text) return;
     const utterance = new SpeechSynthesisUtterance(text);
@@ -163,7 +154,6 @@ export default function SpeakingTest() {
     window.speechSynthesis.speak(utterance);
   };
 
-  // ===== Auto Submit when audio ready =====
   useEffect(() => {
     if (
       audioUrls[currentId] &&
@@ -171,12 +161,10 @@ export default function SpeakingTest() {
       !uploading[currentId]
     ) {
       hasSubmittedRef.current = true;
-      console.log("🤖 Auto-submit triggered for:", audioUrls[currentId]);
-      handleSubmit(true);
+      handleSubmit();
     }
   }, [audioUrls, currentId, uploading]);
 
-  // ===== Submit Logic (INLINE FEEDBACK) =====
   const handleSubmit = async () => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (!user || !audioUrls[currentId]) return;
@@ -202,7 +190,6 @@ export default function SpeakingTest() {
       await SpeakingApi.gradeSpeaking(payload);
       setPhase("waiting");
 
-      // Poll feedback
       for (let i = 0; i < 5; i++) {
         const res = await SpeakingApi.getFeedbackBySpeakingId(
           currentId,
@@ -222,11 +209,9 @@ export default function SpeakingTest() {
     }
   };
 
-  // ===== Countdown =====
   const beginFlow = () => {
     if (phase !== "idle") return;
 
-    // 🔹 Show popup "Get Ready" 3 seconds
     setShowPrepPopup(true);
     setTimeout(() => {
       setShowPrepPopup(false);
@@ -248,7 +233,6 @@ export default function SpeakingTest() {
   };
 
   const hasRecording = recordings[currentId];
-  const isUploading = uploading[currentId];
 
   if (!currentTask)
     return (
@@ -258,6 +242,112 @@ export default function SpeakingTest() {
         </div>
       </AppLayout>
     );
+
+  const renderDynamicSection = () => {
+    switch (phase) {
+      case "idle":
+        return (
+          <button className={styles.recordBtn} onClick={beginFlow}>
+            <Mic size={24} /> Start Recording
+          </button>
+        );
+      case "recording":
+        return (
+          <button
+            className={`${styles.recording} ${styles.recordBtn}`}
+            onClick={() => {
+              clearInterval(speakTimerRef.current);
+              stopRecording();
+              setPhase("done");
+            }}
+          >
+            <MicOff size={24} /> Recording... ({speakLeft}s)
+          </button>
+        );
+      case "analyzing":
+        return <LoadingComponent text="Analyzing your answer..." />;
+      case "waiting":
+        return <LoadingComponent text="Waiting for AI feedback..." />;
+      case "result":
+        return (
+          feedback && (
+            <div className={styles.resultBox}>
+              <div className={styles.resultHeader}>
+                <Trophy size={28} color="#2563eb" />
+                <h3>Speaking Result</h3>
+              </div>
+
+              <div className={styles.userAnswerSection}>
+                <h4>Your Answer</h4>
+                {feedback.audioUrl && (
+                  <div className={styles.audioPlayer}>
+                    <audio controls src={feedback.audioUrl} />
+                  </div>
+                )}
+                <p className={styles.transcriptText}>
+                  {feedback.transcript || "Transcript not available yet."}
+                </p>
+              </div>
+
+              <div className={styles.scoreContainer}>
+                <div className={`${styles.scoreChip} ${styles.overall}`}>
+                  Overall <strong>{feedback.overall}</strong>
+                </div>
+                <div className={`${styles.scoreChip} ${styles.pron}`}>
+                  Pronunciation <strong>{feedback.pronunciation}</strong>
+                </div>
+                <div className={`${styles.scoreChip} ${styles.grammar}`}>
+                  Grammar <strong>{feedback.grammarAccuracy}</strong>
+                </div>
+                <div className={`${styles.scoreChip} ${styles.fluency}`}>
+                  Fluency <strong>{feedback.fluency}</strong>
+                </div>
+                <div className={`${styles.scoreChip} ${styles.coherence}`}>
+                  Coherence <strong>{feedback.coherence}</strong>
+                </div>
+              </div>
+
+              {/* ✅ AI feedback content */}
+              {feedback?.aiAnalysisJson && (
+                <div className={styles.feedbackText}>
+                  <h4>AI Feedback</h4>
+                  <p>
+                    {JSON.parse(feedback.aiAnalysisJson)?.ai_analysis
+                      ?.overview || "No feedback text."}
+                  </p>
+                </div>
+              )}
+
+              <button
+                className={styles.recordAgainBtn}
+                onClick={() => {
+                  setPhase("idle");
+                  hasSubmittedRef.current = false;
+                  setFeedback(null);
+                }}
+              >
+                <RotateCcw size={20} /> Retake
+              </button>
+            </div>
+          )
+        );
+      case "done":
+        return (
+          hasRecording && (
+            <>
+              <div className={styles.audioPlayer}>
+                <audio controls src={audioUrls[currentId]} />
+              </div>
+              <div className={styles.audioInfo}>
+                <Volume2 size={16} /> <span>Your recording is ready</span>
+              </div>
+            </>
+          )
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <AppLayout title="Speaking Test" sidebar={<GeneralSidebar />}>
@@ -269,15 +359,12 @@ export default function SpeakingTest() {
               {currentTask?.speakingType} — {currentExam?.examName}
             </h2>
           </div>
-          <div className={styles.headerRight}>
-            <MicroCheck />
-          </div>
+          <MicroCheck />
           <div className={styles.timer}>
             <Clock size={20} /> {speakLeft > 0 ? `${speakLeft}s` : "00:00"}
           </div>
         </div>
 
-        {/* === Popup Get Ready === */}
         {showPrepPopup && (
           <div className={styles.prepPopup}>
             <div className={styles.prepPopupBox}>
@@ -289,7 +376,6 @@ export default function SpeakingTest() {
 
         <div className={styles.mainContent}>
           <div className={styles.questionPanel}>
-            {/* Always show question */}
             <div className={styles.questionHeader}>
               <h3>Question</h3>
               <button
@@ -297,119 +383,19 @@ export default function SpeakingTest() {
                 onClick={() =>
                   speakQuestion(currentTask?.speakingQuestion || "")
                 }
-                title="Read aloud"
               >
                 <Volume2 size={18} />
               </button>
             </div>
-
             <div className={styles.questionContent}>
               <p>
                 <strong>Q:</strong> {currentTask?.speakingQuestion}
               </p>
             </div>
 
-            {phase === "idle" && (
-              <button className={styles.recordBtn} onClick={beginFlow}>
-                <Mic size={24} /> Start Recording
-              </button>
-            )}
-
-            {phase === "recording" && (
-              <button className={`${styles.recording} ${styles.recordBtn}`}>
-                <MicOff size={24} /> Recording... ({speakLeft}s)
-              </button>
-            )}
-
-            {phase === "analyzing" && (
-              <LoadingComponent text="Analyzing your answer..." />
-            )}
-
-            {phase === "waiting" && (
-              <LoadingComponent text="Waiting for AI feedback..." />
-            )}
-
-            {phase === "result" && feedback && (
-              <div className={styles.resultBox}>
-                <div className={styles.resultHeader}>
-                  <Trophy size={28} color="#2563eb" />
-                  <h3>Speaking Result</h3>
-                </div>
-                {/* === User Answer === */}
-                <div className={styles.userAnswerSection}>
-                  <h4>Your Answer</h4>
-                  {feedback.audioUrl && (
-                    <div className={styles.audioPlayer}>
-                      <audio controls src={feedback.audioUrl} />
-                    </div>
-                  )}
-                  {feedback.transcript ? (
-                    <p className={styles.transcriptText}>
-                      {feedback.transcript}
-                    </p>
-                  ) : (
-                    <p className={styles.transcriptTextMuted}>
-                      Transcript is not available yet.
-                    </p>
-                  )}
-                </div>
-
-                <div className={styles.scoreContainer}>
-                  <div className={`${styles.scoreChip} ${styles.overall}`}>
-                    Overall <strong>{feedback.overall}</strong>
-                  </div>
-                  <div className={`${styles.scoreChip} ${styles.pron}`}>
-                    Pronunciation <strong>{feedback.pronunciation}</strong>
-                  </div>
-                  <div className={`${styles.scoreChip} ${styles.grammar}`}>
-                    Grammar <strong>{feedback.grammarAccuracy}</strong>
-                  </div>
-                  <div className={`${styles.scoreChip} ${styles.fluency}`}>
-                    Fluency <strong>{feedback.fluency}</strong>
-                  </div>
-                  <div className={`${styles.scoreChip} ${styles.coherence}`}>
-                    Coherence <strong>{feedback.coherence}</strong>
-                  </div>
-                </div>
-
-                {feedback?.aiAnalysisJson && (
-                  <div className={styles.feedbackText}>
-                    <h4>AI Feedback</h4>
-                    <p>
-                      {JSON.parse(feedback.aiAnalysisJson)?.ai_analysis
-                        ?.overview || "No feedback text."}
-                    </p>
-                  </div>
-                )}
-
-                <button
-                  className={styles.recordAgainBtn}
-                  onClick={() => {
-                    setPhase("idle");
-                    hasSubmittedRef.current = false;
-                    setFeedback(null);
-                  }}
-                >
-                  <RotateCcw size={20} /> Retake
-                </button>
-              </div>
-            )}
-
-            {hasRecording && phase === "done" && (
-              <>
-                <div className={styles.audioPlayer}>
-                  <audio
-                    ref={audioRef}
-                    src={audioUrls[currentId]}
-                    onEnded={() => setIsPlaying(false)}
-                    controls
-                  />
-                </div>
-                <div className={styles.audioInfo}>
-                  <Volume2 size={16} /> <span>Your recording is ready</span>
-                </div>
-              </>
-            )}
+            <div className={styles.dynamicSection}>
+              {renderDynamicSection()}
+            </div>
           </div>
 
           <aside className={styles.notePanel}>

@@ -1,4 +1,4 @@
-using CloudinaryDotNet;
+﻿using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI.DTOs;
@@ -44,28 +44,44 @@ namespace WebAPI.Controllers
             if (dto.File == null || dto.File.Length == 0)
                 return BadRequest("No audio uploaded.");
 
-            var uploadParams = new VideoUploadParams
+            try
             {
-                File = new FileDescription(dto.File.FileName, dto.File.OpenReadStream()),
-                Folder = "ieltsphobic/audio",
-                UseFilename = true,
-                UniqueFilename = true,
-                Overwrite = false,
-            };
+                Console.WriteLine($" Uploading audio: {dto.File.FileName}, {dto.File.ContentType}, {dto.File.Length} bytes");
 
-            var result = _cloudinaryService.Upload(uploadParams, "video");
+                
+                var uploadParams = new RawUploadParams
+                {
+                    File = new FileDescription(dto.File.FileName, dto.File.OpenReadStream()),
+                    Folder = "ieltsphobic/audio",
+                    UseFilename = true,
+                    UniqueFilename = true,
+                    Overwrite = false
+                };
 
-            if (result.Error != null)
-            {
-                Console.WriteLine($"Cloudinary Error: {result.Error.Message}");
-                return BadRequest($"Cloudinary error: {result.Error.Message}");
+                var result = _cloudinaryService.Upload(uploadParams);
+
+                if (result == null)
+                    return StatusCode(500, "Cloudinary returned null result.");
+
+                if (result.Error != null)
+                {
+                    Console.WriteLine($"Cloudinary Error: {result.Error.Message}");
+                    return StatusCode(500, $"Cloudinary error: {result.Error.Message}");
+                }
+
+                var secureUrl = result.SecureUrl?.ToString();
+                if (string.IsNullOrEmpty(secureUrl))
+                    return StatusCode(500, "Audio upload failed. Cloudinary did not return URL.");
+
+                return Ok(new { url = secureUrl });
             }
-
-            if (result.SecureUrl == null)
-                return BadRequest("Audio upload failed. Cloudinary did not return a URL.");
-
-            return Ok(new { url = result.SecureUrl.ToString() });
+            catch (Exception ex)
+            {
+                Console.WriteLine(" Exception in UploadAudio: " + ex);
+                return StatusCode(500, ex.Message);
+            }
         }
+
 
         [HttpPost("document")]
         [Consumes("multipart/form-data")]
