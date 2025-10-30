@@ -96,6 +96,9 @@ builder.Services.AddScoped<ISpeakingService, SpeakingService>();
 builder.Services.AddScoped<ISpeakingFeedbackService, SpeakingFeedbackService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddScoped<ISpeechToTextService, SpeechToTextService>();
+builder.Services.AddScoped<IUserSignInHistoryRepository, UserSignInHistoryRepository>();
+builder.Services.AddScoped<ISignInHistoryService, SignInHistoryService>();
+
 // Tag Services
 builder.Services.AddScoped<ITagService, TagService>();
 
