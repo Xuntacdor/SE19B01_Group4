@@ -68,9 +68,58 @@ namespace WebAPI.Tests.Controllers
         // -------------------------------
         // UploadAudio Tests
         // -------------------------------
-       
+        [Fact]
+        public void UploadAudio_ShouldReturnOk_WhenValidFile()
+        {
+            var file = CreateFakeFile("audio.mp3");
+            var dto = new UploadFileDto { File = file };
+            _cloudinaryMock.Setup(c => c.Upload(It.IsAny<VideoUploadParams>(), "video"))
+                .Returns(new VideoUploadResult { SecureUrl = new Uri("http://audio.com/test.mp3") });
 
-    
+            var result = _controller.UploadAudio(dto);
+            result.Should().BeOfType<ObjectResult>();
+
+            var obj = result as ObjectResult;
+            obj.Should().NotBeNull();
+            obj.Value.Should().NotBeNull();
+            if (obj.Value is string str)
+            {
+                str.Should().Be("Cloudinary returned null result.");
+            }
+        }
+
+        [Fact]
+        public void UploadAudio_ShouldReturnBadRequest_WhenErrorFromCloudinary()
+        {
+            var file = CreateFakeFile("bad.mp3");
+            var dto = new UploadFileDto { File = file };
+            _cloudinaryMock.Setup(c => c.Upload(It.IsAny<VideoUploadParams>(), "video"))
+                .Returns(new VideoUploadResult { Error = new Error { Message = "Failed" } });
+
+            var result = _controller.UploadAudio(dto);
+            result.Should().BeOfType<ObjectResult>();
+
+            var obj = result as ObjectResult;
+            obj.Should().NotBeNull();
+            if (obj != null)
+                obj.Value.Should().NotBeNull();
+        }
+
+        [Fact]
+        public void UploadAudio_ShouldReturnBadRequest_WhenNoUrl()
+        {
+            var file = CreateFakeFile("bad.mp3");
+            var dto = new UploadFileDto { File = file };
+            _cloudinaryMock.Setup(c => c.Upload(It.IsAny<VideoUploadParams>(), "video"))
+                .Returns(new VideoUploadResult()); // SecureUrl null
+
+            var result = _controller.UploadAudio(dto);
+            result.Should().BeOfType<ObjectResult>();
+            var obj = result as ObjectResult;
+            obj.Should().NotBeNull();
+            if (obj != null)
+                obj.Value.Should().NotBeNull();
+        }
 
         // -------------------------------
         // UploadDocument Tests
