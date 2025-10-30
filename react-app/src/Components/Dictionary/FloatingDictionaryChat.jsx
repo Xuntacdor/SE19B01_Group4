@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  Volume2,
+  Loader2,
+  AlertCircle,
+  Info,
+} from "lucide-react";
 import * as WordApi from "../../Services/WordApi";
 import styles from "./FloatingDictionaryChat.module.css";
 
@@ -20,8 +28,8 @@ export default function FloatingDictionaryChat() {
     } catch (err) {
       setResult(null);
       if (err.response?.status === 404)
-        setError(`Không tìm thấy từ "${query}".`);
-      else setError("Lỗi tra từ, vui lòng thử lại.");
+        setError(`Could not find the word "${query}".`);
+      else setError("Word lookup error, please try again.");
     } finally {
       setLoading(false);
     }
@@ -29,19 +37,17 @@ export default function FloatingDictionaryChat() {
 
   return (
     <div className={styles.wrapper}>
-      {/* Floating button */}
       {!isOpen && (
         <button className={styles.floatingBtn} onClick={() => setIsOpen(true)}>
-          <BookOpen size={24} />
-          <span>Tra từ vựng</span>
+          <BookOpen size={22} />
+          <span>Look up word</span>
         </button>
       )}
 
-      {/* Chat box */}
       {isOpen && (
         <div className={styles.chatBox}>
           <div className={styles.header}>
-            <span>Tra từ vựng</span>
+            <span>Look up word</span>
             <button onClick={() => setIsOpen(false)}>
               <ChevronDown size={20} />
             </button>
@@ -49,33 +55,39 @@ export default function FloatingDictionaryChat() {
 
           <div className={styles.body}>
             {loading ? (
-              <p className={styles.hint}>Đang tra từ...</p>
+              <p className={styles.hint}>
+                <Loader2 className={styles.spin} size={18} /> Searching...
+              </p>
             ) : error ? (
-              <p className={styles.error}>{error}</p>
+              <p className={styles.error}>
+                <AlertCircle size={16} style={{ marginRight: 6 }} />
+                {error}
+              </p>
             ) : result ? (
               <div className={styles.result}>
                 <p>
-                  <strong>Từ:</strong> {result.term}
+                  <strong>Word:</strong> {result.term}
                 </p>
                 <p>
-                  <strong>Nghĩa:</strong> {result.meaning || "-"}
+                  <strong>Meaning:</strong> {result.meaning || "-"}
                 </p>
                 <p>
-                  <strong>Ví dụ:</strong> {result.example || "-"}
+                  <strong>Example:</strong> {result.example || "-"}
                 </p>
                 {result.audio && (
                   <button
                     className={styles.audioBtn}
                     onClick={() => new Audio(result.audio).play()}
                   >
-                    🔊 Nghe phát âm
+                    <Volume2 size={16} style={{ marginRight: 5 }} />
+                    Play pronunciation
                   </button>
                 )}
               </div>
             ) : (
               <p className={styles.hint}>
-                Bạn hãy nhập từ hoặc cụm từ tiếng Việt, YouPass sẽ gợi ý cụm từ
-                tiếng Anh tương ứng.
+                <Info size={16} style={{ marginRight: 5 }} />
+                Please enter a word or phrase to look up its meaning.
               </p>
             )}
           </div>
@@ -83,14 +95,16 @@ export default function FloatingDictionaryChat() {
           <div className={styles.footer}>
             <input
               type="text"
-              placeholder="Nhập từ tại đây..."
+              placeholder="Enter word here..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               maxLength={50}
             />
-            <button onClick={handleSearch}>Tra từ</button>
+            <button onClick={handleSearch}>Search</button>
           </div>
-          <div className={styles.limit}>Giới hạn: {query.length}/50 ký tự</div>
+          <div className={styles.limit}>
+            Limit: {query.length}/50 characters
+          </div>
         </div>
       )}
     </div>
