@@ -11,6 +11,7 @@ using WebAPI.DTOs;
 using WebAPI.Models;
 using WebAPI.Services;
 using Xunit;
+using System.Linq;
 
 namespace WebAPI.Tests.Unit.Controllers
 {
@@ -317,6 +318,144 @@ namespace WebAPI.Tests.Unit.Controllers
             var result = _controller.GradeSpeaking(dto);
             var obj = Assert.IsType<ObjectResult>(result);
             obj.StatusCode.Should().Be(500);
+        }
+
+        [Fact]
+        public void GradeSpeaking_ShouldReturn500_WhenUserIdClaimNotInt()
+        {
+            var dto = new SpeakingGradeRequestDTO
+            {
+                ExamId = 1,
+                Answers = new List<SpeakingAnswerDTO> { new() { AudioUrl = "a" } }
+            };
+            
+            var json = JsonDocument.Parse("{\"ok\":true}");
+            _speakingService.Setup(s => s.GradeSpeaking(dto, It.IsAny<int>())).Returns(json);
+            
+            var context = new DefaultHttpContext();
+            var claims = new System.Security.Claims.ClaimsIdentity(new[]
+            {
+                new System.Security.Claims.Claim("UserId", "notAnInt")
+            }, "mock");
+            context.User = new System.Security.Claims.ClaimsPrincipal(claims);
+            _controller.ControllerContext = new ControllerContext { HttpContext = context };
+
+            var result = _controller.GradeSpeaking(dto);
+            var obj = result.Should().BeOfType<ObjectResult>().Subject;
+            obj.StatusCode.Should().Be(500);
+        }
+
+        [Fact]
+        public void GradeSpeaking_ShouldTranscribeAudio_WhenTranscriptMissing()
+        {
+            var dto = new SpeakingGradeRequestDTO
+            {
+                ExamId = 1,
+                Answers = new List<SpeakingAnswerDTO> { new() { AudioUrl = "a", Transcript = null } }
+            };
+            var json = JsonDocument.Parse("{\"ok\":true}");
+            _speakingService.Setup(s => s.GradeSpeaking(dto, It.IsAny<int>())).Returns(json);
+            _speechService.Setup(s => s.TranscribeAndSave(It.IsAny<long>(), "a")).Returns("auto-transcribed");
+            var context = new DefaultHttpContext();
+            var claims = new System.Security.Claims.ClaimsIdentity(new[]
+            {
+                new System.Security.Claims.Claim("UserId", "3")
+            }, "mock");
+            context.User = new System.Security.Claims.ClaimsPrincipal(claims);
+            _controller.ControllerContext = new ControllerContext { HttpContext = context };
+            var result = _controller.GradeSpeaking(dto);
+            result.Should().BeOfType<OkObjectResult>();
+            dto.Answers[0].Transcript.Should().Be("auto-transcribed");
+        }
+
+        [Fact]
+        public void GetFeedbackByExam_ShouldHandleAllOverallNull()
+        {
+            var list = new List<SpeakingFeedback>
+            {
+                new() { Overall = null, SpeakingAttempt = new SpeakingAttempt { SpeakingId = 1 } },
+                new() { Overall = null, SpeakingAttempt = new SpeakingAttempt { SpeakingId = 2 } },
+            };
+            _feedbackService.Setup(f => f.GetByExamAndUser(9, 7)).Returns(list);
+            var result = _controller.GetFeedbackByExam(9, 7);
+            result.Should().BeOfType<OkObjectResult>();
+        }
+
+        [Fact]
+        public void GetFeedbackByExam_Should_Map_All_Feedback_Properties()
+        {
+            var now = DateTime.UtcNow;
+            var feedbacks = new List<SpeakingFeedback>
+            {
+                new SpeakingFeedback
+                {
+                    SpeakingAttempt = new SpeakingAttempt
+                    {
+                        SpeakingId = 123,
+                        AudioUrl = "url",
+                        Transcript = "transcript"
+                    },
+                    Pronunciation = 1, Fluency = 2, LexicalResource = 3, GrammarAccuracy = 4, Coherence = 5,
+                    Overall = 6, AiAnalysisJson = "json-ai", CreatedAt = now, SpeakingAttemptId = 111
+                },
+                new SpeakingFeedback { SpeakingAttempt = null, SpeakingAttemptId = 112 }
+            };
+            _feedbackService.Setup(f => f.GetByExamAndUser(42, 2)).Returns(feedbacks);
+            var result = _controller.GetFeedbackByExam(42, 2) as OkObjectResult;
+            result.Should().NotBeNull();
+            var json = System.Text.Json.JsonSerializer.Serialize(result!.Value);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var props = root.EnumerateObject().ToList();
+            var totalTasksProp = props.FirstOrDefault(p => p.Name.ToLower() == "totaltasks");
+            var fbArrProp = props.FirstOrDefault(p => p.Name.ToLower() == "feedbacks");
+            Assert.False(totalTasksProp.Equals(default), $"totalTasks property not found. Available: {string.Join(",", props.Select(p => p.Name))}");
+            Assert.False(fbArrProp.Equals(default), $"feedbacks property not found. Available: {string.Join(",", props.Select(p => p.Name))}");
+            Assert.Equal(2, totalTasksProp.Value.GetInt32());
+            var fbArr = fbArrProp.Value;
+            Assert.Equal(System.Text.Json.JsonValueKind.Array, fbArr.ValueKind);
+            Assert.Equal(2, fbArr.GetArrayLength());
+            var mainFb = fbArr[0];
+            string[] childProps = {"speakingid","audioUrl","transcript","pronunciation","lexicalResource","grammarAccuracy","aiAnalysisJson","speakingAttemptId" };
+            foreach (var child in childProps)
+                Assert.True(mainFb.EnumerateObject().Any(x => x.Name.ToLower() == child.ToLower()), $"Child property {child} missing! Actual: {string.Join(",", mainFb.EnumerateObject().Select(x => x.Name))}");
+            Assert.Equal(123, mainFb.EnumerateObject().First(p => p.Name.ToLower() == "speakingid").Value.GetInt32());
+            Assert.Equal("url", mainFb.EnumerateObject().First(p => p.Name.ToLower() == "audiourl").Value.GetString());
+            Assert.Equal("transcript", mainFb.EnumerateObject().First(p => p.Name.ToLower() == "transcript").Value.GetString());
+            Assert.Equal(1, mainFb.EnumerateObject().First(p => p.Name.ToLower() == "pronunciation").Value.GetInt32());
+            Assert.Equal(3, mainFb.EnumerateObject().First(p => p.Name.ToLower() == "lexicalresource").Value.GetInt32());
+            Assert.Equal(4, mainFb.EnumerateObject().First(p => p.Name.ToLower() == "grammaraccuracy").Value.GetInt32());
+            Assert.Equal("json-ai", mainFb.EnumerateObject().First(p => p.Name.ToLower() == "aianalysisjson").Value.GetString());
+            Assert.Equal(111, mainFb.EnumerateObject().First(p => p.Name.ToLower() == "speakingattemptid").Value.GetInt32());
+            var nullFb = fbArr[1];
+            Assert.True(nullFb.EnumerateObject().First(p => p.Name.ToLower() == "speakingid").Value.ValueKind == System.Text.Json.JsonValueKind.Null);
+            Assert.True(nullFb.EnumerateObject().First(p => p.Name.ToLower() == "audiourl").Value.ValueKind == System.Text.Json.JsonValueKind.Null);
+            Assert.True(nullFb.EnumerateObject().First(p => p.Name.ToLower() == "transcript").Value.ValueKind == System.Text.Json.JsonValueKind.Null);
+            Assert.Equal(112, nullFb.EnumerateObject().First(p => p.Name.ToLower() == "speakingattemptid").Value.GetInt32());
+        }
+
+        [Fact]
+        public void GetFeedbackBySpeaking_Should_Cover_All_Response_Properties_With_Nulls()
+        {
+            var fb = new SpeakingFeedback { SpeakingAttempt = null, SpeakingAttemptId = 33 };
+            _feedbackService.Setup(f => f.GetBySpeakingAndUser(8, 4)).Returns(fb);
+            var result = _controller.GetFeedbackBySpeaking(8, 4) as OkObjectResult;
+            result.Should().NotBeNull();
+            var json = System.Text.Json.JsonSerializer.Serialize(result!.Value);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var props = root.EnumerateObject().ToList();
+            var fbProp = props.FirstOrDefault(p => p.Name.ToLower() == "feedback");
+            Assert.False(fbProp.Equals(default), $"feedback property not found. Actual: {string.Join("|", props.Select(p => p.Name))}");
+            var fbDetail = fbProp.Value;
+            Assert.True(fbDetail.EnumerateObject().First(p => p.Name.ToLower() == "speakingid").Value.ValueKind == System.Text.Json.JsonValueKind.Null);
+            Assert.True(fbDetail.EnumerateObject().First(p => p.Name.ToLower() == "audiourl").Value.ValueKind == System.Text.Json.JsonValueKind.Null);
+            Assert.True(fbDetail.EnumerateObject().First(p => p.Name.ToLower() == "transcript").Value.ValueKind == System.Text.Json.JsonValueKind.Null);
+            Assert.Equal(33, fbDetail.EnumerateObject().First(p => p.Name.ToLower() == "speakingattemptid").Value.GetInt32());
+            // examId property null
+            var examIdProp = props.FirstOrDefault(p => p.Name.ToLower() == "examid");
+            Assert.False(examIdProp.Equals(default), $"examId not found in {string.Join("|", props.Select(p => p.Name))}");
+            Assert.True(examIdProp.Value.ValueKind == System.Text.Json.JsonValueKind.Null);
         }
 
     }

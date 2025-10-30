@@ -359,4 +359,113 @@ public class SpeechToTextServiceTests
 
         Assert.False(service.TestCloudinaryAccess("http://x"));
     }
+
+    [Theory]
+    [InlineData(".webm", "audio/webm")]
+    [InlineData(".mp3", "audio/mpeg")]
+    [InlineData(".m4a", "audio/mp4")]
+    [InlineData(".mp4", "audio/mp4")]
+    [InlineData(".wav", "audio/wav")]
+    [InlineData(".ogg", "audio/ogg")]
+    [InlineData(".flac", "audio/flac")]
+    [InlineData(".mpga", "audio/mpeg")]
+    [InlineData(".unknown", "audio/webm")]
+    [InlineData("", "audio/webm")]
+    public void GetMimeTypeFromFileName_AllBranches(string ext, string expectedMime)
+    {
+        var service = new SpeechToTextService(CreateConfigWithKey(), CreateLogger(), new FakeExamService());
+        var fileName = "abc" + ext;
+        var result = typeof(SpeechToTextService)
+            .GetMethod("GetMimeTypeFromFileName", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(service, new object[] { fileName });
+        Assert.Equal(expectedMime, result);
+    }
+
+    [Fact]
+    public void TranscribeFromFile_Handles_Save_Exception_StillReturnsTranscript()
+    {
+        string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString() + ".ogg");
+        System.IO.File.WriteAllText(tmp, "dummy");
+        
+        var fakeExam = new FakeExamServiceWithSaveException { AttemptToReturn = new ExamAttempt() };
+        var service = CreateServiceWithHttp(CreateConfigWithKey(), CreateLogger(), fakeExam, req =>
+        {
+            var okPost = new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"text\":\"fromfile\"}", Encoding.UTF8, "application/json")
+            };
+            return okPost;
+        });
+        var result = service.TranscribeFromFile(tmp, 123);
+        Assert.Equal("fromfile", result);
+        System.IO.File.Delete(tmp);
+    }
+
+    private class FakeExamServiceWithSaveException : FakeExamService {
+        public new void Save() { throw new Exception("db fail!"); }
+    }
+
+    [Fact]
+    public void TranscribeAndSave_ReturnsFailed_WhenHttpClientThrows()
+    {
+        var fakeExam = new FakeExamService();
+        var service = CreateServiceWithHttp(CreateConfigWithKey(), CreateLogger(), fakeExam, req => throw new InvalidOperationException("client fail"));
+        var result = service.TranscribeAndSave(1, "http://thiswillfail.com/fail.mp3");
+        Assert.Contains("failed", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TranscribeAndSave_ReturnsFailed_WhenWhisperErrors_And_BodyIsNotJson()
+    {
+        var fakeExam = new FakeExamService();
+        var service = CreateServiceWithHttp(CreateConfigWithKey(), CreateLogger(), fakeExam, req =>
+        {
+            if (req.Method == HttpMethod.Get)
+                return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(new byte[] { 0x00 })
+                };
+            return new HttpResponseMessage(System.Net.HttpStatusCode.BadRequest)
+                { Content = new StringContent("<html>error</html>", Encoding.UTF8, "text/html") };
+        });
+        var result = service.TranscribeAndSave(1, "http://x/file.ogg");
+        Assert.Contains("failed", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TranscribeAndSave_Handles_MissingMessageOrTypeInErrorJson()
+    {
+        var fakeExam = new FakeExamService();
+        var service = CreateServiceWithHttp(CreateConfigWithKey(), CreateLogger(), fakeExam, req =>
+        {
+            if (req.Method == HttpMethod.Get)
+                return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                { Content = new ByteArrayContent(new byte[] { 0x44 }) };
+            // error JSON thiếu key type or message
+            var bad = new HttpResponseMessage(System.Net.HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("{\"error\":{}}", Encoding.UTF8, "application/json")
+            };
+            return bad;
+        });
+        var result = service.TranscribeAndSave(1, "http://cdn/abc.ogg");
+        Assert.Contains("failed", result, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void TranscribeFromFile_ReturnsFailed_OnException()
+    {
+        // ép buộc file path hợp lệ nhưng chuỗi file đọc throw exception = dùng file locked
+        var fakeExam = new FakeExamService();
+        var service = CreateServiceWithHttp(CreateConfigWithKey(), CreateLogger(), fakeExam, req => throw new Exception("err"));
+        string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString() + ".wav");
+        System.IO.File.WriteAllText(tmp, "foo");
+        // làm cho POST throw exception
+        typeof(SpeechToTextService)
+            .GetField("_http", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(service, new HttpClient(new CustomHandler(_ => throw new Exception("http fail"))));
+        var result = service.TranscribeFromFile(tmp, 3);
+        Assert.Contains("failed", result, StringComparison.OrdinalIgnoreCase);
+        System.IO.File.Delete(tmp);
+    }
 }
