@@ -113,6 +113,9 @@ builder.Services.AddScoped<IStripeWebhookService, StripeWebhookService>();
 builder.Services.AddScoped<IVipAuthorizationService, VipAuthorizationService>();
 builder.Services.AddScoped<IAuthorizationHandler, VIPAuthorizationHandler>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 builder.Services.AddAuthorization(options =>
 {
