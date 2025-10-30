@@ -1,15 +1,17 @@
-﻿using WebAPI.Data;
+﻿using System;
+using System.Collections.Generic;
 using WebAPI.Models;
+using WebAPI.Repositories;
 
 namespace WebAPI.Services
 {
     public class SignInHistoryService : ISignInHistoryService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IUserSignInHistoryRepository _repository;
 
-        public SignInHistoryService(ApplicationDbContext context)
+        public SignInHistoryService(IUserSignInHistoryRepository repository)
         {
-            _context = context;
+            _repository = repository;
         }
 
         public void LogSignIn(int userId, string? ipAddress, string? deviceInfo)
@@ -22,17 +24,13 @@ namespace WebAPI.Services
                 SignedInAt = DateTime.UtcNow
             };
 
-            _context.UserSignInHistory.Add(history);
-            _context.SaveChanges();
+            _repository.Add(history);
+            _repository.SaveChanges();
         }
 
         public IEnumerable<UserSignInHistory> GetUserHistory(int userId, int limit = 30)
         {
-            return _context.UserSignInHistory
-                .Where(h => h.UserId == userId)
-                .OrderByDescending(h => h.SignedInAt)
-                .Take(limit)
-                .ToList();
+            return _repository.GetUserHistory(userId, limit);
         }
     }
 }
