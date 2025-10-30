@@ -11,92 +11,110 @@ namespace WebAPI.Tests.Unit.Authorization
 {
     public class VIPAuthorizationHandlerTests
     {
-        private readonly Mock<IVipAuthorizationService> _vipAuthServiceMock;
+        private readonly Mock<IVipAuthorizationService> _vipAuthMock;
         private readonly VIPAuthorizationHandler _handler;
         private readonly VIPRequirement _requirement;
 
         public VIPAuthorizationHandlerTests()
         {
-            _vipAuthServiceMock = new Mock<IVipAuthorizationService>();
-            _handler = new VIPAuthorizationHandler(_vipAuthServiceMock.Object);
+            _vipAuthMock = new Mock<IVipAuthorizationService>();
+            _handler = new VIPAuthorizationHandler(_vipAuthMock.Object);
             _requirement = new VIPRequirement();
         }
 
-        private static AuthorizationHandlerContext CreateContextWithClaims(Claim? claim)
-        {
-            var user = new ClaimsPrincipal(new ClaimsIdentity(
-                claim != null ? new[] { claim } : new Claim[] { }));
-            return new AuthorizationHandlerContext(
-                new[] { new VIPRequirement() }, user, null);
-        }
-
+        // ------------------------------------------------------------
+        // TEST 1️⃣: Should succeed when user is VIP
+        // ------------------------------------------------------------
         [Fact]
-        public async Task HandleRequirementAsync_WhenNoClaim_ShouldNotSucceed()
+        public async Task HandleRequirementAsync_ShouldSucceed_WhenUserIsVIP()
         {
             // Arrange
-            var context = CreateContextWithClaims(null);
+            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "123") };
+            var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "mock"));
+            var context = new AuthorizationHandlerContext(
+                new[] { _requirement },
+                user,
+                null
+            );
 
-            // Act
-            await _handler.HandleAsync(context);
-
-            // Assert
-            context.HasSucceeded.Should().BeFalse();
-            _vipAuthServiceMock.Verify(x => x.IsUserVip(It.IsAny<int>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task HandleRequirementAsync_WhenClaimNotInteger_ShouldNotSucceed()
-        {
-            // Arrange
-            var claim = new Claim(ClaimTypes.NameIdentifier, "invalid");
-            var context = CreateContextWithClaims(claim);
-
-            // Act
-            await _handler.HandleAsync(context);
-
-            // Assert
-            context.HasSucceeded.Should().BeFalse();
-            _vipAuthServiceMock.Verify(x => x.IsUserVip(It.IsAny<int>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task HandleRequirementAsync_WhenUserIsNotVip_ShouldNotSucceed()
-        {
-            // Arrange
-            var claim = new Claim(ClaimTypes.NameIdentifier, "5");
-            var context = CreateContextWithClaims(claim);
-            _vipAuthServiceMock.Setup(x => x.IsUserVip(5)).Returns(false);
-
-            // Act
-            await _handler.HandleAsync(context);
-
-            // Assert
-            context.HasSucceeded.Should().BeFalse();
-            _vipAuthServiceMock.Verify(x => x.IsUserVip(5), Times.Once);
-        }
-
-        [Fact]
-        public async Task HandleRequirementAsync_WhenUserIsVip_ShouldSucceed()
-        {
-            // Arrange
-            var claim = new Claim(ClaimTypes.NameIdentifier, "42");
-            var context = CreateContextWithClaims(claim);
-            _vipAuthServiceMock.Setup(x => x.IsUserVip(42)).Returns(true);
+            _vipAuthMock.Setup(s => s.IsUserVip(123)).Returns(true);
 
             // Act
             await _handler.HandleAsync(context);
 
             // Assert
             context.HasSucceeded.Should().BeTrue();
-            _vipAuthServiceMock.Verify(x => x.IsUserVip(42), Times.Once);
+            _vipAuthMock.Verify(s => s.IsUserVip(123), Times.Once);
         }
 
+        // ------------------------------------------------------------
+        // TEST 2️⃣: Should not succeed when user is not VIP
+        // ------------------------------------------------------------
         [Fact]
-        public void VIPRequirement_ShouldBeAssignableToIAuthorizationRequirement()
+        public async Task HandleRequirementAsync_ShouldNotSucceed_WhenUserIsNotVIP()
         {
-            typeof(VIPRequirement)
-                .Should()
-                .Implement<IAuthorizationRequirement>();
+            // Arrange
+            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "123") };
+            var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "mock"));
+            var context = new AuthorizationHandlerContext(
+                new[] { _requirement },
+                user,
+                null
+            );
+
+            _vipAuthMock.Setup(s => s.IsUserVip(123)).Returns(false);
+
+            // Act
+            await _handler.HandleAsync(context);
+
+            // Assert
+            context.HasSucceeded.Should().BeFalse();
+            _vipAuthMock.Verify(s => s.IsUserVip(123), Times.Once);
+        }
+
+        // ------------------------------------------------------------
+        // TEST 3️⃣: Should do nothing when NameIdentifier claim missing
+        // ------------------------------------------------------------
+        [Fact]
+        public async Task HandleRequirementAsync_ShouldNotCallService_WhenClaimMissing()
+        {
+            // Arrange
+            var user = new ClaimsPrincipal(new ClaimsIdentity()); // no claim
+            var context = new AuthorizationHandlerContext(
+                new[] { _requirement },
+                user,
+                null
+            );
+
+            // Act
+            await _handler.HandleAsync(context);
+
+            // Assert
+            context.HasSucceeded.Should().BeFalse();
+            _vipAuthMock.Verify(s => s.IsUserVip(It.IsAny<int>()), Times.Never);
+        }
+
+        // ------------------------------------------------------------
+        // TEST 4️⃣: Should do nothing when claim value invalid
+        // ------------------------------------------------------------
+        [Fact]
+        public async Task HandleRequirementAsync_ShouldNotCallService_WhenClaimInvalid()
+        {
+            // Arrange
+            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "not-a-number") };
+            var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "mock"));
+            var context = new AuthorizationHandlerContext(
+                new[] { _requirement },
+                user,
+                null
+            );
+
+            // Act
+            await _handler.HandleAsync(context);
+
+            // Assert
+            context.HasSucceeded.Should().BeFalse();
+            _vipAuthMock.Verify(s => s.IsUserVip(It.IsAny<int>()), Times.Never);
         }
     }
 }
