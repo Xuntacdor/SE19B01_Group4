@@ -84,10 +84,14 @@ namespace WebAPI.Controllers
             {
                 return Conflict(ex.Message);
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred during registration" });
+            }
         }
 
         // PUT /users/{id}
-        [HttpPut("{id:int}")]       
+        [HttpPut("{id:int}")]
         public IActionResult Update(int id, [FromBody] UpdateUserDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -112,6 +116,10 @@ namespace WebAPI.Controllers
             catch (InvalidOperationException ex)
             {
                 return Conflict(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred during update" });
             }
         }
 
@@ -155,6 +163,10 @@ namespace WebAPI.Controllers
             catch (UnauthorizedAccessException ex)
             {
                 return Forbid(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred during deletion" });
             }
         }
 
