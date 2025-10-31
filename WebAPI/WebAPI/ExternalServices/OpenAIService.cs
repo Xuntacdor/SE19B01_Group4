@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OpenAI;
 using OpenAI.Chat;
-using OpenAI.Audio;
 using System;
 using System.ClientModel;
 using System.Collections.Generic;
@@ -10,15 +10,24 @@ using System.Text.RegularExpressions;
 
 namespace WebAPI.ExternalServices
 {
+    public class AiOptions
+    {
+        public string? Provider { get; set; }
+        public string? BaseUrl { get; set; }
+        public string? ChatModel { get; set; }
+    }
+
     public class OpenAIService : IOpenAIService
     {
         private readonly OpenAIClient _client;
         private readonly ILogger<OpenAIService> _logger;
+        private readonly string _chatModel;
 
-        public OpenAIService(OpenAIClient client, ILogger<OpenAIService> logger)
+        public OpenAIService(OpenAIClient client, ILogger<OpenAIService> logger, IOptions<AiOptions> aiOptions)
         {
             _client = client;
             _logger = logger;
+            _chatModel = aiOptions.Value.ChatModel ?? "qwen2.5-7b-instruct-1m"; // default cho LM Studio
         }
 
         // ========================================
@@ -28,24 +37,7 @@ namespace WebAPI.ExternalServices
         {
             try
             {
-                var chatClient = _client.GetChatClient("gpt-4o");
-                string? base64 = null;
-                string mimeType = "image/png";
-
-                if (!string.IsNullOrEmpty(imageUrl))
-                {
-                    try
-                    {
-                        var (b64, mime) = ImageConverter.GetBase64FromUrl(imageUrl);
-                        base64 = b64;
-                        mimeType = mime;
-                        _logger.LogInformation("[OpenAIService] Image converted successfully ({MimeType})", mimeType);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "[OpenAIService] Failed to convert image {Url}", imageUrl);
-                    }
-                }
+                var chatClient = _client.GetChatClient(_chatModel);
                 string prompt = $@"
 You are an **IELTS Writing examiner** with years of experience in scoring IELTS essays.
 Evaluate the following essay in detail based on the official IELTS Writing Task 2 descriptors.
@@ -101,20 +93,9 @@ Essay Answer:
 
                 var messages = new List<ChatMessage>
                 {
-                    new SystemChatMessage("You are a certified IELTS Writing examiner. Always return valid JSON following the schema exactly.")
+                    new SystemChatMessage("You are a certified IELTS Writing examiner. Always return valid JSON following the schema exactly."),
+                    new UserChatMessage(prompt)
                 };
-
-                if (!string.IsNullOrEmpty(base64))
-                {
-                    messages.Add(ChatMessage.CreateUserMessage(
-                        ChatMessageContentPart.CreateTextPart($"Analyze the image and essay below:\n{prompt}"),
-                        ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(Convert.FromBase64String(base64)), mimeType)
-                    ));
-                }
-                else
-                {
-                    messages.Add(new UserChatMessage(prompt));
-                }
 
                 var result = chatClient.CompleteChat(messages, new ChatCompletionOptions
                 {
@@ -122,14 +103,16 @@ Essay Answer:
                     Temperature = 0.3f
                 });
 
-                var raw = result.Value.Content[0].Text ?? "{}";
+                string raw = result.Value.Content[0].Text ?? "{}";
+
+                // Cắt phần JSON hợp lệ
                 int first = raw.IndexOf('{');
                 int last = raw.LastIndexOf('}');
                 string jsonText = (first >= 0 && last > first)
                     ? raw.Substring(first, last - first + 1)
                     : "{}";
 
-                // FIX: Remove all newlines and normalize whitespace
+                // Chuẩn hóa JSON
                 jsonText = Regex.Replace(jsonText, @"\r\n|\r|\n", " ");
                 jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
 
@@ -140,13 +123,13 @@ Essay Answer:
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "[OpenAIService] Failed to parse JSON from Writing output.");
-                return JsonDocument.Parse(@"{ ""error"": ""Invalid JSON returned from OpenAI"" }");
+                return JsonDocument.Parse(@"{ ""error"": ""Invalid JSON returned from AI"" }");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[OpenAIService] Writing grading failed.");
-                var errorMessage = ex.Message.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
-                return JsonDocument.Parse($@"{{ ""error"": ""{errorMessage}"" }}");
+                var msg = ex.Message.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
+                return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
             }
         }
 
@@ -160,12 +143,9 @@ Essay Answer:
                 if (string.IsNullOrEmpty(audioUrl))
                     throw new ArgumentException("Audio URL is empty.");
 
-                var audioClient = _client.GetAudioClient("gpt-4o-mini-tts"); // or whisper-1 if available
-                _logger.LogInformation("[OpenAIService] Starting transcription for {AudioUrl}", audioUrl);
-
-                // In production, download Cloudinary file to memory stream before sending.
-                // Here we mock transcript for development.
-                return "This is a sample transcript from the uploaded audio.";
+                // LM Studio không hỗ trợ Whisper → mock transcript
+                _logger.LogInformation("[OpenAIService] Mocking Speech-to-text for {AudioUrl}", audioUrl);
+                return "This is a mock transcript (LM Studio local model does not support audio transcription).";
             }
             catch (Exception ex)
             {
@@ -181,8 +161,7 @@ Essay Answer:
         {
             try
             {
-                var chatClient = _client.GetChatClient("gpt-4o");
-
+                var chatClient = _client.GetChatClient(_chatModel);
                 string prompt = $@"
 You are an **IELTS Speaking examiner**.
 Evaluate the candidate's speaking based on the transcript below.
@@ -202,16 +181,19 @@ Return **strict JSON only**, no markdown or commentary.
     ""overview"": ""3–5 sentences summarizing performance."",
     ""strengths"": [""clear pronunciation"", ""good coherence""],
     ""weaknesses"": [""occasional pauses"", ""limited vocabulary""],
-    ""advice"": ""Provide 1-2 specific tips to improve overall speaking score."",
+    ""advice"": ""Provide 1–2 specific tips to improve overall speaking score."",
     ""vocabulary_suggestions"": [
         {{
             ""original_word"": ""The word or phrase used by the candidate"",
             ""suggested_alternative"": ""A better, more precise, or less common alternative"",
-            ""explanation"": ""Explain why the alternative is better (e.g., more idiomatic, less common, more precise context).""
+            ""explanation"": ""Explain why the alternative is better.""
         }}
     ]
   }}
 }}
+
+Question:
+{question}
 
 Transcript:
 {transcript}
@@ -229,32 +211,30 @@ Transcript:
                     Temperature = 0.4f
                 });
 
-                var raw = result.Value.Content[0].Text ?? "{}";
+                string raw = result.Value.Content[0].Text ?? "{}";
                 int first = raw.IndexOf('{');
                 int last = raw.LastIndexOf('}');
                 string jsonText = (first >= 0 && last > first)
                     ? raw.Substring(first, last - first + 1)
                     : "{}";
 
-                // FIX: Remove all newlines and normalize whitespace
                 jsonText = Regex.Replace(jsonText, @"\r\n|\r|\n", " ");
                 jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
 
                 _logger.LogInformation("[OpenAIService] Speaking JSON feedback generated successfully");
 
                 return JsonDocument.Parse(jsonText);
-
             }
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "Failed to parse JSON from Speaking output.");
-                return JsonDocument.Parse(@"{ ""error"": ""Invalid JSON returned from OpenAI"" }");
+                return JsonDocument.Parse(@"{ ""error"": ""Invalid JSON returned from AI"" }");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[OpenAIService] Speaking grading failed.");
-                var errorMessage = ex.Message.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
-                return JsonDocument.Parse($@"{{ ""error"": ""{errorMessage}"" }}");
+                var msg = ex.Message.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
+                return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
             }
         }
     }

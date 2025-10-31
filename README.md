@@ -1,3 +1,4 @@
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![.NET](https://img.shields.io/badge/backend-.NET%208.0-blue)](https://dotnet.microsoft.com/) [![React](https://img.shields.io/badge/frontend-React%2018-blue)](https://reactjs.org/) [![Issues](https://img.shields.io/github/issues/dsaPhobic/IELTSPracticeSystem)](https://github.com/dsaPhobic/IELTSPracticeSystem/issues) [![Stars](https://img.shields.io/github/stars/dsaPhobic/IELTSPracticeSystem)](https://github.com/dsaPhobic/IELTSPracticeSystem) [![Forks](https://img.shields.io/github/forks/dsaPhobic/IELTSPracticeSystem)](https://github.com/dsaPhobic/IELTSPracticeSystem/network/members)
 # IELTS Learning Platform
 
 A comprehensive web application designed for IELTS test preparation, featuring interactive exam modules, AI-powered feedback, and a community forum for learners.
@@ -74,7 +75,7 @@ SE19B01_Group4/
 │   │   │   └── UI/            # General UI components
 │   │   ├── Pages/             # Page components
 │   │   │   ├── Admin/         # Admin pages
-│   │   │   ├── Authentication/ # Auth pages
+│   │   │   ├── Authenciation/ # Auth pages
 │   │   │   ├── Dashboard/     # Dashboard pages
 │   │   │   ├── Dictionary/    # Dictionary pages
 │   │   │   ├── Forum/         # Forum pages
@@ -156,6 +157,7 @@ SE19B01_Group4/
    ```bash
    npm run dev
    ```
+   - Dev server chạy tại `http://localhost:5173` và proxy `/api` tới backend `https://localhost:7264` (xem `react-app/vite.config.js`).
 
 ### Environment Configuration
 
@@ -210,6 +212,31 @@ The API documentation is available via Swagger UI when running the backend:
 - `POST /api/exam/attempt` - Submit exam attempt
 - `GET /api/exam/attempt/{id}` - Get exam results
 
+#### Skills
+- `Reading/Listening/Speaking/Writing` endpoints for practice and feedback
+
+#### Media & Upload
+- `POST /api/upload` - Upload files (Cloudinary)
+
+#### Tags & Dictionary
+- `GET /api/tags` - Tag management
+- `GET /api/words` / `GET /api/vocab-groups`
+
+#### Notifications
+- `GET /api/notifications` - User notifications
+
+#### VIP & Payments
+- `GET /api/vip-plans` - List VIP plans
+- `POST /api/vip-payments` - Create payment (Stripe)
+- `POST /api/stripe/webhook` - Stripe webhook
+
+#### Transactions
+- `GET /api/transactions` - Transaction history
+
+#### Admin & Moderator
+- `GET /api/admin/...` - Admin operations
+- `GET /api/moderator/...` - Moderation operations
+
 ## 🎯 User Roles & Permissions
 
 ### Regular User
@@ -246,7 +273,6 @@ The API documentation is available via Swagger UI when running the backend:
 
 ### Testing
 - **Backend**: Unit tests with xUnit and Moq
-- **Frontend**: Component testing (to be implemented)
 
 ### Database Migrations
 ```bash
