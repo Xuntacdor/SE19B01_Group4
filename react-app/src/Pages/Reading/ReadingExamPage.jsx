@@ -1,16 +1,28 @@
+// ReadingExamPage.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { marked } from "marked";
 import { submitReadingAttempt } from "../../Services/ReadingApi";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 import { Clock } from "lucide-react";
 import styles from "./ReadingExamPage.module.css";
 
-// On the EXAM page, strip [H*id]...[/H] completely (no highlight at all)
-function stripPassageHints(raw) {
+// ---------- Markdown config for the PASSAGE ----------
+marked.setOptions({
+  gfm: true,
+  breaks: true, // single newlines -> <br>
+  mangle: false,
+  headerIds: false,
+});
+
+// Remove [H*id]...[/H] wrappers and render full Markdown (so headings, lists, breaks work)
+function passageMarkdownToHtml(raw) {
   if (!raw) return "";
-  return String(raw).replace(/\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g, (_, __, inner) => {
-    return inner.replace(/\r?\n/g, "<br/>"); // preserve line breaks visually
-  });
+  const cleaned = String(raw).replace(
+    /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
+    (_match, _id, inner) => inner // keep inner text; drop the wrapper entirely
+  );
+  return marked.parse(cleaned);
 }
 
 export default function ReadingExamPage() {
@@ -23,9 +35,9 @@ export default function ReadingExamPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(duration ? duration * 60 : 0);
   const [answers, setAnswers] = useState({});
-
   const formRef = useRef(null);
 
+  // Countdown
   useEffect(() => {
     if (!timeLeft || submitted) return;
     const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
@@ -38,6 +50,7 @@ export default function ReadingExamPage() {
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
+  // Capture form changes
   const handleChange = (e) => {
     const { name, value, type, checked, multiple, options, dataset } = e.target;
     if (!name) return;
@@ -77,11 +90,12 @@ export default function ReadingExamPage() {
     setAnswers((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Submit attempt
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
 
-    const structuredAnswers = tasks.map((task) => {
+    const structuredAnswers = (tasks || []).map((task) => {
       const prefix = `${task.readingId}_q`;
       const questionKeys = Object.keys(answers)
         .filter((k) => k.startsWith(prefix))
@@ -129,6 +143,7 @@ export default function ReadingExamPage() {
       .finally(() => setIsSubmitting(false));
   };
 
+  // For nav buttons: count [!num]
   const getQuestionCount = (readingQuestion) => {
     if (!readingQuestion) return 0;
     const numMarkers = readingQuestion.match(/\[!num\]/g);
@@ -156,7 +171,7 @@ export default function ReadingExamPage() {
       </div>
     );
 
-  const currentTaskData = tasks[currentTask];
+  const currentTaskData = (tasks || [])[currentTask];
   const questionCount = getQuestionCount(currentTaskData?.readingQuestion);
 
   return (
@@ -174,6 +189,7 @@ export default function ReadingExamPage() {
       </div>
 
       <div className={styles.mainContent}>
+        {/* Left: Passage */}
         <div className={styles.leftPanel}>
           {currentTaskData?.passageTitle && (
             <div className={styles.passageHeader}>
@@ -185,17 +201,18 @@ export default function ReadingExamPage() {
           <div
             className={styles.passageContent}
             dangerouslySetInnerHTML={{
-              __html: stripPassageHints(currentTaskData?.readingContent || ""),
+              __html: passageMarkdownToHtml(currentTaskData?.readingContent || ""),
             }}
           />
         </div>
 
+        {/* Right: Questions */}
         <div className={styles.rightPanel}>
           <form ref={formRef} onChange={handleChange} onInput={handleChange}>
             {currentTaskData?.readingQuestion ? (
               <ExamMarkdownRenderer
                 markdown={currentTaskData.readingQuestion}
-                showAnswers={false}          // explanations hidden on exam
+                showAnswers={false} // explanations hidden on exam
                 readingId={currentTaskData.readingId}
               />
             ) : (
@@ -210,16 +227,18 @@ export default function ReadingExamPage() {
         </div>
       </div>
 
+      {/* Bottom Nav */}
       <div className={styles.bottomNavigation}>
         <div className={styles.navScrollContainer}>
-          {tasks.map((task, taskIndex) => {
-            const questionCount = getQuestionCount(task.readingQuestion);
+          {(tasks || []).map((task, taskIndex) => {
+            const count = getQuestionCount(task.readingQuestion);
             return (
               <div key={task.readingId} className={styles.navSection}>
                 <div className={styles.navSectionTitle}>Part {taskIndex + 1}</div>
                 <div className={styles.navQuestions}>
-                  {Array.from({ length: questionCount }, (_, qIndex) => (
+                  {Array.from({ length: count }, (_, qIndex) => (
                     <button
+                      type="button"
                       key={`${taskIndex}-${qIndex}`}
                       className={`${styles.navButton} ${
                         currentTask === taskIndex && qIndex === 0
