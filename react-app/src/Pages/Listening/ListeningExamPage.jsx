@@ -74,7 +74,7 @@ export default function ListeningExamPage() {
     return matches ? matches.length : 0;
   };
 
-  // ✅ Submit logic
+  // ✅ Submit logic (force-complete removed)
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
@@ -97,22 +97,6 @@ export default function ListeningExamPage() {
 
       return { SkillId: task.listeningId, Answers: taskAnswers };
     });
-
-    const expectedTotal = tasks.reduce(
-      (sum, t) => sum + getQuestionCount(t.listeningQuestion),
-      0
-    );
-
-    const actualTotal = Object.values(answers).filter(
-      (v) => (Array.isArray(v) ? v.length > 0 : v?.trim?.() !== "")
-    ).length;
-
-    if (actualTotal < expectedTotal) {
-      alert(
-        `Please complete all questions before submitting. (${actualTotal}/${expectedTotal} answered)`
-      );
-      return;
-    }
 
     setIsSubmitting(true);
     const jsonString = JSON.stringify(structuredAnswers);
@@ -183,11 +167,11 @@ export default function ListeningExamPage() {
       {/* ===== Main Content ===== */}
       <div className={styles.mainContent}>
         <div className={styles.leftPanel}>
-          {currentTaskData?.audioUrl ? (
+          {currentTaskData?.listeningContent ? (
             <div className={styles.audioContainer}>
               <h3 className={styles.audioTitle}>Audio Track</h3>
               <audio controls className={styles.audioPlayer}>
-                <source src={currentTaskData.audioUrl} type="audio/mpeg" />
+                <source src={currentTaskData.listeningContent} type="audio/mpeg" />
                 Your browser does not support the audio element.
               </audio>
             </div>

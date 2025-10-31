@@ -124,3 +124,7 @@ WebAPI/WebAPI/.vs/WebAPI/FileContentIndex/eb749e08-f5b4-41c5-bd0c-b36acb2fb175.v
 todo_file.md
 
 .fake
+WebAPI/WebAPI.Tests/Prompts/EmailServiceTestsPromptDesign.md
+WebAPI/WebAPI.Tests/Prompts/ModeratorControllerIntegrationTestsPromptDesign.md
+WebAPI/WebAPI.Tests/Prompts/OtpServiceTestsPromptDesign.md
+WebAPI/WebAPI.Tests/Prompts/PasswordServiceTestsPromptDesign.md

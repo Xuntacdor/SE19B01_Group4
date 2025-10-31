@@ -63,28 +63,26 @@ export default function NotificationPopup({
   const Icon = getIcon();
 
   return (
-    <div className="notification-popup">
-      <PopupBase
-        hideHeader={true}
-        show={isOpen}
-        width="400px"
-        onClose={onClose}
-      >
-        <div className="notification-content">
-          <div className={getIconContainerClass()}>
-            <Icon size={48} className={getIconClass()} strokeWidth={3} />
-          </div>
-          {title && <h3 className="notification-title">{title}</h3>}
-          <p className="notification-message">{message}</p>
+    <PopupBase
+      hideHeader={true}
+      show={isOpen}
+      width="400px"
+      onClose={onClose}
+    >
+      <div className="notification-content">
+        <div className={getIconContainerClass()}>
+          <Icon size={48} className={getIconClass()} strokeWidth={3} />
         </div>
-        
-        <div className="notification-footer">
-          <button className="notification-btn" onClick={onClose}>
-            OK
-          </button>
-        </div>
-      </PopupBase>
-    </div>
+        {title && <h3 className="notification-title">{title}</h3>}
+        <p className="notification-message">{message}</p>
+      </div>
+      
+      <div className="notification-footer">
+        <button className={`notification-btn ${type === "error" ? "error" : ""}`} onClick={onClose}>
+          OK
+        </button>
+      </div>
+    </PopupBase>
   );
 }
 
