@@ -27,6 +27,9 @@ export default function PostDetail() {
   const [isPinned, setIsPinned] = useState(false);
   const [userStats, setUserStats] = useState(null);
   const [showConfirmHide, setShowConfirmHide] = useState(false);
+  const [showConfirmUnhide, setShowConfirmUnhide] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showConfirmPin, setShowConfirmPin] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationData, setNotificationData] = useState({ type: "success", title: "", message: "" });
   const menuRef = useRef(null);
@@ -133,37 +136,67 @@ export default function PostDetail() {
 
   const handleDeletePost = (e) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this post?")) {
-      deletePost(post.postId)
-        .then(() => {
-          alert("Post deleted successfully!");
-          navigate('/forum');
-        })
-        .catch(error => {
-          console.error("Error deleting post:", error);
-          alert("Error deleting post. Please try again.");
+    setShowConfirmDelete(true);
+    setShowMenu(false);
+  };
+
+  const confirmDeletePost = () => {
+    deletePost(post.postId)
+      .then(() => {
+        setNotificationData({
+          type: "success",
+          title: "Success",
+          message: "Post deleted successfully!"
         });
-      setShowMenu(false);
-    }
+        setShowNotification(true);
+        setTimeout(() => {
+          setShowNotification(false);
+          navigate('/forum');
+        }, 1500);
+      })
+      .catch(error => {
+        console.error("Error deleting post:", error);
+        setNotificationData({
+          type: "error",
+          title: "Error",
+          message: "Error deleting post. Please try again."
+        });
+        setShowNotification(true);
+      });
   };
 
   const handlePinPost = (e) => {
     e.stopPropagation();
-    if (window.confirm(isPinned ? "Are you sure you want to unpin this post?" : "Are you sure you want to pin this post to the top?")) {
-      const apiCall = isPinned ? unpinPost(post.postId) : pinPost(post.postId);
-      apiCall
-        .then(() => {
-          setIsPinned(!isPinned);
-          alert(isPinned ? "Post unpinned successfully!" : "Post pinned to top successfully!");
+    setShowConfirmPin(true);
+    setShowMenu(false);
+  };
+
+  const confirmPinPost = () => {
+    const apiCall = isPinned ? unpinPost(post.postId) : pinPost(post.postId);
+    apiCall
+      .then(() => {
+        setIsPinned(!isPinned);
+        setNotificationData({
+          type: "success",
+          title: "Success",
+          message: isPinned ? "Post unpinned successfully!" : "Post pinned to top successfully!"
+        });
+        setShowNotification(true);
+        setTimeout(() => {
+          setShowNotification(false);
           // Reload post để cập nhật data
           loadPost();
-        })
-        .catch(error => {
-          console.error("Error pinning/unpinning post:", error);
-          alert("Error pinning/unpinning post. Please try again.");
+        }, 1500);
+      })
+      .catch(error => {
+        console.error("Error pinning/unpinning post:", error);
+        setNotificationData({
+          type: "error",
+          title: "Error",
+          message: "Error pinning/unpinning post. Please try again."
         });
-      setShowMenu(false);
-    }
+        setShowNotification(true);
+      });
   };
 
   const handleHidePost = (e) => {
@@ -199,18 +232,33 @@ export default function PostDetail() {
 
   const handleUnhidePost = (e) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to unhide this post? It will be moved back to the main forum.")) {
-      unhidePost(post.postId)
-        .then(() => {
-          alert("Post unhidden successfully!");
-          navigate('/forum');
-        })
-        .catch(error => {
-          console.error("Error unhiding post:", error);
-          alert("Error unhiding post. Please try again.");
+    setShowConfirmUnhide(true);
+    setShowMenu(false);
+  };
+
+  const confirmUnhidePost = () => {
+    unhidePost(post.postId)
+      .then(() => {
+        setNotificationData({
+          type: "success",
+          title: "Success",
+          message: "Post unhidden successfully!"
         });
-      setShowMenu(false);
-    }
+        setShowNotification(true);
+        setTimeout(() => {
+          setShowNotification(false);
+          navigate('/forum');
+        }, 1500);
+      })
+      .catch(error => {
+        console.error("Error unhiding post:", error);
+        setNotificationData({
+          type: "error",
+          title: "Error",
+          message: "Error unhiding post. Please try again."
+        });
+        setShowNotification(true);
+      });
   };
 
 
@@ -462,6 +510,30 @@ export default function PostDetail() {
       </main>
 
 
+      {/* Confirmation Popup for Delete Post */}
+      <ConfirmationPopup
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={confirmDeletePost}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* Confirmation Popup for Pin/Unpin Post */}
+      <ConfirmationPopup
+        isOpen={showConfirmPin}
+        onClose={() => setShowConfirmPin(false)}
+        onConfirm={confirmPinPost}
+        title={isPinned ? "Unpin Post" : "Pin Post"}
+        message={isPinned ? "Are you sure you want to unpin this post?" : "Are you sure you want to pin this post to the top?"}
+        confirmText={isPinned ? "Unpin" : "Pin"}
+        cancelText="Cancel"
+        type="warning"
+      />
+
       {/* Confirmation Popup for Hide Post */}
       <ConfirmationPopup
         isOpen={showConfirmHide}
@@ -470,6 +542,18 @@ export default function PostDetail() {
         title="Hide Post"
         message="Are you sure you want to hide this post?"
         confirmText="Hide"
+        cancelText="Cancel"
+        type="warning"
+      />
+
+      {/* Confirmation Popup for Unhide Post */}
+      <ConfirmationPopup
+        isOpen={showConfirmUnhide}
+        onClose={() => setShowConfirmUnhide(false)}
+        onConfirm={confirmUnhidePost}
+        title="Unhide Post"
+        message="Are you sure you want to unhide this post? It will be moved back to the main forum."
+        confirmText="Unhide"
         cancelText="Cancel"
         type="warning"
       />
