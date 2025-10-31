@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OpenAI;
 using Stripe;
+using System.ClientModel;
 using WebAPI.Authorization;
 using WebAPI.Data;
 using WebAPI.ExternalServices;
@@ -30,8 +32,34 @@ builder.Services.AddRouting(options => options.LowercaseUrls = true);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton(new OpenAIClient(builder.Configuration["OpenAI:ApiKey"]));
+builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("AiOptions"));
 
+builder.Services.AddSingleton(sp =>
+{
+    var aiOptions = sp.GetRequiredService<IOptions<AiOptions>>().Value;
+    var apiKey = builder.Configuration["OpenAI:ApiKey"];
+
+    OpenAIClient client;
+
+    if (aiOptions.Provider?.Equals("Local", StringComparison.OrdinalIgnoreCase) == true)
+    {
+        var opts = new OpenAIClientOptions
+        {
+            Endpoint = new Uri(aiOptions.BaseUrl ?? "http://localhost:1234/v1")
+        };
+        client = new OpenAIClient(new ApiKeyCredential("dummy-key"), opts);
+        Console.WriteLine($"[AI] Using LOCAL LM Studio at {opts.Endpoint}");
+    }
+    else
+    {
+        client = new OpenAIClient(new ApiKeyCredential(apiKey));
+        Console.WriteLine("[AI] Using CLOUD OpenAI API");
+    }
+
+    return client;
+});
+
+builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
