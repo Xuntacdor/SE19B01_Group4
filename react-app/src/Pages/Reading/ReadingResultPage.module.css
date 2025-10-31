@@ -472,3 +472,16 @@
 .newWord:active {
   transform: scale(0.98);
 }
+
+/* keep the highlight styles */
+:global(.passageHighlight),
+:global(.passageHighlight *) {
+  background: #fff3cd !important;
+}
+
+@keyframes pulseGlow {
+  0%   { box-shadow: 0 0 0px 0 rgba(255, 193, 7, 0.85); }
+  50%  { box-shadow: 0 0 10px 6px rgba(255, 193, 7, 0.45); }
+  100% { box-shadow: 0 0 0px 0 rgba(255, 193, 7, 0.0); }
+}
+:global(.pulseOnce) { animation: pulseGlow 1.2s ease-out 1; }

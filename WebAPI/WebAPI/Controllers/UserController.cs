@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebAPI.Data;
 using WebAPI.DTOs;
 using WebAPI.Models;
@@ -88,6 +89,34 @@ namespace WebAPI.Controllers
             {
                 return StatusCode(500, new { message = "An error occurred during registration" });
             }
+        }
+
+        // GET /api/users/admin/all - Admin endpoint to get all users
+        [HttpGet("admin/all")]
+        public ActionResult<IEnumerable<UserDTO>> GetAllUsersForAdmin()
+        {
+            var uid = HttpContext.Session.GetInt32("UserId");
+            if (uid == null) return Unauthorized("Chưa đăng nhập");
+
+            var currentUser = _users.GetById(uid.Value);
+            if (currentUser == null) return Forbid();
+
+
+            if (currentUser.Role?.ToLower() != "admin")
+                return Forbid();
+
+            var allUsers = _users.GetAll().Select(u => new UserDTO
+            {
+                UserId = u.UserId,
+                Username = u.Username,
+                Email = u.Email,
+                Firstname = u.Firstname,
+                Lastname = u.Lastname,
+                Role = u.Role,
+                Avatar = u.Avatar
+            });
+
+            return Ok(allUsers);
         }
 
         // PUT /users/{id}

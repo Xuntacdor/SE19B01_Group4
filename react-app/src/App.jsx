@@ -30,6 +30,7 @@ import TransactionList from "./Pages/Transactions/TransactionList.jsx";
 import TransactionDetail from "./Pages/Transactions/TransactionDetail.jsx";
 import PaymentTab from "./Pages/Profile/Tabs/PaymentTab.jsx";
 import AdminVipPlans from "./Pages/Admin/AdminVipPlans.jsx";
+import UserManagement from "./Pages/Admin/UserManagement.jsx";
 import WritingResultPage from "./Pages/Writing/WritingResultPage.jsx";
 import SpeakingPage from "./Pages/Speaking/SpeakingPage.jsx";
 import SpeakingTestPage from "./Pages/Speaking/SpeakingTestPage.jsx";
@@ -75,6 +76,7 @@ function App() {
 
         {/* ========== ADMIN AREA ========== */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/exam" element={<ExamManagement />} />
         <Route path="/admin/exam/add-reading" element={<AddReading />} />
         <Route path="/admin/exam/add-listening" element={<AddListening />} />

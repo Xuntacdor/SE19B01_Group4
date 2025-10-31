@@ -1,6 +1,5 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
-import { Cloud, Wallet, GraduationCap } from "lucide-react";
+import { Shield } from "lucide-react";
 import Sidebar from "../Layout/Sidebar.jsx";
 import styles from "./AdminNavbar.module.css";
 import {
@@ -28,6 +27,11 @@ const menuItems = [
     icon: <MessageCircle size={20} />,
     label: "Feedback",
     path: "/admin/feedback",
+  },
+  {
+    icon: <Shield size={20} />,
+    label: "Moderator View",
+    path: "/moderator/dashboard",
   },
 ];
 

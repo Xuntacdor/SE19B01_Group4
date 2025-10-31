@@ -1,25 +1,71 @@
+// ReadingResultPage.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as ReadingApi from "../../Services/ReadingApi";
 import * as ExamApi from "../../Services/ExamApi";
+import { marked } from "marked";
 import styles from "./ReadingResultPage.module.css";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 
-// Wrap [H*id]...[/H] regions in the PASSAGE with inert anchors (no highlight by default)
-function wrapPassageAnchors(raw) {
-  if (!raw) return "";
-  return String(raw).replace(
-    /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
-    (_, rawId, inner) => {
-      const hid = (rawId || "").trim();
-      const body = inner.replace(/\r?\n/g, "<br/>");
-      const data = hid ? ` data-hid="${hid.replace(/"/g, "&quot;")}"` : "";
-      // no highlight class by default; we only add it when explanation opens
-      return `<span class="passageTarget"${data}>${body}</span>`;
-    }
-  );
+// ---------- Markdown config for the PASSAGE on the RESULT page ----------
+marked.setOptions({
+  gfm: true,
+  breaks: true, // single newlines -> <br>
+  mangle: false,
+  headerIds: false,
+});
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
+
+/**
+ * Render the whole passage as Markdown BUT:
+ * - Wrap each [H*id]...[/H] region in <div|span class="passageTarget" data-hid="...">...</div|span>
+ * - Parse the INSIDE of those regions with Markdown too
+ * This keeps anchors stable for syncing with explanations (block-safe).
+ */
+function passageWithAnchorsToHtml(raw) {
+  if (!raw) return "";
+
+  const re = /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g;
+  let out = "";
+  let last = 0;
+  let m;
+
+  const hasBlock = (html) =>
+    /<(p|ul|ol|li|div|h[1-6]|table|thead|tbody|tr|th|td|blockquote|pre)/i.test(html);
+
+  while ((m = re.exec(raw))) {
+    const before = raw.slice(last, m.index);
+    if (before) out += marked.parse(before);
+
+    const hid = (m[1] || "").trim();
+    const inner = m[2] || "";
+    const innerHtml = marked.parse(inner);
+    const data = hid ? ` data-hid="${escapeHtml(hid)}"` : "";
+
+    if (hasBlock(innerHtml)) {
+      // block wrapper
+      out += `<div class="passageTarget passageTarget--block"${data}>${innerHtml}</div>`;
+    } else {
+      // inline wrapper
+      out += `<span class="passageTarget passageTarget--inline"${data}>${innerHtml}</span>`;
+    }
+
+    last = re.lastIndex;
+  }
+
+  const tail = raw.slice(last);
+  if (tail) out += marked.parse(tail);
+  return out;
+}
+
 
 export default function ReadingResultPage() {
   const { state } = useLocation();
@@ -30,10 +76,49 @@ export default function ReadingResultPage() {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
-  // Keep highlight state in sync with the <details> element:
-  // - When a details.explainBlock opens: scroll + add highlight
-  // - When it closes: remove highlight (only if no other open block shares the same id)
+  // ===== Robust highlight sync: ONE listener, multi-target, with inline fallback =====
   useEffect(() => {
+    const HIGHLIGHT_BG = "rgba(255, 243, 205, 1)"; // soft amber
+    const HIGHLIGHT_OUTLINE = "2px solid #ffd166";
+    const esc =
+      typeof window !== "undefined" && window.CSS && CSS.escape
+        ? CSS.escape
+        : (s) => String(s).replace(/"/g, '\\"');
+
+    function applyHighlightInline(targets, on) {
+      targets.forEach((t) => {
+        if (on) {
+          if (!t.dataset.prevStyle) {
+            t.dataset.prevStyle = t.getAttribute("style") || "";
+          }
+          t.style.background = HIGHLIGHT_BG;
+          t.style.outline = HIGHLIGHT_OUTLINE;
+          t.style.borderRadius = "4px";
+          t.classList.add("pulseOnce");
+        } else {
+          const prev = t.dataset.prevStyle || "";
+          t.setAttribute("style", prev);
+          delete t.dataset.prevStyle;
+          t.classList.remove("pulseOnce");
+        }
+
+        // Make block children transparent so parent tint is visible
+        t.querySelectorAll(
+          ":scope > p, :scope > li, :scope > div, :scope > blockquote, :scope > pre, :scope > table"
+        ).forEach((child) => {
+          if (on) {
+            if (!child.dataset.prevBg)
+              child.dataset.prevBg = child.style.background || "";
+            child.style.background = "transparent";
+          } else {
+            const prevBg = child.dataset.prevBg || "";
+            child.style.background = prevBg;
+            delete child.dataset.prevBg;
+          }
+        });
+      });
+    }
+
     function handleToggle(e) {
       const details =
         e.target instanceof HTMLElement &&
@@ -49,34 +134,33 @@ export default function ReadingResultPage() {
 
       const container = details.closest(`.${styles.resultContainer}`);
       if (!container) return;
+
       const leftPanel = container.querySelector(`.${styles.leftPanel}`);
       if (!leftPanel) return;
 
-      const target = leftPanel.querySelector(
-        `.passageTarget[data-hid="${CSS.escape(hid)}"]`
-      );
-      if (!target) return;
+      const selector = `.passageTarget[data-hid="${esc(hid)}"]`;
+      const targets = Array.from(leftPanel.querySelectorAll(selector));
+
+      if (targets.length === 0) {
+        console.warn("[Highlight] No passageTarget for id:", hid, "selector:", selector);
+        return;
+      }
 
       if (details.open) {
-        // Opening -> add highlight and pulse, then scroll into view
-        target.classList.add("passageHighlight");
-        target.classList.add("pulseOnce");
-        setTimeout(() => {
-          target.classList.remove("pulseOnce");
-        }, 1200);
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        targets.forEach((t) => t.classList.add("passageHighlight"));
+        applyHighlightInline(targets, true);
+        targets[0].scrollIntoView({ behavior: "smooth", block: "center" });
       } else {
-        // Closing -> only remove highlight if NO other open details with same id exist in this container
         const anyOtherOpen = container.querySelectorAll(
-          `details.explainBlock[open][data-hid="${CSS.escape(hid)}"]`
+          `details.explainBlock[open][data-hid="${esc(hid)}"]`
         ).length;
         if (!anyOtherOpen) {
-          target.classList.remove("passageHighlight", "pulseOnce");
+          targets.forEach((t) => t.classList.remove("passageHighlight"));
+          applyHighlightInline(targets, false);
         }
       }
     }
 
-    // Use capture so we catch native <details> toggle even if it doesn't bubble in all browsers
     document.addEventListener("toggle", handleToggle, true);
     return () => document.removeEventListener("toggle", handleToggle, true);
   }, []);
@@ -251,7 +335,7 @@ export default function ReadingResultPage() {
                 className={styles.passageContent}
                 dangerouslySetInnerHTML={{
                   __html:
-                    wrapPassageAnchors(r.readingContent) ||
+                    passageWithAnchorsToHtml(r.readingContent) ||
                     "<i>No passage content</i>",
                 }}
               />
