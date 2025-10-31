@@ -18,6 +18,7 @@ export default function ExamManagement() {
   const [selectedExam, setSelectedExam] = useState(null);
   const [status, setStatus] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [filterType, setFilterType] = useState("All");
   const navigate = useNavigate();
 
   // ====== Service mapping ======
@@ -123,6 +124,24 @@ export default function ExamManagement() {
     }
   };
 
+  // ====== Delete exam ======
+  const handleDeleteExam = async (examId, examName) => {
+    if (!window.confirm(`Are you sure you want to delete the exam "${examName}"? This action cannot be undone.`))
+      return;
+
+    try {
+      await examService.remove(examId);
+      setStatus(`✅ Deleted exam "${examName}"`);
+      fetchExams();
+    } catch (err) {
+      console.error("❌ Failed to delete exam:", err);
+      setStatus("❌ Failed to delete exam");
+    }
+  };
+
+  // ====== Filter exams ======
+  const filteredExams = filterType === "All" ? exams : exams.filter(exam => exam.examType === filterType);
+
   return (
     <>
       <Sidebar />
@@ -171,7 +190,24 @@ export default function ExamManagement() {
 
           {/* ===== Exam List ===== */}
           <section className={styles.card}>
-            <h3>Existing Exams</h3>
+            <div className={styles.examListHeader}>
+              <h3>Existing Exams</h3>
+              <div className={styles.filterBar}>
+                <label htmlFor="filterType" className={styles.filterLabel}>Filter by Type:</label>
+                <select
+                  id="filterType"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className={styles.filterSelect}
+                >
+                  <option value="All">All Types</option>
+                  <option value="Reading">Reading</option>
+                  <option value="Listening">Listening</option>
+                  <option value="Writing">Writing</option>
+                  <option value="Speaking">Speaking</option>
+                </select>
+              </div>
+            </div>
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
@@ -184,8 +220,8 @@ export default function ExamManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {exams.length ? (
-                    exams.map((exam) => (
+                  {filteredExams.length ? (
+                    filteredExams.map((exam) => (
                       <tr key={exam.examId}>
                         <td>{exam.examId}</td>
                         <td>{exam.examName}</td>
@@ -196,12 +232,20 @@ export default function ExamManagement() {
                             : ""}
                         </td>
                         <td>
-                          <button
-                            className={styles.btnManage}
-                            onClick={() => handleManageClick(exam)}
-                          >
-                            Manage
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              className={styles.btnManage}
+                              onClick={() => handleManageClick(exam)}
+                            >
+                              Manage
+                            </button>
+                            <button
+                              className={styles.btnDelete}
+                              onClick={() => handleDeleteExam(exam.examId, exam.examName)}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -211,7 +255,7 @@ export default function ExamManagement() {
                         colSpan="5"
                         style={{ textAlign: "center", opacity: 0.6 }}
                       >
-                        No exams found.
+                        {filterType === "All" ? "No exams found." : `No ${filterType} exams found.`}
                       </td>
                     </tr>
                   )}
