@@ -32,6 +32,10 @@ export default function SpeakingTest() {
   const [feedback, setFeedback] = useState(null);
   const [showPrepPopup, setShowPrepPopup] = useState(false);
 
+  // ===== Navigation state =====
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentPart, setCurrentPart] = useState("");
+
   const mediaRecorderRef = useRef(null);
   const speakTimerRef = useRef(null);
   const hasSubmittedRef = useRef(false);
@@ -60,14 +64,40 @@ export default function SpeakingTest() {
       ? { examId: speakingTask.examId, examName: "Single Speaking Task" }
       : undefined);
   const currentMode = mode || (speakingTask ? "single" : undefined);
+  const orderedTasks = React.useMemo(() => {
+    if (!Array.isArray(tasks)) return [];
+    const order = { "Part 1": 1, "Part 2": 2, "Part 3": 3 };
+    return [...tasks].sort((a, b) => {
+      const pa = order[a.speakingType] ?? 99;
+      const pb = order[b.speakingType] ?? 99;
+      if (pa !== pb) return pa - pb;
+      const da = a.displayOrder ?? a.DisplayOrder ?? 0;
+      const db = b.displayOrder ?? b.DisplayOrder ?? 0;
+      return da - db;
+    });
+  }, [tasks]);
+
   const currentTask =
-    currentMode === "full" && Array.isArray(tasks)
-      ? tasks[0]
-      : task || speakingTask;
+    currentMode === "full" || currentMode === "part"
+      ? orderedTasks[currentIndex]
+      : task || (Array.isArray(tasks) ? tasks[0] : speakingTask);
   const currentId =
-    currentMode === "full"
+    currentMode === "full" || currentMode === "part"
       ? currentTask?.speakingId
-      : task?.speakingId || speakingTask?.speakingId;
+      : task?.speakingId ||
+        (Array.isArray(tasks)
+          ? tasks[0]?.speakingId
+          : speakingTask?.speakingId);
+
+  // ===== Update currentPart =====
+  useEffect(() => {
+    if (currentMode === "full" && Array.isArray(tasks)) {
+      const part = tasks[currentIndex]?.speakingType || "";
+      setCurrentPart(part);
+    } else {
+      setCurrentPart(currentTask?.speakingType || "");
+    }
+  }, [currentIndex, currentTask, currentMode, tasks]);
 
   // ===== Load Existing Feedback =====
   useEffect(() => {
@@ -81,18 +111,23 @@ export default function SpeakingTest() {
           user.userId
         );
         if (res?.feedback) {
-          console.log("📊 Existing feedback found:", res.feedback);
+          console.log(" Existing feedback found:", res.feedback);
           setFeedback(res.feedback);
           setPhase("result");
         }
       } catch {
-        console.warn("ℹ️ No previous feedback found or fetch failed");
+        console.warn(" No previous feedback found or fetch failed");
       }
     };
 
     fetchExistingFeedback();
   }, [currentId]);
-
+  // Soft reset when switching question
+  useEffect(() => {
+    setPhase("idle");
+    setFeedback(null);
+    hasSubmittedRef.current = false;
+  }, [currentId]);
   // ===== Recording =====
   const startRecording = async () => {
     try {
@@ -234,6 +269,86 @@ export default function SpeakingTest() {
 
   const hasRecording = recordings[currentId];
 
+  // ===== Navigation Bar =====
+  const renderNavigationBar = () => {
+    if (!orderedTasks || orderedTasks.length === 0) return null;
+    const partOrder = { "Part 1": 1, "Part 2": 2, "Part 3": 3 };
+    const currentTaskObj = orderedTasks[currentIndex];
+    const partGroups = React.useMemo(() => {
+      const g = {};
+      for (const t of orderedTasks) {
+        const part = t.speakingType || "Unknown";
+        if (!g[part]) g[part] = [];
+        g[part].push(t);
+      }
+      return g;
+    }, [orderedTasks]);
+
+    const currentPartName = currentTaskObj?.speakingType || "Unknown";
+    const currentPartTasks = partGroups[currentPartName] || [];
+    const partIndex =
+      currentPartTasks.findIndex(
+        (t) => t.speakingId === currentTaskObj?.speakingId
+      ) + 1;
+
+    const handleNext = () => {
+      if (currentIndex < orderedTasks.length - 1)
+        setCurrentIndex(currentIndex + 1);
+    };
+    const handlePrev = () => {
+      if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+    };
+
+    return (
+      <div className={styles.navBar}>
+        {(currentMode === "full" || currentMode === "part") && (
+          <div className={styles.partTabs}>
+            {Object.keys(partGroups)
+              .sort((a, b) => (partOrder[a] || 99) - (partOrder[b] || 99))
+              .map((part) => (
+                <button
+                  key={part}
+                  className={`${styles.partTab} ${
+                    currentPartName === part ? styles.activePart : ""
+                  }`}
+                  onClick={() => {
+                    const firstIndex = orderedTasks.findIndex(
+                      (t) => t.speakingType === part
+                    );
+                    if (firstIndex !== -1) setCurrentIndex(firstIndex);
+                  }}
+                >
+                  {part}
+                </button>
+              ))}
+          </div>
+        )}
+
+        <div className={styles.navControls}>
+          <button
+            className={styles.navBtn}
+            onClick={handlePrev}
+            disabled={currentIndex === 0}
+          >
+            ← Prev
+          </button>
+
+          <span className={styles.navInfo}>
+            {`${currentPartName} — Question ${partIndex} of ${currentPartTasks.length}`}
+          </span>
+
+          <button
+            className={styles.navBtn}
+            onClick={handleNext}
+            disabled={currentIndex === orderedTasks.length - 1}
+          >
+            Next →
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   if (!currentTask)
     return (
       <AppLayout title="Speaking Test" sidebar={<GeneralSidebar />}>
@@ -307,7 +422,6 @@ export default function SpeakingTest() {
                 </div>
               </div>
 
-              {/* ✅ AI feedback content */}
               {feedback?.aiAnalysisJson && (
                 <div className={styles.feedbackText}>
                   <h4>AI Feedback</h4>
@@ -396,6 +510,9 @@ export default function SpeakingTest() {
             <div className={styles.dynamicSection}>
               {renderDynamicSection()}
             </div>
+
+            {(currentMode === "full" || currentMode === "part") &&
+              renderNavigationBar()}
           </div>
 
           <aside className={styles.notePanel}>
