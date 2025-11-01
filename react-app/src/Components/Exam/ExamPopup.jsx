@@ -122,6 +122,27 @@ export default function ExamSkillModal({
   };
 
   const handleStartIndividual = () => {
+    if (skillType === "Speaking") {
+      const grouped = tasks.reduce((acc, t) => {
+        const type = t.speakingType || "Unknown";
+        const baseOrder = Math.floor(
+          (t.displayOrder ?? t.DisplayOrder ?? 0) / 10
+        );
+        const key = `${type}-Group${baseOrder}`;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(t);
+        return acc;
+      }, {});
+
+      const selectedTasks = grouped[selectedTaskId] || [];
+      if (selectedTasks.length === 0) return;
+
+      const duration = selectedTasks.length * 3;
+      onClose();
+      onStartIndividual?.(exam, null, duration, selectedTasks);
+      return;
+    }
+
     const task = tasks?.find(
       (t) => String(getTaskId(t)) === String(selectedTaskId)
     );
@@ -130,6 +151,22 @@ export default function ExamSkillModal({
     onClose();
     onStartIndividual?.(exam, task, taskDuration);
   };
+
+  // ======== Group Speaking tasks by Part ========
+  const groupedSpeakingTasks = useMemo(() => {
+    if (!Array.isArray(tasks)) return {};
+
+    return tasks.reduce((acc, t) => {
+      const type = t.speakingType || "Unknown";
+      const baseOrder = Math.floor(
+        (t.displayOrder ?? t.DisplayOrder ?? 0) / 10
+      );
+      const key = `${type}-Group${baseOrder}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(t);
+      return acc;
+    }, {});
+  }, [tasks]);
 
   return (
     <PopupBase
@@ -218,34 +255,74 @@ export default function ExamSkillModal({
               <div className={styles.blockBody}>
                 <div className={styles.taskList}>
                   {Array.isArray(tasks) && tasks.length > 0 ? (
-                    tasks
-                      .sort((a, b) => getDisplayOrder(a) - getDisplayOrder(b))
-                      .map((t) => {
-                        const id = getTaskId(t);
-                        const selected = String(selectedTaskId) === String(id);
-                        return (
-                          <label
-                            key={id}
-                            className={`${styles.taskOption} ${
-                              selected ? styles.selectedTask : ""
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="task"
-                              value={id}
-                              checked={selected}
-                              onChange={() => setSelectedTaskId(id)}
-                            />
-                            <div className={styles.taskMeta}>
-                              <div className={styles.taskTitle}>
-                                {getTaskLabel(t)} — Task {getDisplayOrder(t)} (
-                                {getTaskDurationMinutes(t)} min)
+                    skillType === "Speaking" ? (
+                      // Hiển thị nhóm theo Part và sắp xếp Part1→Part2→Part3
+                      Object.entries(groupedSpeakingTasks)
+                        .sort(([aKey], [bKey]) => {
+                          const aPart = aKey.match(/Part\s?(\d+)/)?.[1];
+                          const bPart = bKey.match(/Part\s?(\d+)/)?.[1];
+                          return (
+                            (parseInt(aPart) || 99) - (parseInt(bPart) || 99)
+                          );
+                        })
+                        .map(([groupKey, list]) => {
+                          const [part] = groupKey.split("-");
+                          return (
+                            <label
+                              key={groupKey}
+                              className={`${styles.taskOption} ${
+                                selectedTaskId === groupKey
+                                  ? styles.selectedTask
+                                  : ""
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="task"
+                                value={groupKey}
+                                checked={selectedTaskId === groupKey}
+                                onChange={() => setSelectedTaskId(groupKey)}
+                              />
+                              <div className={styles.taskMeta}>
+                                <div className={styles.taskTitle}>
+                                  {part} ({list.length} câu)
+                                </div>
                               </div>
-                            </div>
-                          </label>
-                        );
-                      })
+                            </label>
+                          );
+                        })
+                    ) : (
+                      // Giữ nguyên logic cũ cho các kỹ năng khác
+                      tasks
+                        .sort((a, b) => getDisplayOrder(a) - getDisplayOrder(b))
+                        .map((t) => {
+                          const id = getTaskId(t);
+                          const selected =
+                            String(selectedTaskId) === String(id);
+                          return (
+                            <label
+                              key={id}
+                              className={`${styles.taskOption} ${
+                                selected ? styles.selectedTask : ""
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="task"
+                                value={id}
+                                checked={selected}
+                                onChange={() => setSelectedTaskId(id)}
+                              />
+                              <div className={styles.taskMeta}>
+                                <div className={styles.taskTitle}>
+                                  {getTaskLabel(t)} — Task {getDisplayOrder(t)}{" "}
+                                  ({getTaskDurationMinutes(t)} min)
+                                </div>
+                              </div>
+                            </label>
+                          );
+                        })
+                    )
                   ) : (
                     <div className={styles.stateText}>No tasks available.</div>
                   )}

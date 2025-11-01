@@ -49,6 +49,7 @@ export default function SpeakingPage() {
     speakingService
       .getByExam(exam.examId)
       .then((data) => {
+        console.log("=== SPEAKING DATA ===", data);
         const list = Array.isArray(data) ? data : [];
         setExamTasks(list);
       })
@@ -71,13 +72,15 @@ export default function SpeakingPage() {
     });
   };
 
-  const handleStartIndividual = (exam, task, duration) => {
+  const handleStartIndividual = (exam, task, duration, selectedTasks) => {
+    const tasksToSend = selectedTasks?.length ? selectedTasks : [task];
+
     navigate("/speaking/test", {
       state: {
         exam,
-        task,
-        tasks: [task],
-        mode: "single",
+        task: tasksToSend[0],
+        tasks: tasksToSend,
+        mode: selectedTasks?.length > 1 ? "part" : "single",
         duration,
       },
     });
