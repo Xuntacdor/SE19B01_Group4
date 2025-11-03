@@ -23,18 +23,13 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
     if (!file) return;
 
     setIsUploadingAvatar(true);
-
     compressAndUploadImage(file)
       .then((url) => {
         setProfileData((prev) => ({ ...prev, avatar: url }));
         setHasChanges(true);
       })
-      .catch((err) => {
-        alert(err.message || "Failed to upload image");
-      })
-      .finally(() => {
-        setIsUploadingAvatar(false);
-      });
+      .catch((err) => alert(err.message || "Failed to upload image"))
+      .finally(() => setIsUploadingAvatar(false));
   };
 
   // ===== Save profile changes =====
@@ -52,15 +47,13 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
     })
       .then(() => {
         alert("Profile updated successfully!");
-        window.location.reload(); // bạn muốn reload toàn trang — giữ nguyên
+        window.location.reload();
       })
       .catch((err) => {
         console.error("Error saving profile:", err);
         alert("Failed to update profile. Please try again.");
       })
-      .finally(() => {
-        setIsSaving(false);
-      });
+      .finally(() => setIsSaving(false));
   };
 
   return (
@@ -147,30 +140,17 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
           </div>
         </div>
 
-        {/* ===== Change Password ===== */}
-        <div className="form-group">
-          <label>Change Password</label>
+        {/* ===== Action Buttons (Change Password + Save Changes) ===== */}
+        <div className="profile-actions">
           <button
-            className="save-btn has-changes"
-            style={{
-              backgroundColor: "#f44336",
-              cursor: "pointer",
-              opacity: 1,
-              fontSize: "28px",
-              padding: "10px 20px",
-            }}
+            className="change-password-btn"
             onClick={() => setIsChangePasswordOpen(true)}
           >
             Change Password
           </button>
-        </div>
 
-        {/* ===== Save Button ===== */}
-        <div className="form-actions">
           <button
-            className={`save-btn ${hasChanges ? "has-changes" : ""} ${
-              isSaving ? "saving" : ""
-            }`}
+            className="save-btn"
             onClick={handleSave}
             disabled={!hasChanges || isSaving}
           >
@@ -179,10 +159,10 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
         </div>
       </div>
 
-      {/* Change Password Modal */}
-      <ChangePasswordModal 
-        isOpen={isChangePasswordOpen} 
-        onClose={() => setIsChangePasswordOpen(false)} 
+      {/* ===== Change Password Modal ===== */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
       />
     </div>
   );

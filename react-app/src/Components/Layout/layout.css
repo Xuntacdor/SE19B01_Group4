@@ -36,3 +36,7 @@
     padding: 80px 15px 15px 15px;
   }
 }
+/* Nếu không có sidebar, reset margin-left */
+.app-main.no-sidebar {
+  margin-left: 0 !important;
+}
