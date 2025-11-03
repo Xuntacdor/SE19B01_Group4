@@ -1,38 +1,34 @@
 ﻿
-`Prompt1`
-Context: This source code belongs to the IELTSPhobic web application — specifically, the Listening module, which manages listening exams, question retrieval, user submissions, scoring, and feedback storage.
-The system follows a multi-layer architecture:
-Controller → Service → Repository → Database 
-Your goal is to identify all **public or business-logic methods** that require **unit or integration testing** for this feature.
+# Prompt 1 – Listening Module Test Identification
 
-Requirements:
+**Context:**  
+IELTSPhobic web app — **Listening Module** (exam management, question retrieval, user submissions, scoring, feedback).  
+Architecture: **Controller → Service → Repository → Database**
 
-* You are an **expert software test engineer and prompt engineer**.
-* The analysis must be **comprehensive enough to achieve >80% code and branch coverage**.
-* Automatically analyze the given source code (you already have GitHub access).
-* Ignore trivial getters/setters or mapping helpers without logic.
-* Include both controller and service layers if they contain logic, validation, or exception handling.
-Output format (strictly use markdown):
+**Role:**  
+Expert software test engineer and prompt engineer.
+
+**Goal:**  
+Identify all **public/business-logic methods** that need **unit or integration testing** to achieve **>80% coverage**.
+
+**Requirements:**  
+- Focus on logic in Controller & Service layers.  
+- Ignore trivial getters/setters or mapping helpers.  
+- Include validation, authorization, and exception branches.  
+- List mockable dependencies (e.g., `IListeningRepository`, `IExamRepository`).  
+- Cover happy path + failure (nulls, invalid DTO, DB exception, not found, unauthorized).  
+
+**Output Format:**  
+```markdown
 ### Functions to Test
-1. **FunctionName(parameters)**
-   - **Main Purpose:**  
-     Brief one-line summary of what it does.
-   - **Inputs:**  
-     List each parameter (type + meaning).
-   - **Returns:**  
-     Data type and meaning of the return value.
-   - **Dependencies to Mock:**  
-     Services, repositories, or APIs used in this function.
-   - **Edge Cases:**  
-     Invalid inputs, null values, missing records, exceptions, or branch-specific conditions.
-   - **Suggested Test Names:**  
-     List of test names following the Given_When_Then convention.
-Additional Notes:
-*Focus on public and internal business-logic methods (e.g., controller endpoints, service logic like SubmitListeningAttempt, CalculateScore, SaveResult if they contain exception branches). 
-*Identify mockable dependencies like IListeningRepository, IListeningAttemptRepository, IExamRepository, IUserRepository, etc. 
-*Include authorization and validation logic in controllers, since these affect coverage (e.g., Unauthorized, BadRequest, NotFound, 500 branches). 
-*Suggest test cases for both happy-path and failure branches (e.g., null DTO, invalid answers, missing exam attempt, database exception, double submission). 
-*Keep each method entry concise but complete enough for automated test generation tools. 
+1. **FunctionName(params)**
+   - **Main Purpose:** One-line summary.  
+   - **Inputs:** Type + meaning.  
+   - **Returns:** Data type + meaning.  
+   - **Dependencies to Mock:** Services, repositories, or APIs.  
+   - **Edge Cases:** Invalid inputs, nulls, exceptions, missing records.  
+   - **Suggested Test Names:** Given_When_Then pattern.```
+
 `Promp 2`
 **Prompt:**
 Analyze the following source code from my GitHub repository (IELTSPhobic project). This code belongs to the **Listening module** built with **.NET 8 WebAPI + xUnit**.

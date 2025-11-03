@@ -24,9 +24,7 @@ namespace WebAPI.Services
             _examService = examService;
         }
 
-        /// <summary>
-        /// Download Cloudinary audio → Whisper (REST) → transcript → save to ExamAttempt.AnswerText (JSON).
-        /// </summary>
+  
         public string TranscribeAndSave(long attemptId, string audioUrl)
         {
             if (string.IsNullOrWhiteSpace(audioUrl))
@@ -227,7 +225,6 @@ namespace WebAPI.Services
                 using var audioContent = new StreamContent(audioStream);
                 audioContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mimeType);
 
-                // Build multipart form for Whisper
                 using var form = new MultipartFormDataContent();
                 form.Add(audioContent, "file", fileName);
                 form.Add(new StringContent("whisper-1"), "model");
@@ -265,7 +262,6 @@ namespace WebAPI.Services
                     return "[Transcription failed]";
                 }
 
-                // Parse { "text": "..." }
                 using var doc = JsonDocument.Parse(body);
                 var transcript = doc.RootElement.TryGetProperty("text", out var textEl)
                     ? textEl.GetString() ?? string.Empty
@@ -281,7 +277,7 @@ namespace WebAPI.Services
                     {
                         var payloadJson = JsonSerializer.Serialize(new
                         {
-                            audioUrl = filePath, // Use file path as identifier
+                            audioUrl = filePath,
                             transcript
                         });
 

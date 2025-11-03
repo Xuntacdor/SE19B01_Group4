@@ -188,7 +188,6 @@ builder.Services.AddAuthentication(options =>
     options.LoginPath = "/api/auth/login";
     options.LogoutPath = "/api/auth/logout";
 
-    // ✅ Trả JSON thay vì redirect
     options.Events = new CookieAuthenticationEvents
     {
         OnRedirectToLogin = ctx =>

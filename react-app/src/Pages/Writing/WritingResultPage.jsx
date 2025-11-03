@@ -117,6 +117,7 @@ export default function WritingResultPage() {
   const [progress, setProgress] = useState(0);
   const [feedbackData, setFeedbackData] = useState(null);
   const [replacedTexts, setReplacedTexts] = useState({});
+  const [activeTaskIndex, setActiveTaskIndex] = useState(0);
 
   if (!state) {
     return (
@@ -226,7 +227,22 @@ export default function WritingResultPage() {
           </h2>
         </div>
 
+        {filteredFeedbacks.length > 1 && (
+          <div className={styles.taskSwitcher}>
+            {filteredFeedbacks.map((_, idx) => (
+              <button
+                key={idx}
+                className={`${styles.taskBtn} ${idx === activeTaskIndex ? styles.taskBtnActive : ''}`}
+                onClick={() => setActiveTaskIndex(idx)}
+              >
+                {`Task ${idx + 1}`}
+              </button>
+            ))}
+          </div>
+        )}
+
         {filteredFeedbacks.map((f, i) => {
+          if (i !== activeTaskIndex) return null;
           const originalText =
             originalAnswers?.[f.writingId] || f.answerText || "";
 
