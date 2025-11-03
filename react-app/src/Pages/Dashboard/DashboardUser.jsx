@@ -175,25 +175,7 @@ export default function DashboardUser() {
 
         {/* ===== Goals + Stats ===== */}
         <div className={styles.goalsWrapper}>
-          {/* Goals Section */}
-          <div className={styles.goalsSection}>
-            <h3 className={styles.sectionTitle}>Goals</h3>
-            <div className={styles.goalsCards}>
-              {["Reading", "Listening", "Writing", "Speaking", "Overall"].map(
-                (label) => (
-                  <div
-                    key={label}
-                    className={`${styles.goalCard} ${
-                      label === "Overall" ? styles.overall : ""
-                    }`}
-                  >
-                    <div className={styles.goalLabel}>{label}</div>
-                    <div className={styles.goalScore}>9.0</div>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
+        
 
           {/* Stats Section */}
           <div className={styles.statsSection}>

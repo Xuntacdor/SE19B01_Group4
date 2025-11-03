@@ -20,7 +20,6 @@ import {
   Filler,
 } from "chart.js";
 
-// ✅ Đăng ký plugin cho Chart.js
 ChartJS.register(
   LineElement,
   CategoryScale,
