@@ -1,8 +1,3 @@
-# =====================================================
-# CI/CD Preview Workflow for Firebase Hosting
-# Deploys preview site when a Pull Request is opened
-# =====================================================
-
 name: Deploy to Firebase Hosting on PR
 
 on: pull_request
@@ -23,7 +18,7 @@ jobs:
 
       - name: Install dependencies and build React app
         run: |
-          cd react-app
+          cd IELTSPracticeSystem/react-app
           npm install
           npm run build
 
@@ -33,4 +28,4 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_IELTSPHOBIC }}
           projectId: ieltsphobic
-          entryPoint: react-app
+          entryPoint: IELTSPracticeSystem/react-app
