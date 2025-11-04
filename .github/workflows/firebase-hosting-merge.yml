@@ -1,11 +1,16 @@
-
+# =====================================================
+# CI/CD Workflow: Build & Deploy React App to Firebase
+# Repo structure:
+#   /WebAPI        -> .NET 8 backend
+#   /react-app     -> React frontend
+# =====================================================
 
 name: Deploy React app to Firebase Hosting on merge
 
 on:
   push:
     branches:
-      - main  # chạy mỗi khi push/merge vào nhánh main
+      - main 
 
 jobs:
   build_and_deploy:
@@ -17,7 +22,7 @@ jobs:
 
       - name: Install dependencies and build React app
         run: |
-          cd SE19B01_Group4/react-app
+          cd react-app
           npm install
           npm run build
 
@@ -28,4 +33,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_IELTSPHOBIC }}
           channelId: live
           projectId: ieltsphobic
-          entryPoint: SE19B01_Group4/react-app
+          entryPoint: react-app
