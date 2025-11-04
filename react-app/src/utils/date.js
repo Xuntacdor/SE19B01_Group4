@@ -108,3 +108,62 @@ export function getTodayVietnamISO() {
   const dd = String(now.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
+export function calculateDuration(startedAt, submittedAt) {
+  if (!startedAt || !submittedAt) return "N/A";
+
+  const start = new Date(startedAt);
+  const end = new Date(submittedAt);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return "N/A";
+
+  const diffMs = end - start; // milliseconds
+  if (diffMs < 0) return "N/A"; // phòng lỗi dữ liệu
+
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+
+  // format đẹp
+  if (mins === 0) return `${secs}s`;
+  if (mins < 60) return `${mins}m ${secs}s`;
+
+  const hours = Math.floor(mins / 60);
+  const remainMins = mins % 60;
+  return `${hours}h ${remainMins}m ${secs}s`;
+}
+// ==============================
+// 🕒 Hiển thị thời gian tương đối (ví dụ: "2 hours ago")
+// ==============================
+export function formatRelativeTime(dateInput) {
+  if (!dateInput) return "";
+
+  let dateStr = String(dateInput).trim();
+  if (!/[zZ]|[+\-]\d{2}:?\d{2}$/.test(dateStr)) {
+    dateStr += "Z"; // ép kiểu UTC nếu không có timezone
+  }
+
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+
+  const now = new Date();
+  const diffMs = now - date;
+
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+
+  if (diffSeconds < 60) return "Just now";
+  if (diffMinutes < 60)
+    return `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+  if (diffWeeks < 5) return `${diffWeeks} week${diffWeeks > 1 ? "s" : ""} ago`;
+
+  // Nếu quá xa thì hiển thị ngày chuẩn Việt Nam
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}

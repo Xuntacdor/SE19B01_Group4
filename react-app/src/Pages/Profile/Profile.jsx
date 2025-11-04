@@ -4,13 +4,11 @@ import "./Profile.css";
 import useAuth from "../../Hook/UseAuth";
 import useExamAttempts from "../../Hook/UseExamAttempts";
 import AppLayout from "../../Components/Layout/AppLayout";
-import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 
 import ProfileTab from "./Tabs/ProfileTab";
 import TestHistoryTab from "./Tabs/TestHistoryTab";
 import PaymentTab from "./Tabs/PaymentTab";
 import SignInTab from "./Tabs/SignInTab";
-
 import { useLocation } from "react-router-dom";
 
 export default function Profile() {
@@ -21,52 +19,42 @@ export default function Profile() {
     name: "",
     gmail: "",
     accountName: "",
-    password: "",
     avatar: "",
   });
   const location = useLocation();
 
+  // handle tab navigation from router state
   useEffect(() => {
     if (location.state?.activeTab) {
-      setActiveTab(
-        location.state.activeTab === "payment"
-          ? "payment-history"
-          : location.state.activeTab
-      );
+      setActiveTab(location.state.activeTab);
     }
   }, [location.state]);
 
+  // load user info
   useEffect(() => {
     if (user) {
       setProfileData({
         name: `${user.firstname || ""} ${user.lastname || ""}`.trim(),
         gmail: user.email || "",
         accountName: user.username || "",
-        password: "",
         avatar: user.avatar || "",
       });
     }
   }, [user]);
 
-  if (loading) {
+  if (loading)
     return (
       <AppLayout title="Profile">
-        <div className="profile-layout">
-          <div className="profile-main">Loading...</div>
-        </div>
+        <div className="profile-center">Loading...</div>
       </AppLayout>
     );
-  }
 
-  if (!user) {
+  if (!user)
     return (
       <AppLayout title="Profile">
-        <div className="profile-layout">
-          <div className="profile-main">Please login</div>
-        </div>
+        <div className="profile-center">Please login to continue</div>
       </AppLayout>
     );
-  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -96,63 +84,63 @@ export default function Profile() {
   };
 
   return (
-    <AppLayout title="Profile" sidebar={<GeneralSidebar />}>
-      <div className="profile-layout">
-        <div className="profile-sidebar">
-          <div className="user-info">
-            <div className="user-avatar">
+    <AppLayout title="Profile">
+      <div className="profile-page">
+        {/* Sidebar */}
+        <aside className="profile-sidebar">
+          <div className="profile-user">
+            <div className="avatar-box">
               {profileData.avatar ? (
                 <img
                   src={profileData.avatar}
-                  alt="User Avatar"
-                  className="sidebar-avatar-image"
+                  alt="avatar"
+                  className="avatar-img"
                 />
               ) : (
-                <User size={60} />
+                <User size={60} strokeWidth={1.5} />
               )}
             </div>
-            <div className="user-details">
-              <h3>{profileData.name || "..."}</h3>
-              <p>{profileData.gmail || "..."}</p>
-            </div>
+            <h3>{profileData.name || "..."}</h3>
+            <p>{profileData.gmail || "..."}</p>
           </div>
 
-          <div className="navigation-menu">
+          <div className="profile-nav">
             {[
               {
                 key: "profile",
-                icon: <User size={20} />,
+                icon: <User size={18} />,
                 label: "Your Profile",
               },
               {
                 key: "test-history",
-                icon: <ClipboardList size={20} />,
+                icon: <ClipboardList size={18} />,
                 label: "Test History",
               },
               {
                 key: "payment-history",
-                icon: <CreditCard size={20} />,
+                icon: <CreditCard size={18} />,
                 label: "Payment History",
               },
               {
                 key: "sign-in-history",
-                icon: <LogIn size={20} />,
+                icon: <LogIn size={18} />,
                 label: "Sign In History",
               },
             ].map(({ key, icon, label }) => (
               <button
                 key={key}
-                className={`nav-item ${activeTab === key ? "active" : ""}`}
                 onClick={() => setActiveTab(key)}
+                className={`nav-item ${activeTab === key ? "active" : ""}`}
               >
                 {icon}
                 <span>{label}</span>
               </button>
             ))}
           </div>
-        </div>
+        </aside>
 
-        <div className="profile-main">{renderContent()}</div>
+        {/* Main content */}
+        <main className="profile-main">{renderContent()}</main>
       </div>
     </AppLayout>
   );

@@ -7,7 +7,7 @@ export default function AppLayout({ sidebar, title, children }) {
     <div className="app-shell">
       {sidebar && <div className="sidebar-container">{sidebar}</div>}
 
-      <main className="app-main">
+      <main className={`app-main ${!sidebar ? "no-sidebar" : ""}`}>
         <HeaderBar title={title} />
         {children}
       </main>
