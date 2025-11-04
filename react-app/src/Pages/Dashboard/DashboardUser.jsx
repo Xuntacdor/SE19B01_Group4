@@ -208,6 +208,23 @@ export default function DashboardUser() {
               </div>
             ))}
           </div>
+          {/* ===== Banner Section (Under Outcome Statistics) ===== */}
+          <div className={styles.bannerCard}>
+            <div className={styles.bannerText}>
+              <h4>🔥 Upgrade to VIP IELTS Access</h4>
+              <p>
+                Unlock AI-powered Writing & Speaking feedback, advanced
+                analytics, and personalized progress tracking — all in one
+                place.
+              </p>
+            </div>
+            <button
+              className={styles.bannerButton}
+              onClick={() => navigate("/vipplans")}
+            >
+              Upgrade Now
+            </button>
+          </div>
         </div>
 
         {/* ===== History Section ===== */}
