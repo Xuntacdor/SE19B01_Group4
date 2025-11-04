@@ -253,7 +253,7 @@
 
 .historyRow {
   display: grid;
-  grid-template-columns: 100px 2fr 120px 120px 80px;
+  grid-template-columns: 80px 2fr 120px 120px 80px;
   padding: 10px 8px;
   border-bottom: 1px solid #f1f3f5;
   align-items: center;
@@ -406,4 +406,48 @@
 .enjoyText {
   font-size: 22px;
   font-weight: 600;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.pageButton {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  color: #333;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pageButton:hover {
+  background-color: #27a844;
+  color: #fff;
+}
+
+.activePage {
+  background-color: #27a844;
+  color: #fff;
+  font-weight: 600;
+  border-color: #27a844;
+}
+/* Căn giữa icon trong cột Status */
+.historyRow > div:first-child {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+/* Căn giữa điểm Score */
+.historyRow > div:last-child {
+  text-align: center;
+}
+.historyTable {
+  min-height: 280px; /* hoặc 300px tùy layout bạn muốn */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
