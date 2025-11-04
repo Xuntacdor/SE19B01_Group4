@@ -10,15 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout vào đúng thư mục
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          path: .
 
+      # 2️⃣ Build React app
       - name: Install dependencies and build React app
         run: |
           cd react-app
           npm install
           npm run build
 
+      # 3️⃣ Deploy Firebase Hosting
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
