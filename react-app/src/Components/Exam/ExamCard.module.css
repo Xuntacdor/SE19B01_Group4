@@ -6,6 +6,7 @@
   display: flex;
   flex-direction: column;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 360px; /* Height cố định để tất cả card cùng size */
 }
 
 .card:hover {
@@ -13,32 +14,58 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-.coverWrap {
+/* Phần trên: 2/3 card với background image */
+.topSection {
   position: relative;
+  flex: 2; /* Chiếm 2/3 chiều cao */
+  height: 240px; /* Chiều cao cố định = 2/3 của 360px */
+  overflow: hidden;
+  width: 100%;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.3); /* Overlay nhẹ hơn để hình nền đậm hơn */
+  z-index: 0;
+  pointer-events: none;
 }
 
 .cover {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 140px;
+  height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .coverBadge {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
-  background: rgba(0, 0, 0, 0.7);
+  top: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.6);
   color: #fff;
-  font-size: 16px;
-  padding: 4px 8px;
-  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  z-index: 2;
 }
 
-.cardBody {
-  padding: 12px;
+/* Phần dưới: 1/3 card với nền trắng */
+.bottomSection {
+  flex: 1; /* Chiếm 1/3 chiều cao */
+  background: #fff;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  min-height: 120px; /* Chiều cao tối thiểu = 1/3 của 360px */
 }
 
 .title {

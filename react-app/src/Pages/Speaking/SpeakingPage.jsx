@@ -119,10 +119,6 @@ export default function SpeakingPage() {
                         <Mic size={14} />
                         AI-Powered
                       </span>
-                      <span className={styles.featureTag}>
-                        <Clock size={14} />
-                        Real-time
-                      </span>
                     </div>
                   </div>
                 ))

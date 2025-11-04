@@ -23,14 +23,24 @@ namespace WebAPI.Services
 
         public Exam Create(CreateExamDto dto)
         {
+            Console.WriteLine($"[ExamService.Create] DTO BackgroundImageUrl: {dto.BackgroundImageUrl ?? "NULL"}");
+            
             var exam = new Exam
             {
                 ExamName = dto.ExamName,
-                ExamType = dto.ExamType
+                ExamType = dto.ExamType,
+                BackgroundImageUrl = dto.BackgroundImageUrl
             };
+
+            Console.WriteLine($"[ExamService.Create] Exam entity BackgroundImageUrl: {exam.BackgroundImageUrl ?? "NULL"}");
 
             _repo.Add(exam);
             _repo.SaveChanges();
+            
+            // Reload from DB to verify
+            var saved = _repo.GetById(exam.ExamId);
+            Console.WriteLine($"[ExamService.Create] Saved exam BackgroundImageUrl: {saved?.BackgroundImageUrl ?? "NULL"}");
+            
             return exam;
         }
 
@@ -43,6 +53,8 @@ namespace WebAPI.Services
                 existing.ExamName = dto.ExamName;
             if (!string.IsNullOrWhiteSpace(dto.ExamType))
                 existing.ExamType = dto.ExamType;
+            if (dto.BackgroundImageUrl != null)
+                existing.BackgroundImageUrl = dto.BackgroundImageUrl;
 
             _repo.Update(existing);
             _repo.SaveChanges();
