@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatTimeVietnam } from "../../utils/date";
 import * as examService from "../../Services/ExamApi";
+import * as UploadApi from "../../Services/UploadApi";
 import * as readingService from "../../Services/ReadingApi";
 import * as listeningService from "../../Services/ListeningApi";
 import * as writingService from "../../Services/WritingApi";
@@ -13,6 +14,8 @@ import styles from "./ExamManagement.module.css";
 export default function ExamManagement() {
   const [examName, setExamName] = useState("");
   const [examType, setExamType] = useState("Reading");
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [exams, setExams] = useState([]);
   const [skills, setSkills] = useState([]);
   const [selectedExam, setSelectedExam] = useState(null);
@@ -58,18 +61,65 @@ export default function ExamManagement() {
     fetchExams();
   }, []);
 
+  // ====== Upload background image ======
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setStatus("❌ Please select a valid image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setStatus("❌ Image size must be less than 5MB");
+      return;
+    }
+
+    setUploading(true);
+    setStatus("Uploading image...");
+
+    try {
+      const result = await UploadApi.uploadImage(file);
+      setBackgroundImageUrl(result.url);
+      setStatus("✅ Image uploaded successfully");
+    } catch (err) {
+      console.error("Upload error:", err);
+      setStatus("❌ Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // ====== Create exam ======
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus("Submitting...");
 
     try {
-      const created = await examService.add({ examName, examType });
+      const dataToSend = { 
+        examName, 
+        examType
+      };
+      
+      // Chỉ thêm backgroundImageUrl nếu có giá trị
+      if (backgroundImageUrl && backgroundImageUrl.trim() !== "") {
+        dataToSend.backgroundImageUrl = backgroundImageUrl;
+      }
+      
+      console.log("Sending exam data:", dataToSend); // Debug log
+      
+      const created = await examService.add(dataToSend);
+      console.log("Created exam response:", created); // Debug log
+      
       setStatus(`✅ Created exam "${created.examName}"`);
       setExamName("");
+      setBackgroundImageUrl(""); // Reset after create
       fetchExams();
     } catch (err) {
-      console.error(err);
+      console.error("Error creating exam:", err);
       setStatus("❌ Failed to create exam");
     }
   };
@@ -181,7 +231,82 @@ export default function ExamManagement() {
                 </select>
               </div>
 
-              <button type="submit" className={styles.btnPrimary}>
+              <div className={styles.group}>
+                <label>Background Image (Optional)</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input
+                    id="background-image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                    style={{ display: 'none' }}
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => document.getElementById('background-image-upload')?.click()}
+                    disabled={uploading}
+                    style={{
+                      padding: '10px 18px',
+                      background: uploading ? '#ccc' : '#007bff',
+                      color: 'white',
+                      borderRadius: '8px',
+                      cursor: uploading ? 'not-allowed' : 'pointer',
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      transition: 'background 0.2s ease',
+                      border: 'none',
+                      width: '100%'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!uploading) e.target.style.background = '#0056b3';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!uploading) e.target.style.background = '#007bff';
+                    }}
+                  >
+                    {uploading ? '⏳ Uploading...' : '📷 Choose Image'}
+                  </button>
+                  {backgroundImageUrl && (
+                    <div style={{ marginTop: '8px', display: 'flex', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                      <img 
+                        src={backgroundImageUrl} 
+                        alt="Preview" 
+                        style={{ 
+                          maxWidth: '200px', 
+                          maxHeight: '150px', 
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb',
+                          objectFit: 'cover'
+                        }} 
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setBackgroundImageUrl("")}
+                        style={{ 
+                          padding: '6px 14px',
+                          background: '#ef4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          transition: 'background 0.2s ease',
+                          height: 'fit-content'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = '#dc3545'}
+                        onMouseLeave={(e) => e.target.style.background = '#ef4444'}
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button type="submit" className={styles.btnPrimary} disabled={uploading}>
                 + Create Exam
               </button>
             </form>

@@ -88,6 +88,16 @@ export default function DashboardUser() {
   const [userId, setUserId] = useState(null);
   const [submittedDays, setSubmittedDays] = useState([]);
   const [historyData, setHistoryData] = useState([]);
+  // ===== Pagination logic =====
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const totalPages = Math.ceil(historyData.length / itemsPerPage);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return historyData.slice(start, end);
+  }, [historyData, currentPage]);
 
   // ===== Get current user =====
   useEffect(() => {
@@ -175,26 +185,6 @@ export default function DashboardUser() {
 
         {/* ===== Goals + Stats ===== */}
         <div className={styles.goalsWrapper}>
-          {/* Goals Section */}
-          <div className={styles.goalsSection}>
-            <h3 className={styles.sectionTitle}>Goals</h3>
-            <div className={styles.goalsCards}>
-              {["Reading", "Listening", "Writing", "Speaking", "Overall"].map(
-                (label) => (
-                  <div
-                    key={label}
-                    className={`${styles.goalCard} ${
-                      label === "Overall" ? styles.overall : ""
-                    }`}
-                  >
-                    <div className={styles.goalLabel}>{label}</div>
-                    <div className={styles.goalScore}>9.0</div>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-
           {/* Stats Section */}
           <div className={styles.statsSection}>
             <h3 className={styles.sectionTitle}>Outcome Statistics</h3>
@@ -221,7 +211,7 @@ export default function DashboardUser() {
         </div>
 
         {/* ===== History Section ===== */}
-        <div className={styles.historySection}>
+        <div className={`${styles.historySection} ${styles.card}`}>
           <h3 className={styles.sectionTitle}>Practice History</h3>
           <div className={styles.historyTable}>
             <div className={`${styles.historyRow} ${styles.historyHeader}`}>
@@ -232,8 +222,8 @@ export default function DashboardUser() {
               <div>Score</div>
             </div>
 
-            {historyData.length > 0 ? (
-              historyData.map((r, i) => (
+            {paginatedData.length > 0 ? (
+              paginatedData.map((r, i) => (
                 <div className={styles.historyRow} key={i}>
                   <div>{r[0]}</div>
                   <div>{r[1]}</div>
@@ -252,9 +242,24 @@ export default function DashboardUser() {
               />
             )}
           </div>
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`${styles.pageButton} ${
+                      currentPage === page ? styles.activePage : ""
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+            </div>
+          )}
         </div>
-
-     
       </div>
     </AppLayout>
   );

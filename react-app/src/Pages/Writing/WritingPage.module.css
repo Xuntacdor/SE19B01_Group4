@@ -119,6 +119,40 @@
   gap: 16px;
 }
 
+.examCardWrapper {
+  position: relative;
+  transition: transform 0.25s ease;
+  overflow: visible;
+}
+
+.examCardWrapper:hover {
+  transform: translateY(-2px);
+}
+
+/* ===== Exam feature tags ===== */
+.examFeatures {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.featureTag {
+  background: rgba(37, 99, 235, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
 .card {
   background: #fff;
   border: 1px solid #e5e7eb;

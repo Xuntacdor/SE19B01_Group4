@@ -111,7 +111,7 @@ namespace WebAPI.Repositories
             {
                 var entity = new SpeakingFeedback
                 {
-                    SpeakingAttemptId = attempt.SpeakingAttemptId, // ✅ Important FK fix
+                    SpeakingAttemptId = attempt.SpeakingAttemptId, 
                     Pronunciation = band.GetProperty("pronunciation").GetDecimal(),
                     Fluency = band.GetProperty("fluency").GetDecimal(),
                     LexicalResource = band.GetProperty("lexical_resource").GetDecimal(),

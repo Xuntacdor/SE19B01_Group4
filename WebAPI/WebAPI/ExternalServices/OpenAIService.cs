@@ -30,9 +30,7 @@ namespace WebAPI.ExternalServices
             _chatModel = aiOptions.Value.ChatModel ?? "qwen2.5-7b-instruct-1m"; // default cho LM Studio
         }
 
-        // ========================================
-        // == 1. WRITING GRADER ==
-        // ========================================
+
         public JsonDocument GradeWriting(string question, string answer, string? imageUrl = null)
         {
             try
@@ -136,23 +134,7 @@ Essay Answer:
         // ========================================
         // == 2. SPEECH-TO-TEXT ==
         // ========================================
-        public string SpeechToText(string audioUrl)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(audioUrl))
-                    throw new ArgumentException("Audio URL is empty.");
-
-                // LM Studio không hỗ trợ Whisper → mock transcript
-                _logger.LogInformation("[OpenAIService] Mocking Speech-to-text for {AudioUrl}", audioUrl);
-                return "This is a mock transcript (LM Studio local model does not support audio transcription).";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[OpenAIService] Speech-to-text failed.");
-                return "[Transcription failed]";
-            }
-        }
+     
 
         // ========================================
         // == 3. SPEAKING GRADER ==

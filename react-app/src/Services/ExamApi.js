@@ -11,6 +11,7 @@ const normalizeExam = (e) => ({
   examName: e.examName ?? e.ExamName,
   examType: e.examType ?? e.ExamType,
   createdAt: e.createdAt ?? e.CreatedAt,
+  backgroundImageUrl: e.backgroundImageUrl ?? e.BackgroundImageUrl,
 });
 
 // ====== EXAMS ======
@@ -20,15 +21,21 @@ export function getById(id) {
 
 export function getAll() {
   return API.get("").then((res) => {
+    console.log("ExamApi.getAll - Raw response:", res.data); // Debug log
     const list = Array.isArray(res.data)
       ? res.data.map(normalizeExam)
       : [];
+    console.log("ExamApi.getAll - Normalized exams:", list); // Debug log
     return list;
   });
 }
 
 export function add(data) {
-  return API.post("", data).then((res) => normalizeExam(res.data));
+  console.log("ExamApi.add - Sending data:", data); // Debug log
+  return API.post("", data).then((res) => {
+    console.log("ExamApi.add - Response:", res.data); // Debug log
+    return normalizeExam(res.data);
+  });
 }
 
 export function update(id, data) {

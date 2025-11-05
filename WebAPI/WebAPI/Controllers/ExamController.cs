@@ -26,11 +26,24 @@ namespace WebAPI.Controllers
         {
             if (exam == null) return BadRequest("Invalid payload");
 
+            // Debug log - Log raw JSON if possible
+            Console.WriteLine($"[ExamController.Create] Received DTO:");
+            Console.WriteLine($"  ExamName: {exam.ExamName}");
+            Console.WriteLine($"  ExamType: {exam.ExamType}");
+            Console.WriteLine($"  BackgroundImageUrl: {exam.BackgroundImageUrl ?? "NULL"}");
+            Console.WriteLine($"  BackgroundImageUrl is null? {exam.BackgroundImageUrl == null}");
+            Console.WriteLine($"  BackgroundImageUrl is empty? {string.IsNullOrEmpty(exam.BackgroundImageUrl)}");
+
             var created = _examService.Create(exam);
             if (created == null) return BadRequest("Failed to create exam");
 
+            Console.WriteLine($"[ExamController.Create] Created exam ID: {created.ExamId}");
+            Console.WriteLine($"[ExamController.Create] Created exam BackgroundImageUrl: {created.BackgroundImageUrl ?? "NULL"}");
+
             // ✅ Convert entity to DTO to avoid cycles
             var dto = ConvertToDto(created);
+            Console.WriteLine($"[ExamController.Create] DTO BackgroundImageUrl: {dto.BackgroundImageUrl ?? "NULL"}");
+            
             return CreatedAtAction(nameof(GetById), new { id = dto.ExamId }, dto);
         }
 
@@ -111,6 +124,7 @@ namespace WebAPI.Controllers
                 ExamName = exam.ExamName,
                 ExamType = exam.ExamType,
                 CreatedAt = exam.CreatedAt,
+                BackgroundImageUrl = exam.BackgroundImageUrl,
                 Readings = exam.Readings?.Select(r => new ReadingDto
                 {
                     ReadingId = r.ReadingId,

@@ -13,6 +13,8 @@ public partial class Exam
 
     public DateTime CreatedAt { get; set; }
 
+    public string? BackgroundImageUrl { get; set; }
+
     public virtual ICollection<ExamAttempt> ExamAttempts { get; set; } = new List<ExamAttempt>();
 
     public virtual ICollection<Listening> Listenings { get; set; } = new List<Listening>();

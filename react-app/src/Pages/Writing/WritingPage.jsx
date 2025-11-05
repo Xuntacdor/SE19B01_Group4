@@ -7,6 +7,7 @@ import * as writingService from "../../Services/WritingApi";
 import ExamCard from "../../Components/Exam/ExamCard";
 import ExamSkillModal from "../../Components/Exam/ExamPopup";
 import NothingFound from "../../Components/Nothing/NothingFound";
+import { Sparkles } from "lucide-react";
 import styles from "./WritingPage.module.css";
 
 export default function WritingPage() {
@@ -96,11 +97,18 @@ export default function WritingPage() {
           <div className={styles.grid}>
             {exams.length > 0 ? (
               exams.map((exam) => (
-                <ExamCard
-                  key={exam.examId}
-                  exam={exam}
-                  onTake={() => handleTakeExam(exam)}
-                />
+                <div key={exam.examId} className={styles.examCardWrapper}>
+                  <ExamCard
+                    exam={exam}
+                    onTake={() => handleTakeExam(exam)}
+                  />
+                  <div className={styles.examFeatures}>
+                    <span className={styles.featureTag}>
+                      <Sparkles size={14} />
+                      AI-Powered
+                    </span>
+                  </div>
+                </div>
               ))
             ) : (
               <div className={styles.centerWrapper}>

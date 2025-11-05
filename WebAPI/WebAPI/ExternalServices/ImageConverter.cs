@@ -35,7 +35,6 @@ namespace WebAPI.ExternalServices
                     }
                     catch { }
 
-                    // ✅ Nếu vẫn không phải định dạng hợp lệ, fallback PNG
                     if (!mimeType.Contains("png") && !mimeType.Contains("jpeg") &&
                         !mimeType.Contains("gif") && !mimeType.Contains("webp"))
                     {

@@ -14,6 +14,8 @@ namespace WebAPI.DTOs
 
         public DateTime CreatedAt { get; set; }
 
+        public string? BackgroundImageUrl { get; set; }
+
         public virtual ICollection<ListeningDto> Listenings { get; set; } = new List<ListeningDto>();
 
         public virtual ICollection<ReadingDto> Readings { get; set; } = new List<ReadingDto>();
@@ -26,6 +28,7 @@ namespace WebAPI.DTOs
     {
         public string? ExamType { get; set; } = string.Empty;
         public string? ExamName { get; set; } = string.Empty;
+        public string? BackgroundImageUrl { get; set; }
     }
 
     public class CreateExamDto
@@ -34,6 +37,9 @@ namespace WebAPI.DTOs
         public string ExamType { get; set; } = string.Empty;
         [Required]
         public string ExamName { get; set; } = string.Empty;
+        
+        [System.Text.Json.Serialization.JsonPropertyName("backgroundImageUrl")]
+        public string? BackgroundImageUrl { get; set; }
     }
 
     public class ExamAttemptSummaryDto
