@@ -213,7 +213,7 @@ export default function ReadingExamPage() {
               <ExamMarkdownRenderer
                 markdown={currentTaskData.readingQuestion}
                 showAnswers={false} // explanations hidden on exam
-                readingId={currentTaskData.readingId}
+                skillId={currentTaskData.readingId}
               />
             ) : (
               <div className={styles.questionSection}>

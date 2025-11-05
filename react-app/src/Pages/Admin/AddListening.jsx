@@ -100,34 +100,11 @@ export default function AddListening() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!exam?.examId) {
-      setStatus({
-        icon: <XCircle color="red" size={16} />,
-        message: "Missing exam context.",
-      });
-      return;
-    }
-    if (!listeningContent) {
-      setStatus({
-        icon: <XCircle color="red" size={16} />,
-        message: "Please upload an audio file first.",
-      });
-      return;
-    }
-    if (!listeningQuestion.trim()) {
-      setStatus({
-        icon: <XCircle color="red" size={16} />,
-        message: "Question (Markdown) cannot be empty.",
-      });
-      return;
-    }
-
     setStatus({ icon: <FileAudio size={16} />, message: "Processing..." });
 
     try {
-      const { html, answers } =
-        renderMarkdownToHtmlAndAnswers(listeningQuestion);
+      // 1️⃣ First render without listeningId (uses "X_q#" keys)
+      const { html, answers } = renderMarkdownToHtmlAndAnswers(listeningQuestion);
 
       const payload = {
         examId: exam.examId,
@@ -135,12 +112,13 @@ export default function AddListening() {
         listeningQuestion,
         listeningType: "Markdown",
         displayOrder: skill?.displayOrder || 1,
-        correctAnswer: JSON.stringify(answers),
+        correctAnswer: JSON.stringify(answers), // temporary (X_q#)
         questionHtml: html,
       };
 
       let saved;
-      if (skill?.listeningId) {
+      if (skill) {
+        // Update existing listening
         await listeningService.update(skill.listeningId, payload);
         saved = { listeningId: skill.listeningId };
         setStatus({
@@ -148,6 +126,7 @@ export default function AddListening() {
           message: "Updated successfully!",
         });
       } else {
+        // Add new listening (get real listeningId)
         saved = await listeningService.add(payload);
         setStatus({
           icon: <CheckCircle color="green" size={16} />,
@@ -155,6 +134,7 @@ export default function AddListening() {
         });
       }
 
+      // 2️⃣ Regenerate BOTH HTML + correct answers using real listeningId
       const newId = saved?.listeningId;
       if (newId) {
         const { html: fixedHtml, answers: fixedAnswers } =
@@ -163,13 +143,13 @@ export default function AddListening() {
         await listeningService.update(newId, {
           ...payload,
           questionHtml: fixedHtml,
-          correctAnswer: JSON.stringify(fixedAnswers),
+          correctAnswer: JSON.stringify(fixedAnswers), // ✅ fixed IDs (e.g. "6_q1")
         });
       }
 
-      setTimeout(() => navigate(-1), 800);
+      setTimeout(() => navigate(-1), 1000);
     } catch (err) {
-      console.error("Save failed:", err);
+      console.error(err);
       setStatus({
         icon: <XCircle color="red" size={16} />,
         message: "Failed to save listening question.",
