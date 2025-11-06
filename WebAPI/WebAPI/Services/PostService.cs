@@ -671,10 +671,12 @@ namespace WebAPI.Services
 
         public IEnumerable<PostDTO> GetPendingPosts(int page, int limit)
         {
+            // Get post IDs first with proper ordering (same as GetPosts)
             var postIds = _context.Post
                 .AsNoTracking()
                 .Where(p => p.Status == "pending")
-                .OrderByDescending(p => p.CreatedAt)
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)
                 .Select(p => p.PostId)
@@ -683,21 +685,24 @@ namespace WebAPI.Services
             if (!postIds.Any())
                 return Enumerable.Empty<PostDTO>();
 
+            // Load all needed data in one query with eager loading (same optimization as GetPosts)
             var posts = _context.Post
                 .AsNoTracking()
                 .Include(p => p.User)
                 .Include(p => p.Attachments)
                 .Include(p => p.Tags)
                 .Where(p => postIds.Contains(p.PostId))
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
                 .ToList();
 
-            // Maintain order
+            // Maintain original order from postIds
             var postOrderDict = postIds
                 .Select((id, index) => new { Id = id, Index = index })
                 .ToDictionary(x => x.Id, x => x.Index);
             posts = posts.OrderBy(p => postOrderDict.GetValueOrDefault(p.PostId, int.MaxValue)).ToList();
 
-            // Batch load counts
+            // Batch load counts to avoid N+1 queries (same as GetPosts)
             var commentCounts = _context.Comment
                 .AsNoTracking()
                 .Where(c => postIds.Contains(c.PostId))
@@ -721,10 +726,12 @@ namespace WebAPI.Services
 
         public IEnumerable<PostDTO> GetRejectedPosts(int page, int limit)
         {
+            // Get post IDs first with proper ordering (same as GetPosts)
             var postIds = _context.Post
                 .AsNoTracking()
                 .Where(p => p.Status == "rejected")
-                .OrderByDescending(p => p.CreatedAt)
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)
                 .Select(p => p.PostId)
@@ -733,21 +740,24 @@ namespace WebAPI.Services
             if (!postIds.Any())
                 return Enumerable.Empty<PostDTO>();
 
+            // Load all needed data in one query with eager loading (same optimization as GetPosts)
             var posts = _context.Post
                 .AsNoTracking()
                 .Include(p => p.User)
                 .Include(p => p.Attachments)
                 .Include(p => p.Tags)
                 .Where(p => postIds.Contains(p.PostId))
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
                 .ToList();
 
-            // Maintain order
+            // Maintain original order from postIds
             var postOrderDict = postIds
                 .Select((id, index) => new { Id = id, Index = index })
                 .ToDictionary(x => x.Id, x => x.Index);
             posts = posts.OrderBy(p => postOrderDict.GetValueOrDefault(p.PostId, int.MaxValue)).ToList();
 
-            // Batch load counts
+            // Batch load counts to avoid N+1 queries (same as GetPosts)
             var commentCounts = _context.Comment
                 .AsNoTracking()
                 .Where(c => postIds.Contains(c.PostId))
