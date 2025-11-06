@@ -8,11 +8,13 @@ import ExamCard from "../../Components/Exam/ExamCard";
 import ExamSkillModal from "../../Components/Exam/ExamPopup";
 import styles from "./ReadingPage.module.css";
 import NothingFound from "../../Components/Nothing/NothingFound";
+import SearchBar from "../../Components/Common/SearchBar"; // ✅ import SearchBar
 
 export default function ReadingPage() {
   const navigate = useNavigate();
 
   const [exams, setExams] = useState([]);
+  const [filteredExams, setFilteredExams] = useState([]); // ✅ dùng để lọc
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeExam, setActiveExam] = useState(null);
@@ -26,20 +28,36 @@ export default function ReadingPage() {
       .getAll()
       .then((data) => {
         if (!mounted) return;
-        console.log('All exams fetched:', data);
+        console.log("All exams fetched:", data);
         const list = Array.isArray(data)
           ? data.filter((e) => e.examType === "Reading")
           : [];
-        console.log('Filtered Reading exams:', list);
+        console.log("Filtered Reading exams:", list);
         setExams(list);
+        setFilteredExams(list); // ✅ khởi tạo filtered list
       })
       .catch((err) => {
-        console.error('Error fetching exams:', err);
+        console.error("Error fetching exams:", err);
         if (mounted) setError("Failed to load Reading exams.");
       })
       .finally(() => mounted && setLoading(false));
     return () => (mounted = false);
   }, []);
+
+  // ====== Handle search (debounce trong SearchBar) ======
+  const handleSearch = (query) => {
+    if (!query.trim()) {
+      setFilteredExams(exams);
+      return;
+    }
+    const lower = query.toLowerCase();
+    const result = exams.filter(
+      (exam) =>
+        exam.examName.toLowerCase().includes(lower) ||
+        exam.description?.toLowerCase().includes(lower)
+    );
+    setFilteredExams(result);
+  };
 
   // ====== Load questions for selected exam ======
   const handleTakeExam = (exam) => {
@@ -50,12 +68,17 @@ export default function ReadingPage() {
     readingService
       .getByExam(exam.examId)
       .then((data) => {
-        console.log('Reading questions fetched for exam', exam.examId, ':', data);
+        console.log(
+          "Reading questions fetched for exam",
+          exam.examId,
+          ":",
+          data
+        );
         const list = Array.isArray(data) ? data : [];
         setExamQuestions(list);
       })
       .catch((err) => {
-        console.error('Error fetching reading questions:', err);
+        console.error("Error fetching reading questions:", err);
         alert("Failed to load reading questions for this exam.");
       })
       .finally(() => setLoadingDetail(false));
@@ -79,7 +102,7 @@ export default function ReadingPage() {
         exam,
         tasks: [task],
         mode: "single",
-        duration: 20, // or task-based if you prefer
+        duration: 20,
       },
     });
   };
@@ -94,25 +117,32 @@ export default function ReadingPage() {
         {!loading && error && <div className={styles.errorText}>{error}</div>}
 
         {!loading && !error && (
-          <div className={styles.grid}>
-            {exams.length > 0 ? (
-              exams.map((exam) => (
-                <ExamCard
-                  key={exam.examId}
-                  exam={exam}
-                  onTake={() => handleTakeExam(exam)}
-                />
-              ))
-            ) : (
-              <div className={styles.centerWrapper}>
-                <NothingFound
-                  imageSrc="/src/assets/sad_cloud.png"
-                  title="No reading exams available"
-                  message="Please check back later or try another skill."
-                />
-              </div>
-            )}
-          </div>
+          <>
+            {/* ✅ Search bar */}
+            <div style={{ marginBottom: "20px" }}>
+              <SearchBar onSearch={handleSearch} />
+            </div>
+
+            <div className={styles.grid}>
+              {filteredExams.length > 0 ? (
+                filteredExams.map((exam) => (
+                  <ExamCard
+                    key={exam.examId}
+                    exam={exam}
+                    onTake={() => handleTakeExam(exam)}
+                  />
+                ))
+              ) : (
+                <div className={styles.centerWrapper}>
+                  <NothingFound
+                    imageSrc="/src/assets/sad_cloud.png"
+                    title="No reading exams found"
+                    message="Try adjusting your search keywords."
+                  />
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 

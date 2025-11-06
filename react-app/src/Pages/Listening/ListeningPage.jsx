@@ -8,11 +8,13 @@ import ExamCard from "../../Components/Exam/ExamCard";
 import ExamSkillModal from "../../Components/Exam/ExamPopup";
 import styles from "./ListeningPage.module.css";
 import NothingFound from "../../Components/Nothing/NothingFound";
+import SearchBar from "../../Components/Common/SearchBar"; // ✅ import SearchBar
 
 export default function ListeningPage() {
   const navigate = useNavigate();
 
   const [exams, setExams] = useState([]);
+  const [filteredExams, setFilteredExams] = useState([]); // ✅ for search
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeExam, setActiveExam] = useState(null);
@@ -30,6 +32,7 @@ export default function ListeningPage() {
           ? data.filter((e) => e.examType === "Listening")
           : [];
         setExams(list);
+        setFilteredExams(list); // ✅ initialize filtered list
       })
       .catch((err) => {
         console.error(err);
@@ -38,6 +41,21 @@ export default function ListeningPage() {
       .finally(() => mounted && setLoading(false));
     return () => (mounted = false);
   }, []);
+
+  // ====== Handle search (debounce handled inside SearchBar) ======
+  const handleSearch = (query) => {
+    if (!query.trim()) {
+      setFilteredExams(exams);
+      return;
+    }
+    const lower = query.toLowerCase();
+    const result = exams.filter(
+      (exam) =>
+        exam.examName.toLowerCase().includes(lower) ||
+        exam.description?.toLowerCase().includes(lower)
+    );
+    setFilteredExams(result);
+  };
 
   // ====== Load questions for selected exam ======
   const handleTakeExam = (exam) => {
@@ -93,25 +111,32 @@ export default function ListeningPage() {
         {!loading && error && <div className={styles.errorText}>{error}</div>}
 
         {!loading && !error && (
-          <div className={styles.grid}>
-            {exams.length > 0 ? (
-              exams.map((exam) => (
-                <ExamCard
-                  key={exam.examId}
-                  exam={exam}
-                  onTake={() => handleTakeExam(exam)}
-                />
-              ))
-            ) : (
-              <div className={styles.centerWrapper}>
-                <NothingFound
-                  imageSrc="/src/assets/sad_cloud.png"
-                  title="No listening exams available"
-                  message="Please check back later or try another skill."
-                />
-              </div>
-            )}
-          </div>
+          <>
+            {/* ✅ Search bar */}
+            <div style={{ marginBottom: "20px" }}>
+              <SearchBar onSearch={handleSearch} />
+            </div>
+
+            <div className={styles.grid}>
+              {filteredExams.length > 0 ? (
+                filteredExams.map((exam) => (
+                  <ExamCard
+                    key={exam.examId}
+                    exam={exam}
+                    onTake={() => handleTakeExam(exam)}
+                  />
+                ))
+              ) : (
+                <div className={styles.centerWrapper}>
+                  <NothingFound
+                    imageSrc="/src/assets/sad_cloud.png"
+                    title="No listening exams found"
+                    message="Try adjusting your search keywords."
+                  />
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
