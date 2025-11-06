@@ -108,13 +108,13 @@ function processQuestionBlock(
   lines,
   qIndex,
   showAnswers,
-  readingId = 0,
+  skillId = 0,
   userAnsObj = {},
   correctAnsObj = {}
 ) {
   let text = lines.join("\n");
 
-  const safeId = readingId && readingId > 0 ? readingId : "X";
+  const safeId = skillId && skillId > 0 ? skillId : "X";
   const key = `${safeId}_q${qIndex}`;
 
   const userNorm = normalizeUser(userAnsObj?.[key]);
@@ -259,15 +259,15 @@ export default function ExamMarkdownRenderer({
   showAnswers = false,
   userAnswers = [],
   correctAnswers = [],
-  readingId = 0,
+  skillId = 0,
 }) {
   const blocks = splitBlocks(markdown);
   let qCounter = 0;
 
   const userAnsObj =
-    userAnswers?.find((x) => x?.SkillId === readingId)?.Answers || {};
+    userAnswers?.find((x) => x?.SkillId === skillId)?.Answers || {};
   const correctAnsObj =
-    correctAnswers?.find((x) => x?.SkillId === readingId)?.Answers || {};
+    correctAnswers?.find((x) => x?.SkillId === skillId)?.Answers || {};
 
   const html = blocks
     .map((b) => {
@@ -278,7 +278,7 @@ export default function ExamMarkdownRenderer({
           b.lines,
           qCounter,
           showAnswers,
-          readingId,
+          skillId,
           userAnsObj,
           correctAnsObj
         );
