@@ -291,8 +291,9 @@ export default function ListeningResultPage() {
                 <ExamMarkdownRenderer
                   markdown={l.listeningQuestion}
                   showAnswers={true}
-                  userAnswers={userAnswers}
-                  correctAnswers={correctAnswers}
+                  userAnswers={[{ SkillId: l.listeningId, Answers: userAnswers }]}
+                  correctAnswers={[{ SkillId: l.listeningId, Answers: correctAnswers }]}
+                  skillId={l.listeningId}
                 />
               </div>
             </div>

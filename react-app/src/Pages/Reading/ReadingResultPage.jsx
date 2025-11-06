@@ -350,7 +350,7 @@ export default function ReadingResultPage() {
                 correctAnswers={[
                   { SkillId: r.readingId, Answers: r.correctAnswers },
                 ]}
-                readingId={r.readingId}
+                skillId={r.readingId}
               />
             </div>
           </div>

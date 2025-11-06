@@ -88,6 +88,9 @@ namespace WebAPI.Data
                 entity.Property(e => e.ExamType)
                     .HasMaxLength(20)
                     .HasColumnName("exam_type");
+                entity.Property(e => e.BackgroundImageUrl)
+                    .HasMaxLength(500)
+                    .HasColumnName("background_image_url");
             });
 
             modelBuilder.Entity<ExamAttempt>(entity =>
