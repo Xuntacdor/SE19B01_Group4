@@ -1,42 +1,75 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import PostItem from "./PostItem";
 import NothingFound from "../Nothing/NothingFound";
 
-export default function PostList({ posts, loading, onLoadMore, hasMore, onPostUpdated, isInClosedSection = false }) {
-  const observerRef = useRef();
-  const loadingRef = useRef();
+export default function PostList({ 
+  posts, 
+  loading, 
+  initialLoading,
+  onLoadMore, 
+  hasMore, 
+  onPostUpdated, 
+  isInClosedSection = false 
+}) {
+  const loadingRef = useRef(null);
+  const observerRef = useRef(null);
 
-  // Infinite scroll observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          onLoadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadingRef.current) {
-      observer.observe(loadingRef.current);
+  // Memoize callback to prevent observer recreation
+  const handleIntersection = useCallback((entries) => {
+    const [entry] = entries;
+    if (entry.isIntersecting && hasMore && !loading) {
+      onLoadMore();
     }
-
-    return () => {
-      if (loadingRef.current) {
-        observer.unobserve(loadingRef.current);
-      }
-    };
   }, [hasMore, loading, onLoadMore]);
 
-  if (loading && posts.length === 0) {
+  // Setup Intersection Observer
+  useEffect(() => {
+    // Cleanup previous observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    // Create new observer
+    observerRef.current = new IntersectionObserver(handleIntersection, {
+      threshold: 0.1,
+      rootMargin: '100px' // Start loading before reaching the bottom
+    });
+
+    // Observe loading element
+    if (loadingRef.current) {
+      observerRef.current.observe(loadingRef.current);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [handleIntersection]);
+
+  if (initialLoading) {
     return (
-      <div className="loading">
-        <div>Loading posts...</div>
+      <div className="posts-container">
+        <div className="posts-header">
+          <div className="header-author">Author</div>
+          <div className="header-topic">Topic</div>
+          <div className="header-replies">Replies</div>
+          <div className="header-views">Views</div>
+          <div className="header-activity">Activity</div>
+        </div>
+        <div className="initial-loading">
+          <div className="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (posts.length === 0) {
+  if (posts.length === 0 && !loading) {
     return (
       <NothingFound
         imageSrc="/src/assets/sad_cloud.png"
@@ -59,21 +92,33 @@ export default function PostList({ posts, loading, onLoadMore, hasMore, onPostUp
         <div className="header-activity">Activity</div>
       </div>
       
-      {posts.map((post, index) => (
-        <PostItem key={post.postId || post.id || index} post={post} onPostUpdated={onPostUpdated} isInClosedSection={isInClosedSection} />
-      ))}
+      {/* Posts with fade-in animation */}
+      <div className="posts-list">
+        {posts.map((post, index) => (
+          <div 
+            key={post.postId || post.id || index} 
+            className="post-item-wrapper"
+            style={{ animationDelay: `${Math.min(index * 0.05, 0.5)}s` }}
+          >
+            <PostItem 
+              post={post} 
+              onPostUpdated={onPostUpdated} 
+              isInClosedSection={isInClosedSection} 
+            />
+          </div>
+        ))}
+      </div>
       
       {/* Loading indicator for infinite scroll */}
       {hasMore && (
         <div ref={loadingRef} className="infinite-loading">
-          {loading ? (
-            <div className="loading-spinner">
-              <div className="spinner"></div>
-              <span>Loading more posts...</span>
-            </div>
-          ) : (
-            <div className="scroll-hint">
-              <span>Scroll down to load more</span>
+          {loading && (
+            <div className="infinite-loading-indicator">
+              <div className="loading-dots-small">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
             </div>
           )}
         </div>

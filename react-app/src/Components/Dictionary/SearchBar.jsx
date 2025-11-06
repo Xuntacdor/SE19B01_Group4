@@ -1,6 +1,6 @@
 import React from "react";
 import { Search } from "lucide-react";
-import styles from "./search.module.css";
+import styles from "../Dictionary/Search.module.css";
 
 export default function SearchBar({
   value,
