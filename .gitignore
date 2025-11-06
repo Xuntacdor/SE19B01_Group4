@@ -55,8 +55,6 @@ yarn-error.log*
 *.db-wal
 *.cache
 *.log
-/react-app/package.json
-/react-app/package-lock.json
 WebAPI/WebAPI/appsettings.Development.json
 Combined_Comment_Flow_Sequence_Diagram.puml
 Create_Forum_Post_Sequence_Diagram.puml

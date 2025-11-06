@@ -23,16 +23,12 @@ const menuItems = [
     label: "Transactions",
     path: "/admin/transactions",
   },
-  {
-    icon: <MessageCircle size={20} />,
-    label: "Feedback",
-    path: "/admin/feedback",
-  },
+
   {
     icon: <Shield size={20} />,
     label: "Moderator View",
     path: "/moderator/dashboard",
-  },
+  },  
 ];
 
 export default function AdminNavbar() {
