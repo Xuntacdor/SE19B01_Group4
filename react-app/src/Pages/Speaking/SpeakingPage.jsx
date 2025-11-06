@@ -7,13 +7,15 @@ import * as speakingService from "../../Services/SpeakingApi";
 import ExamCard from "../../Components/Exam/ExamCard";
 import ExamSkillModal from "../../Components/Exam/ExamPopup";
 import NothingFound from "../../Components/Nothing/NothingFound";
-import { Mic, Headphones, Clock, Users } from "lucide-react";
+import { Mic } from "lucide-react";
 import styles from "./SpeakingPage.module.css";
+import SearchBar from "../../Components/Common/SearchBar";
 
 export default function SpeakingPage() {
   const navigate = useNavigate();
 
   const [exams, setExams] = useState([]);
+  const [filteredExams, setFilteredExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeExam, setActiveExam] = useState(null);
@@ -31,6 +33,7 @@ export default function SpeakingPage() {
           ? data.filter((e) => e.examType === "Speaking")
           : [];
         setExams(list);
+        setFilteredExams(list);
       })
       .catch((err) => {
         console.error(err);
@@ -39,6 +42,22 @@ export default function SpeakingPage() {
       .finally(() => mounted && setLoading(false));
     return () => (mounted = false);
   }, []);
+
+  // ====== Handle search ======
+  const handleSearch = (query) => {
+    if (!query.trim()) {
+      setFilteredExams(exams);
+      return;
+    }
+
+    const lower = query.toLowerCase();
+    const result = exams.filter(
+      (exam) =>
+        exam.examName.toLowerCase().includes(lower) ||
+        exam.description?.toLowerCase().includes(lower)
+    );
+    setFilteredExams(result);
+  };
 
   // ====== Load tasks for selected exam ======
   const handleTakeExam = (exam) => {
@@ -86,19 +105,6 @@ export default function SpeakingPage() {
     });
   };
 
-  const getTaskDuration = (speakingType) => {
-    switch (speakingType) {
-      case "Part 1":
-        return 4; // 4-5 minutes
-      case "Part 2":
-        return 3; // 3-4 minutes
-      case "Part 3":
-        return 4; // 4-5 minutes
-      default:
-        return 5;
-    }
-  };
-
   // ====== Render ======
   return (
     <AppLayout title="Speaking" sidebar={<GeneralSidebar />}>
@@ -109,9 +115,15 @@ export default function SpeakingPage() {
         {!loading && !error && (
           <div className={styles.examsSection}>
             <h3 className={styles.sectionTitle}>Speaking Tests</h3>
+
+            {/* ✅ Search bar integration */}
+            <div style={{ marginBottom: "20px" }}>
+              <SearchBar onSearch={handleSearch} />
+            </div>
+
             <div className={styles.grid}>
-              {exams.length > 0 ? (
-                exams.map((exam) => (
+              {filteredExams.length > 0 ? (
+                filteredExams.map((exam) => (
                   <div key={exam.examId} className={styles.examCardWrapper}>
                     <ExamCard exam={exam} onTake={() => handleTakeExam(exam)} />
                     <div className={styles.examFeatures}>
@@ -126,8 +138,8 @@ export default function SpeakingPage() {
                 <div className={styles.centerWrapper}>
                   <NothingFound
                     imageSrc="/src/assets/sad_cloud.png"
-                    title="No speaking exams available"
-                    message="Please check back later or try another skill."
+                    title="No speaking exams found"
+                    message="Try adjusting your search keywords."
                   />
                 </div>
               )}
