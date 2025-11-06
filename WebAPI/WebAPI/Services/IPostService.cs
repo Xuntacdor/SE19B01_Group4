@@ -5,7 +5,7 @@ namespace WebAPI.Services
     public interface IPostService
     {
         IEnumerable<PostDTO> GetPosts(int page, int limit, int? userId = null);
-        IEnumerable<PostDTO> GetPostsByFilter(string filter, int page, int limit, int? userId = null);
+        IEnumerable<PostDTO> GetPostsByFilter(string filter, int page, int limit, int? userId = null, string? tag = null);
         PostDTO? GetPostById(int id, int? userId = null);
         PostDTO CreatePost(CreatePostDTO dto, int userId);
         void UpdatePost(int id, UpdatePostDTO dto, int userId);

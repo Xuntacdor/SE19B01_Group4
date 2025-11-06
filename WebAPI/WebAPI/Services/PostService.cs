@@ -19,80 +19,228 @@ namespace WebAPI.Services
 
         public IEnumerable<PostDTO> GetPosts(int page, int limit, int? userId = null)
         {
-            var posts = _context.Post
-                .Include(p => p.User)
-                .Include(p => p.Comments)
-                .Include(p => p.PostLikes)
-                .Include(p => p.Attachments)
-                .Where(p => !p.IsHidden && p.Status == "approved") // Chỉ hiển thị posts đã được duyệt
-                .OrderByDescending(p => p.IsPinned) // Pinned posts lên đầu
-                .ThenByDescending(p => p.CreatedAt) // Sau đó sắp xếp theo thời gian
+            var postIds = _context.Post
+                .AsNoTracking()
+                .Where(p => !p.IsHidden && p.Status == "approved")
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)
+                .Select(p => p.PostId)
                 .ToList();
 
-            foreach (var post in posts)
-            {
-                var postTags = _context.Entry(post)
-                    .Collection(p => p.Tags)
-                    .Query()
-                    .ToList();
-            }
+            if (!postIds.Any())
+                return Enumerable.Empty<PostDTO>();
 
-            return posts.Select(p => ToDTO(p, userId));
+            // Load tất cả dữ liệu cần thiết trong một lần query
+            var posts = _context.Post
+                .AsNoTracking()
+                .Include(p => p.User)
+                .Include(p => p.Attachments)
+                .Include(p => p.Tags) // Include Tags thay vì load riêng trong loop
+                .Where(p => postIds.Contains(p.PostId))
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
+                .ToList();
+
+            // Batch load counts để tránh N+1
+            var commentCounts = _context.Comment
+                .AsNoTracking()
+                .Where(c => postIds.Contains(c.PostId))
+                .GroupBy(c => c.PostId)
+                .Select(g => new { PostId = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.PostId, x => x.Count);
+
+            var likeCounts = _context.PostLike
+                .AsNoTracking()
+                .Where(pl => postIds.Contains(pl.PostId))
+                .GroupBy(pl => pl.PostId)
+                .Select(g => new { PostId = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.PostId, x => x.Count);
+
+            // Batch load user-specific data
+            var userVotedPostIds = userId.HasValue
+                ? _context.PostLike
+                    .AsNoTracking()
+                    .Where(pl => postIds.Contains(pl.PostId) && pl.UserId == userId.Value)
+                    .Select(pl => pl.PostId)
+                    .ToHashSet()
+                : new HashSet<int>();
+
+            var userHiddenPostIds = userId.HasValue
+                ? _context.UserPostHide
+                    .AsNoTracking()
+                    .Where(uph => postIds.Contains(uph.PostId) && uph.UserId == userId.Value)
+                    .Select(uph => uph.PostId)
+                    .ToHashSet()
+                : new HashSet<int>();
+
+            return posts.Select(p => ToDTOOptimized(p, userId, 
+                commentCounts.GetValueOrDefault(p.PostId, 0),
+                likeCounts.GetValueOrDefault(p.PostId, 0),
+                userVotedPostIds.Contains(p.PostId),
+                userHiddenPostIds.Contains(p.PostId)));
         }
 
-        public IEnumerable<PostDTO> GetPostsByFilter(string filter, int page, int limit, int? userId = null)
+        public IEnumerable<PostDTO> GetPostsByFilter(string filter, int page, int limit, int? userId = null, string? tag = null)
         {
-            var query = _context.Post
-                .Include(p => p.User)
-                .Include(p => p.Comments)
-                .Include(p => p.PostLikes)
-                .Include(p => p.Attachments)
-                .AsQueryable();
+            var baseQuery = _context.Post.AsNoTracking().AsQueryable();
 
-            query = filter.ToLower() switch
+            // Optimize: Load hidden post IDs once for user
+            var hiddenPostIds = userId.HasValue
+                ? _context.UserPostHide
+                    .AsNoTracking()
+                    .Where(uph => uph.UserId == userId.Value)
+                    .Select(uph => uph.PostId)
+                    .ToHashSet()
+                : new HashSet<int>();
+
+            // Apply tag filter if provided
+            if (!string.IsNullOrWhiteSpace(tag))
             {
-                "new" => query.Where(p => !p.IsHidden && p.Status == "approved" && (userId == null || !_context.UserPostHide.Any(uph => uph.UserId == userId && uph.PostId == p.PostId))).OrderByDescending(p => p.IsPinned).ThenByDescending(p => p.CreatedAt),
-                "top" => query.Where(p => !p.IsHidden && p.Status == "approved" && (userId == null || !_context.UserPostHide.Any(uph => uph.UserId == userId && uph.PostId == p.PostId))).OrderByDescending(p => p.IsPinned).ThenByDescending(p => p.PostLikes.Count),
-                "hot" => query.Where(p => !p.IsHidden && p.Status == "approved" && (userId == null || !_context.UserPostHide.Any(uph => uph.UserId == userId && uph.PostId == p.PostId))).OrderByDescending(p => p.IsPinned).ThenByDescending(p => p.ViewCount),
-                "closed" => userId.HasValue ? query.Where(p => _context.UserPostHide.Any(uph => uph.UserId == userId && uph.PostId == p.PostId)).OrderByDescending(p => p.IsPinned).ThenByDescending(p => p.CreatedAt) : query.Where(p => false),
-                _ => query.Where(p => !p.IsHidden && p.Status == "approved" && (userId == null || !_context.UserPostHide.Any(uph => uph.UserId == userId && uph.PostId == p.PostId))).OrderByDescending(p => p.IsPinned).ThenByDescending(p => p.CreatedAt)
-            };
+                baseQuery = baseQuery.Where(p => p.Tags.Any(t => t.TagName == tag));
+            }
 
-            var posts = query
-                .Skip((page - 1) * limit)
-                .Take(limit)
-                .ToList();
-
-            foreach (var post in posts)
+            // For "top" filter, we need to calculate like counts first to avoid N+1 query
+            List<int> postIds;
+            if (filter.ToLower() == "top")
             {
-                var postTags = _context.Entry(post)
-                    .Collection(p => p.Tags)
-                    .Query()
+                // Get all approved posts first
+                var approvedPosts = baseQuery
+                    .Where(p => !p.IsHidden && p.Status == "approved" && (userId == null || !hiddenPostIds.Contains(p.PostId)))
+                    .Select(p => new { p.PostId, p.IsPinned })
+                    .ToList();
+
+                if (!approvedPosts.Any())
+                    return Enumerable.Empty<PostDTO>();
+
+                var allPostIds = approvedPosts.Select(p => p.PostId).ToList();
+
+                // Batch load all like counts in one query
+                var likeCountsForSort = _context.PostLike
+                    .AsNoTracking()
+                    .Where(pl => allPostIds.Contains(pl.PostId))
+                    .GroupBy(pl => pl.PostId)
+                    .Select(g => new { PostId = g.Key, Count = g.Count() })
+                    .ToDictionary(x => x.PostId, x => x.Count);
+
+                // Sort by pinned first, then by like count
+                var sortedPosts = approvedPosts
+                    .OrderByDescending(p => p.IsPinned)
+                    .ThenByDescending(p => likeCountsForSort.GetValueOrDefault(p.PostId, 0))
+                    .Skip((page - 1) * limit)
+                    .Take(limit)
+                    .Select(p => p.PostId)
+                    .ToList();
+
+                postIds = sortedPosts;
+            }
+            else
+            {
+                // Build query based on filter for other filters
+                IQueryable<Post> query = filter.ToLower() switch
+                {
+                    "new" => baseQuery
+                        .Where(p => !p.IsHidden && p.Status == "approved" && (userId == null || !hiddenPostIds.Contains(p.PostId)))
+                        .OrderByDescending(p => p.IsPinned)
+                        .ThenByDescending(p => p.CreatedAt),
+                    "hot" => baseQuery
+                        .Where(p => !p.IsHidden && p.Status == "approved" && (userId == null || !hiddenPostIds.Contains(p.PostId)))
+                        .OrderByDescending(p => p.IsPinned)
+                        .ThenByDescending(p => p.ViewCount),
+                    "closed" => userId.HasValue
+                        ? baseQuery
+                            .Where(p => hiddenPostIds.Contains(p.PostId))
+                            .OrderByDescending(p => p.IsPinned)
+                            .ThenByDescending(p => p.CreatedAt)
+                        : baseQuery.Where(p => false),
+                    _ => baseQuery
+                        .Where(p => !p.IsHidden && p.Status == "approved" && (userId == null || !hiddenPostIds.Contains(p.PostId)))
+                        .OrderByDescending(p => p.IsPinned)
+                        .ThenByDescending(p => p.CreatedAt)
+                };
+
+                // Get post IDs first (with ordering applied)
+                postIds = query
+                    .Skip((page - 1) * limit)
+                    .Take(limit)
+                    .Select(p => p.PostId)
                     .ToList();
             }
 
-            return posts.Select(p => ToDTO(p, userId));
+            if (!postIds.Any())
+                return Enumerable.Empty<PostDTO>();
+
+            // Load posts with all needed data using AsNoTracking for read-only
+            var posts = _context.Post
+                .AsNoTracking()
+                .Include(p => p.User)
+                .Include(p => p.Attachments)
+                .Include(p => p.Tags)
+                .Where(p => postIds.Contains(p.PostId))
+                .ToList();
+
+            // Maintain original order
+            var postOrderDict = postIds
+                .Select((id, index) => new { Id = id, Index = index })
+                .ToDictionary(x => x.Id, x => x.Index);
+
+            posts = posts.OrderBy(p => postOrderDict.GetValueOrDefault(p.PostId, int.MaxValue)).ToList();
+
+            // Batch load counts in parallel queries
+            var commentCounts = _context.Comment
+                .AsNoTracking()
+                .Where(c => postIds.Contains(c.PostId))
+                .GroupBy(c => c.PostId)
+                .Select(g => new { PostId = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.PostId, x => x.Count);
+
+            var likeCounts = _context.PostLike
+                .AsNoTracking()
+                .Where(pl => postIds.Contains(pl.PostId))
+                .GroupBy(pl => pl.PostId)
+                .Select(g => new { PostId = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.PostId, x => x.Count);
+
+            // Batch load user-specific data
+            var userVotedPostIds = userId.HasValue
+                ? _context.PostLike
+                    .AsNoTracking()
+                    .Where(pl => postIds.Contains(pl.PostId) && pl.UserId == userId.Value)
+                    .Select(pl => pl.PostId)
+                    .ToHashSet()
+                : new HashSet<int>();
+
+            var userHiddenPostIds = hiddenPostIds.Intersect(postIds).ToHashSet();
+
+            return posts.Select(p => ToDTOOptimized(p, userId,
+                commentCounts.GetValueOrDefault(p.PostId, 0),
+                likeCounts.GetValueOrDefault(p.PostId, 0),
+                userVotedPostIds.Contains(p.PostId),
+                userHiddenPostIds.Contains(p.PostId)));
         }
 
         public PostDTO? GetPostById(int id, int? userId = null)
         {
             var post = _context.Post
+                .AsNoTracking()
                 .Include(p => p.User)
-                .Include(p => p.Comments)
-                .Include(p => p.PostLikes)
                 .Include(p => p.Attachments)
+                .Include(p => p.Tags) // Include Tags thay vì load riêng
                 .FirstOrDefault(p => p.PostId == id);
 
             if (post == null) return null;
 
-            var postTags = _context.Entry(post)
-                .Collection(p => p.Tags)
-                .Query()
-                .ToList();
+            // Load counts efficiently using single query with projection
+            var counts = new
+            {
+                CommentCount = _context.Comment.AsNoTracking().Count(c => c.PostId == id),
+                LikeCount = _context.PostLike.AsNoTracking().Count(pl => pl.PostId == id),
+                IsVoted = userId.HasValue && _context.PostLike.AsNoTracking().Any(pl => pl.PostId == id && pl.UserId == userId.Value),
+                IsHidden = userId.HasValue && _context.UserPostHide.AsNoTracking().Any(uph => uph.PostId == id && uph.UserId == userId.Value)
+            };
 
-            return ToDTO(post, userId);
+            return ToDTOOptimized(post, userId, counts.CommentCount, counts.LikeCount, counts.IsVoted, counts.IsHidden);
         }
 
         public PostDTO CreatePost(CreatePostDTO dto, int userId)
@@ -311,27 +459,44 @@ namespace WebAPI.Services
 
         private void AddTagsToPost(int postId, List<string> tagNames)
         {
+            if (tagNames == null || !tagNames.Any()) return;
+
             var post = _context.Post
                 .Include(p => p.Tags)
                 .FirstOrDefault(p => p.PostId == postId);
             
             if (post == null) return;
 
+            // Batch load all tags in one query to avoid N+1
+            var existingTags = _context.Tag
+                .Where(t => tagNames.Contains(t.TagName))
+                .ToDictionary(t => t.TagName, t => t);
+
+            var existingTagNames = existingTags.Keys.ToHashSet();
+            var newTagNames = tagNames.Where(tn => !existingTagNames.Contains(tn)).ToList();
+
+            // Create new tags in batch
+            if (newTagNames.Any())
+            {
+                var newTags = newTagNames.Select(tagName => new Tag { TagName = tagName }).ToList();
+                _context.Tag.AddRange(newTags);
+                _context.SaveChanges(); // Save to get IDs
+
+                // Add to dictionary
+                foreach (var newTag in newTags)
+                {
+                    existingTags[newTag.TagName] = newTag;
+                }
+            }
+
+            // Add tags to post (avoid duplicates)
+            var existingPostTagIds = post.Tags.Select(t => t.TagId).ToHashSet();
             foreach (var tagName in tagNames)
             {
-                var tag = _context.Tag.FirstOrDefault(t => t.TagName == tagName);
-
-                if (tag == null)
-                {
-                    tag = new Tag { TagName = tagName };
-                    _context.Tag.Add(tag);
-                    _context.SaveChanges();
-                }
-
-                // Check if tag is already associated with post
-                if (!post.Tags.Any(t => t.TagId == tag.TagId))
+                if (existingTags.TryGetValue(tagName, out var tag) && !existingPostTagIds.Contains(tag.TagId))
                 {
                     post.Tags.Add(tag);
+                    existingPostTagIds.Add(tag.TagId);
                 }
             }
 
@@ -373,6 +538,18 @@ namespace WebAPI.Services
 
         private PostDTO ToDTO(Post post, int? userId = null)
         {
+            // Fallback method for backward compatibility - calls optimized version with counts
+            var commentCount = post.Comments?.Count ?? _context.Comment.Count(c => c.PostId == post.PostId);
+            var likeCount = post.PostLikes?.Count ?? _context.PostLike.Count(pl => pl.PostId == post.PostId);
+            var isVoted = userId.HasValue ? IsPostVotedByUser(post.PostId, userId.Value) : false;
+            var isHidden = userId.HasValue ? IsPostHiddenByUser(post.PostId, userId.Value) : false;
+
+            return ToDTOOptimized(post, userId, commentCount, likeCount, isVoted, isHidden);
+        }
+
+        // Optimized version that accepts pre-loaded counts to avoid N+1 queries
+        private PostDTO ToDTOOptimized(Post post, int? userId, int commentCount, int likeCount, bool isVoted, bool isHiddenByUser)
+        {
             return new PostDTO
             {
                 PostId = post.PostId,
@@ -381,11 +558,11 @@ namespace WebAPI.Services
                 CreatedAt = post.CreatedAt,
                 UpdatedAt = post.UpdatedAt,
                 ViewCount = post.ViewCount ?? 0,
-                CommentCount = post.Comments.Count, // Đếm tất cả comments (bao gồm replies)
-                VoteCount = post.PostLikes.Count,
-                IsVoted = userId.HasValue ? IsPostVotedByUser(post.PostId, userId.Value) : false,
+                CommentCount = commentCount,
+                VoteCount = likeCount,
+                IsVoted = isVoted,
                 IsPinned = post.IsPinned,
-                IsHiddenByUser = userId.HasValue ? IsPostHiddenByUser(post.PostId, userId.Value) : false,
+                IsHiddenByUser = isHiddenByUser,
                 RejectionReason = post.RejectionReason,
                 User = new UserDTO
                 {
@@ -494,33 +671,111 @@ namespace WebAPI.Services
 
         public IEnumerable<PostDTO> GetPendingPosts(int page, int limit)
         {
-            var posts = _context.Post
-                .Include(p => p.User)
-                .Include(p => p.Comments)
-                .Include(p => p.PostLikes)
+            // Get post IDs first with proper ordering (same as GetPosts)
+            var postIds = _context.Post
+                .AsNoTracking()
                 .Where(p => p.Status == "pending")
-                .OrderByDescending(p => p.CreatedAt)
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)
+                .Select(p => p.PostId)
                 .ToList();
 
-            return posts.Select(p => ToDTO(p));
+            if (!postIds.Any())
+                return Enumerable.Empty<PostDTO>();
+
+            // Load all needed data in one query with eager loading (same optimization as GetPosts)
+            var posts = _context.Post
+                .AsNoTracking()
+                .Include(p => p.User)
+                .Include(p => p.Attachments)
+                .Include(p => p.Tags)
+                .Where(p => postIds.Contains(p.PostId))
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
+                .ToList();
+
+            // Maintain original order from postIds
+            var postOrderDict = postIds
+                .Select((id, index) => new { Id = id, Index = index })
+                .ToDictionary(x => x.Id, x => x.Index);
+            posts = posts.OrderBy(p => postOrderDict.GetValueOrDefault(p.PostId, int.MaxValue)).ToList();
+
+            // Batch load counts to avoid N+1 queries (same as GetPosts)
+            var commentCounts = _context.Comment
+                .AsNoTracking()
+                .Where(c => postIds.Contains(c.PostId))
+                .GroupBy(c => c.PostId)
+                .Select(g => new { PostId = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.PostId, x => x.Count);
+
+            var likeCounts = _context.PostLike
+                .AsNoTracking()
+                .Where(pl => postIds.Contains(pl.PostId))
+                .GroupBy(pl => pl.PostId)
+                .Select(g => new { PostId = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.PostId, x => x.Count);
+
+            return posts.Select(p => ToDTOOptimized(p, null,
+                commentCounts.GetValueOrDefault(p.PostId, 0),
+                likeCounts.GetValueOrDefault(p.PostId, 0),
+                false, false));
         }
 
 
         public IEnumerable<PostDTO> GetRejectedPosts(int page, int limit)
         {
-            var posts = _context.Post
-                .Include(p => p.User)
-                .Include(p => p.Comments)
-                .Include(p => p.PostLikes)
+            // Get post IDs first with proper ordering (same as GetPosts)
+            var postIds = _context.Post
+                .AsNoTracking()
                 .Where(p => p.Status == "rejected")
-                .OrderByDescending(p => p.CreatedAt)
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)
+                .Select(p => p.PostId)
                 .ToList();
 
-            return posts.Select(p => ToDTO(p));
+            if (!postIds.Any())
+                return Enumerable.Empty<PostDTO>();
+
+            // Load all needed data in one query with eager loading (same optimization as GetPosts)
+            var posts = _context.Post
+                .AsNoTracking()
+                .Include(p => p.User)
+                .Include(p => p.Attachments)
+                .Include(p => p.Tags)
+                .Where(p => postIds.Contains(p.PostId))
+                .OrderByDescending(p => p.IsPinned)
+                .ThenByDescending(p => p.CreatedAt)
+                .ToList();
+
+            // Maintain original order from postIds
+            var postOrderDict = postIds
+                .Select((id, index) => new { Id = id, Index = index })
+                .ToDictionary(x => x.Id, x => x.Index);
+            posts = posts.OrderBy(p => postOrderDict.GetValueOrDefault(p.PostId, int.MaxValue)).ToList();
+
+            // Batch load counts to avoid N+1 queries (same as GetPosts)
+            var commentCounts = _context.Comment
+                .AsNoTracking()
+                .Where(c => postIds.Contains(c.PostId))
+                .GroupBy(c => c.PostId)
+                .Select(g => new { PostId = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.PostId, x => x.Count);
+
+            var likeCounts = _context.PostLike
+                .AsNoTracking()
+                .Where(pl => postIds.Contains(pl.PostId))
+                .GroupBy(pl => pl.PostId)
+                .Select(g => new { PostId = g.Key, Count = g.Count() })
+                .ToDictionary(x => x.PostId, x => x.Count);
+
+            return posts.Select(p => ToDTOOptimized(p, null,
+                commentCounts.GetValueOrDefault(p.PostId, 0),
+                likeCounts.GetValueOrDefault(p.PostId, 0),
+                false, false));
         }
 
         public void ApprovePost(int postId)
