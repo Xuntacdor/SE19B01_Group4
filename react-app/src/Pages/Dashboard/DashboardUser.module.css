@@ -1,6 +1,11 @@
 /* ================================
    DASHBOARD LAYOUT
 ================================ */
+html,
+body {
+  overflow: hidden !important;
+}
+
 :root {
   --font-main: "Dongle", sans-serif;
   --font-color: #333;
@@ -13,31 +18,27 @@
 }
 
 .dashboardContent {
-  padding: 10px 5px 5px 5px;
+  padding: 10px 5px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-areas:
     "calendar goals"
-    "history goals"
-    "history balance";
+    "history goals";
   gap: 8px;
   align-items: start;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
   box-sizing: border-box;
 }
 
-/* Typography scaling */
-.cardTitle,
-.sectionTitle,
-.goalLabel,
-.historyRow,
-.avatarItem,
-.enjoyText {
-  font-size: 18px;
+.dashboardContent::-webkit-scrollbar {
+  display: none;
 }
 
-/* Generic Card */
+/* ================================
+   CARD GENERIC
+================================ */
 .card {
   background: #fff;
   border-radius: 14px;
@@ -119,7 +120,7 @@
 }
 
 /* ================================
-   GOALS SECTION
+   GOALS & STATS SECTION
 ================================ */
 .goalsWrapper {
   grid-area: goals;
@@ -131,63 +132,9 @@
 .sectionTitle {
   font-size: 20px;
   font-weight: 700;
-  margin: 0 0 5px;
+  margin-bottom: 5px;
 }
 
-.goalsCards {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-}
-
-.goalCard {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100px;
-  height: 100px;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 6px 6px 12px rgba(0, 0, 0, 0.1),
-    -6px -6px 12px rgba(255, 255, 255, 0.8);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.goalCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.15),
-    -10px -10px 20px rgba(255, 255, 255, 1);
-}
-
-.goalLabel {
-  font-size: 20px;
-  color: #666;
-  margin-bottom: 6px;
-}
-
-.goalScore {
-  font-size: 24px;
-  font-weight: 800;
-  color: #000;
-}
-
-/* Overall card highlight */
-.overall {
-  background: linear-gradient(135deg, #00ff66, #00e65c);
-  color: #fff;
-  box-shadow: 0 6px 15px rgba(0, 255, 102, 0.4);
-}
-
-.overall .goalLabel,
-.overall .goalScore {
-  color: #fff;
-}
-
-/* ================================
-   STATS SECTION
-================================ */
 .statItem {
   display: flex;
   align-items: center;
@@ -224,12 +171,6 @@
   background-color: #d9ecff;
 }
 
-.statLabel,
-.statValue {
-  font-size: 18px;
-}
-
-/* Progress bar */
 .progressBar {
   flex: 1;
   height: 12px;
@@ -245,7 +186,7 @@
 }
 
 /* ================================
-   HISTORY SECTION
+   PRACTICE HISTORY
 ================================ */
 .historySection {
   grid-area: history;
@@ -264,154 +205,29 @@
   border-bottom: none;
 }
 
-/* Empty state */
-.emptyState {
-  text-align: center;
-  padding: 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.emptyImage {
-  width: 150px;
-  height: auto;
-}
-
-.emptyState p {
-  font-size: 15px;
-  color: #555;
-  margin: 0;
-}
-
-.emptyButton {
-  background: var(--color-gray);
-  border: none;
-  padding: 10px 20px;
-  border-radius: 20px;
-  font-size: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.emptyButton:hover {
-  background: #e0e0e0;
-}
-
-/* ================================
-   BALANCE + ENJOY SECTION
-================================ */
-.balanceWrapper {
-  grid-area: balance;
-  display: flex;
-  gap: 10px;
-  align-items: stretch;
-}
-
-.balanceSection {
-  flex: 2;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  padding: 10px;
+.historyTable {
+  min-height: 280px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  font-size: 20px;
 }
 
-.userAvatars {
+.historyRow > div:first-child {
   display: flex;
-  gap: 12px;
-  margin-bottom: 5px;
-  flex-wrap: wrap;
-}
-
-.avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--color-gray);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-
-.avatarItem span {
-  font-size: 20px;
-  color: #555;
-}
-
-.add {
-  background: #ff9500;
-  color: #fff;
-}
-
-/* Balance input */
-.balanceInputSection {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
 }
 
-.balanceInput {
-  width: 100px;
-  padding: 6px 10px;
-  border: 2px solid #e9ecef;
-  border-radius: 6px;
-  font-size: 24px;
-  font-weight: 600;
+.historyRow > div:last-child {
   text-align: center;
 }
 
-.transferButton {
-  background: #ffae00;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 8px;
-  border: none;
-  font-size: 22px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.transferButton:hover {
-  background: var(--color-blue);
-}
-
-/* Enjoy card */
-.enjoyCard {
-  flex: 1;
-  min-height: 200px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #dc5e47, #eb644c);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: #fff;
-  padding: 20px;
-}
-
-.enjoyIcons {
-  font-size: 30px;
-  margin-bottom: 8px;
-}
-
-.enjoyText {
-  font-size: 22px;
-  font-weight: 600;
-}
+/* Pagination */
 .pagination {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 20px;
+  margin-top: 0px;
 }
 
 .pageButton {
@@ -424,30 +240,64 @@
   transition: all 0.2s ease;
 }
 
-.pageButton:hover {
-  background-color: #27a844;
-  color: #fff;
-}
-
+.pageButton:hover,
 .activePage {
   background-color: #27a844;
   color: #fff;
   font-weight: 600;
   border-color: #27a844;
 }
-/* Căn giữa icon trong cột Status */
-.historyRow > div:first-child {
+
+/* ================================
+   BANNER SECTION (VIP Upgrade)
+================================ */
+.bannerCard {
   display: flex;
-  justify-content: center;
-  align-items: center;
-}
-/* Căn giữa điểm Score */
-.historyRow > div:last-child {
-  text-align: center;
-}
-.historyTable {
-  min-height: 280px; /* hoặc 300px tùy layout bạn muốn */
-  display: flex;
-  flex-direction: column;
   justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #0099ff, #00cc88);
+  color: #fff;
+  border-radius: 16px;
+  padding: 26px 32px;
+  min-height: 250px;
+  box-shadow: 0 4px 16px rgba(0, 153, 255, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bannerCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(0, 153, 255, 0.3);
+}
+
+.bannerText h4 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.bannerText p {
+  font-size: 15px;
+  color: #f9f9f9;
+  opacity: 0.95;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.bannerButton {
+  background: #fff;
+  color: #007bff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 26px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.25s;
+  box-shadow: 0 2px 6px rgba(255, 255, 255, 0.2);
+}
+
+.bannerButton:hover {
+  background: #f1f1f1;
+  color: #0056b3;
+  box-shadow: 0 3px 10px rgba(255, 255, 255, 0.25);
 }
