@@ -87,7 +87,6 @@ TestResults/
 # Local coverage data
 *.cobertura.xml
 *.opencover.xml
-*.json
 *.lcov
 *.info
 
