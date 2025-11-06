@@ -8,7 +8,7 @@ import {
   DollarSign,
   MessageCircle,
 } from "lucide-react";
-import "./AdminDashboard.css";
+import "../Admin/AdminDashBoard.css";
 import { getDashboardStats, getSalesTrend } from "../../Services/AdminApi.js";
 import { Line } from "react-chartjs-2";
 import {

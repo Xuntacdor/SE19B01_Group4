@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./Forum.css";
 import AppLayout from "../../Components/Layout/AppLayout";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
@@ -11,11 +11,13 @@ import { Plus } from "lucide-react";
 export default function Forum() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("new");
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [selectedTag, setSelectedTag] = useState("all");
   const [tags, setTags] = useState([]);
+  const abortControllerRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -25,13 +27,19 @@ export default function Forum() {
     { key: "closed", label: "Closed" },
   ];
 
-  useEffect(() => {
-    loadPosts();
-  }, [activeFilter, selectedTag]);
-
+  // Load tags on mount
   useEffect(() => {
     loadTags();
   }, []);
+
+  // Debounced filter change handler
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadPosts(true);
+    }, 150); // Debounce 150ms
+
+    return () => clearTimeout(timer);
+  }, [activeFilter, selectedTag]);
 
   const loadTags = () => {
     getTags()
@@ -43,61 +51,81 @@ export default function Forum() {
       });
   };
 
-  const loadPosts = () => {
+  const loadPosts = useCallback((reset = false, pageOverride = null) => {
+    // Cancel previous request if exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+
     setLoading(true);
-    getPostsByFilter(activeFilter, 1)
+    
+    if (reset) {
+      setPosts([]);
+      setHasMore(true);
+      setInitialLoading(true);
+    }
+
+    // Use pageOverride if provided, otherwise use currentPage from state
+    const pageToLoad = pageOverride !== null ? pageOverride : (reset ? 1 : currentPage);
+    
+    getPostsByFilter(activeFilter, pageToLoad, 10, selectedTag !== 'all' ? selectedTag : null)
       .then((response) => {
-        let filteredPosts = response.data;
+        if (abortControllerRef.current?.signal.aborted) return;
         
-        // Filter by selected tag if not "all"
-        if (selectedTag !== "all") {
-          filteredPosts = response.data.filter(post => 
-            post.tags && post.tags.some(tag => tag.tagName === selectedTag)
-          );
+        const newPosts = response.data || [];
+        
+        if (reset) {
+          setPosts(newPosts);
+          setCurrentPage(2);
+        } else {
+          setPosts((prev) => [...prev, ...newPosts]);
+          setCurrentPage((prev) => prev + 1);
         }
         
-        setPosts(filteredPosts);
-        setCurrentPage(1);
-        setHasMore(filteredPosts.length === 10);
+        setHasMore(newPosts.length === 10);
       })
       .catch((error) => {
+        if (error.name === 'AbortError') return;
         console.error("Error loading posts:", error);
       })
-      .finally(() => setLoading(false));
-  };
+      .finally(() => {
+        if (abortControllerRef.current?.signal.aborted) return;
+        setLoading(false);
+        setInitialLoading(false);
+      });
+  }, [activeFilter, selectedTag, currentPage]);
 
-  const loadMorePosts = () => {
+  const loadMorePosts = useCallback(() => {
     if (!hasMore || loading) return;
-
-    setLoading(true);
-    getPostsByFilter(activeFilter, currentPage + 1)
-      .then((response) => {
-        let filteredPosts = response.data;
-        
-        // Filter by selected tag if not "all"
-        if (selectedTag !== "all") {
-          filteredPosts = response.data.filter(post => 
-            post.tags && post.tags.some(tag => tag.tagName === selectedTag)
-          );
-        }
-        
-        setPosts((prev) => [...prev, ...filteredPosts]);
-        setCurrentPage((prev) => prev + 1);
-        setHasMore(filteredPosts.length === 10);
-      })
-      .catch((error) => console.error("Error loading more posts:", error))
-      .finally(() => setLoading(false));
-  };
+    loadPosts(false, currentPage);
+  }, [hasMore, loading, loadPosts, currentPage]);
 
   const handleFilterChange = (filter) => {
+    if (filter === activeFilter) return;
     setActiveFilter(filter);
   };
 
   const handleTagChange = (e) => {
-    setSelectedTag(e.target.value);
+    const newTag = e.target.value;
+    if (newTag === selectedTag) return;
+    setSelectedTag(newTag);
   };
 
-  const handlePostUpdated = () => loadPosts();
+  const handlePostUpdated = useCallback(() => {
+    loadPosts(true);
+  }, [loadPosts]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return (
     <AppLayout title="Forum" sidebar={<GeneralSidebar />}>
@@ -108,6 +136,7 @@ export default function Forum() {
               className="tag-filter-select"
               value={selectedTag}
               onChange={handleTagChange}
+              disabled={loading && initialLoading}
             >
               <option value="all">All Posts</option>
               {tags.map((tag) => (
@@ -142,6 +171,7 @@ export default function Forum() {
           <PostList
             posts={posts}
             loading={loading}
+            initialLoading={initialLoading}
             onLoadMore={loadMorePosts}
             hasMore={hasMore}
             onPostUpdated={handlePostUpdated}
@@ -151,7 +181,6 @@ export default function Forum() {
 
         <RightSidebar />
       </div>
-
     </AppLayout>
   );
 }

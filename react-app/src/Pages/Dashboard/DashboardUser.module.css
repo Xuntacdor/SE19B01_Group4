@@ -1,10 +1,6 @@
 /* ================================
    DASHBOARD LAYOUT
 ================================ */
-html,
-body {
-  overflow: hidden !important;
-}
 
 :root {
   --font-main: "Dongle", sans-serif;

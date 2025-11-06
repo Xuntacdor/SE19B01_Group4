@@ -6,8 +6,6 @@ import {
   Book,
   Headphones,
   BarChart2,
-  Cloud,
-  Wallet,
   CheckCircle,
   XCircle,
   Pen,
@@ -20,6 +18,8 @@ import * as AuthApi from "../../Services/AuthApi";
 import { getSubmittedDays } from "../../Services/ExamApi";
 import useExamAttempts from "../../Hook/UseExamAttempts";
 import { isDaySubmitted } from "../../utils/date";
+import * as SpeakingApi from "../../Services/SpeakingApi";
+import * as WritingApi from "../../Services/WritingApi";
 
 /* ================================
    Configs for stats display
@@ -88,6 +88,8 @@ export default function DashboardUser() {
   const [userId, setUserId] = useState(null);
   const [submittedDays, setSubmittedDays] = useState([]);
   const [historyData, setHistoryData] = useState([]);
+  const [loadingScores, setLoadingScores] = useState(false);
+
   // ===== Pagination logic =====
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -118,22 +120,87 @@ export default function DashboardUser() {
   const { attempts, stats } = useExamAttempts(userId);
 
   useEffect(() => {
-    if (!attempts || attempts.length === 0) return;
-    const rows = attempts.map((a) => [
-      a.submittedAt ? (
-        <CheckCircle size={18} color="#28a745" />
-      ) : (
-        <XCircle size={18} color="#dc3545" />
-      ),
-      a.examName,
-      a.examType,
-      a.submittedAt
-        ? new Date(a.submittedAt).toLocaleDateString("en-GB")
-        : "In progress",
-      a.totalScore?.toFixed(1) ?? a.score?.toFixed(1) ?? "-",
-    ]);
-    setHistoryData(rows);
-  }, [attempts]);
+    if (!attempts || attempts.length === 0 || !userId) return;
+
+    const fetchScores = async () => {
+      setLoadingScores(true);
+      const rows = await Promise.all(
+        attempts.map(async (a) => {
+          let score = "-";
+
+          try {
+            if (a.examType === "Speaking") {
+              // === Giống cách SpeakingTest lấy overall ===
+              try {
+                const res = await SpeakingApi.getFeedbackBySpeakingId(
+                  a.speakingId || a.attemptId || a.examId,
+                  userId
+                );
+
+                if (res?.feedback?.overall != null)
+                  score = Number(res.feedback.overall).toFixed(1);
+                else if (res?.overall != null)
+                  score = Number(res.overall).toFixed(1);
+                else throw new Error("No speaking feedback found");
+              } catch {
+                // Fallback: lấy theo examId
+                const altRes = await SpeakingApi.getFeedback(
+                  a.examId || a.attemptId,
+                  userId
+                );
+
+                if (altRes?.feedbacks?.length) {
+                  const match = altRes.feedbacks.find(
+                    (f) => String(f.speakingId) === String(a.speakingId)
+                  );
+                  const pick =
+                    match || altRes.feedbacks[altRes.feedbacks.length - 1];
+                  if (pick?.overall != null)
+                    score = Number(pick.overall).toFixed(1);
+                  else if (altRes.averageOverall != null)
+                    score = Number(altRes.averageOverall).toFixed(1);
+                } else if (altRes?.averageOverall != null)
+                  score = Number(altRes.averageOverall).toFixed(1);
+              }
+            } else if (a.examType === "Writing") {
+              const feedbackRes = await WritingApi.getFeedback(
+                a.examId || a.attemptId,
+                userId
+              );
+              if (feedbackRes?.averageOverall)
+                score = feedbackRes.averageOverall.toFixed(1);
+              else if (feedbackRes?.feedbacks?.length > 0)
+                score = feedbackRes.feedbacks[0].overall?.toFixed(1);
+            } else {
+              // Reading & Listening
+              score = a.totalScore?.toFixed(1) ?? a.score?.toFixed(1) ?? "-";
+            }
+          } catch (err) {
+            console.warn(`⚠️ Failed to get feedback for ${a.examType}`, err);
+          }
+
+          return [
+            a.submittedAt ? (
+              <CheckCircle size={18} color="#28a745" />
+            ) : (
+              <XCircle size={18} color="#dc3545" />
+            ),
+            a.examName,
+            a.examType,
+            a.submittedAt
+              ? new Date(a.submittedAt).toLocaleDateString("en-GB")
+              : "In progress",
+            score,
+          ];
+        })
+      );
+
+      setHistoryData(rows);
+      setLoadingScores(false);
+    };
+
+    fetchScores();
+  }, [attempts, userId]);
 
   return (
     <AppLayout title="Summary of your hard work" sidebar={<GeneralSidebar />}>
@@ -183,9 +250,8 @@ export default function DashboardUser() {
           </div>
         </div>
 
-        {/* ===== Goals + Stats ===== */}
+        {/* ===== Stats Section ===== */}
         <div className={styles.goalsWrapper}>
-          {/* Stats Section */}
           <div className={styles.statsSection}>
             <h3 className={styles.sectionTitle}>Outcome Statistics</h3>
 
@@ -208,7 +274,8 @@ export default function DashboardUser() {
               </div>
             ))}
           </div>
-          {/* ===== Banner Section (Under Outcome Statistics) ===== */}
+
+          {/* ===== Banner Section ===== */}
           <div className={styles.bannerCard}>
             <div className={styles.bannerText}>
               <h4>🔥 Upgrade to VIP IELTS Access</h4>
@@ -230,35 +297,41 @@ export default function DashboardUser() {
         {/* ===== History Section ===== */}
         <div className={`${styles.historySection} ${styles.card}`}>
           <h3 className={styles.sectionTitle}>Practice History</h3>
-          <div className={styles.historyTable}>
-            <div className={`${styles.historyRow} ${styles.historyHeader}`}>
-              <div>Status</div>
-              <div>Exam Name</div>
-              <div>Type</div>
-              <div>Date</div>
-              <div>Score</div>
-            </div>
 
-            {paginatedData.length > 0 ? (
-              paginatedData.map((r, i) => (
-                <div className={styles.historyRow} key={i}>
-                  <div>{r[0]}</div>
-                  <div>{r[1]}</div>
-                  <div>{r[2]}</div>
-                  <div>{r[3]}</div>
-                  <div>{r[4]}</div>
-                </div>
-              ))
-            ) : (
-              <NothingFound
-                imageSrc="/src/assets/sad_cloud.png"
-                title="No practice history"
-                message="You have not done any exercises yet! Choose the appropriate form and practice now!"
-                actionLabel="Do your homework now!"
-                to="/reading"
-              />
-            )}
-          </div>
+          {loadingScores ? (
+            <div className={styles.stateText}>Fetching AI feedback...</div>
+          ) : (
+            <div className={styles.historyTable}>
+              <div className={`${styles.historyRow} ${styles.historyHeader}`}>
+                <div>Status</div>
+                <div>Exam Name</div>
+                <div>Type</div>
+                <div>Date</div>
+                <div>Score</div>
+              </div>
+
+              {paginatedData.length > 0 ? (
+                paginatedData.map((r, i) => (
+                  <div className={styles.historyRow} key={i}>
+                    <div>{r[0]}</div>
+                    <div>{r[1]}</div>
+                    <div>{r[2]}</div>
+                    <div>{r[3]}</div>
+                    <div>{r[4]}</div>
+                  </div>
+                ))
+              ) : (
+                <NothingFound
+                  imageSrc="/src/assets/sad_cloud.png"
+                  title="No practice history"
+                  message="You have not done any exercises yet! Choose the appropriate form and practice now!"
+                  actionLabel="Do your homework now!"
+                  to="/reading"
+                />
+              )}
+            </div>
+          )}
+
           {totalPages > 1 && (
             <div className={styles.pagination}>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(

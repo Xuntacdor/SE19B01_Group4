@@ -3,6 +3,7 @@ import { User } from "lucide-react";
 import { compressAndUploadImage } from "../../../utils/ImageHelper";
 import { updateUser } from "../../../Services/UserApi";
 import ChangePasswordModal from "../../../Components/Auth/ChangePasswordModal";
+import "./ProfileTab.css";
 
 export default function ProfileTab({ user, profileData, setProfileData }) {
   const [isSaving, setIsSaving] = useState(false);

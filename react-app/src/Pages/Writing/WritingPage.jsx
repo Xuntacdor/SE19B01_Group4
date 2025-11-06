@@ -9,11 +9,13 @@ import ExamSkillModal from "../../Components/Exam/ExamPopup";
 import NothingFound from "../../Components/Nothing/NothingFound";
 import { Sparkles } from "lucide-react";
 import styles from "./WritingPage.module.css";
+import SearchBar from "../../Components/Common/SearchBar"; // ✅ import SearchBar
 
 export default function WritingPage() {
   const navigate = useNavigate();
 
   const [exams, setExams] = useState([]);
+  const [filteredExams, setFilteredExams] = useState([]); // ✅ for search results
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeExam, setActiveExam] = useState(null);
@@ -31,6 +33,7 @@ export default function WritingPage() {
           ? data.filter((e) => e.examType === "Writing")
           : [];
         setExams(list);
+        setFilteredExams(list); // ✅ initialize
       })
       .catch((err) => {
         console.error(err);
@@ -39,6 +42,21 @@ export default function WritingPage() {
       .finally(() => mounted && setLoading(false));
     return () => (mounted = false);
   }, []);
+
+  // ====== Handle search (debounce is handled inside SearchBar) ======
+  const handleSearch = (query) => {
+    if (!query.trim()) {
+      setFilteredExams(exams);
+      return;
+    }
+    const lower = query.toLowerCase();
+    const result = exams.filter(
+      (exam) =>
+        exam.examName.toLowerCase().includes(lower) ||
+        exam.description?.toLowerCase().includes(lower)
+    );
+    setFilteredExams(result);
+  };
 
   // ====== Load tasks for selected exam ======
   const handleTakeExam = (exam) => {
@@ -94,32 +112,36 @@ export default function WritingPage() {
         {!loading && error && <div className={styles.errorText}>{error}</div>}
 
         {!loading && !error && (
-          <div className={styles.grid}>
-            {exams.length > 0 ? (
-              exams.map((exam) => (
-                <div key={exam.examId} className={styles.examCardWrapper}>
-                  <ExamCard
-                    exam={exam}
-                    onTake={() => handleTakeExam(exam)}
-                  />
-                  <div className={styles.examFeatures}>
-                    <span className={styles.featureTag}>
-                      <Sparkles size={14} />
-                      AI-Powered
-                    </span>
+          <>
+            {/* ✅ Search bar added here */}
+            <div style={{ marginBottom: "20px" }}>
+              <SearchBar onSearch={handleSearch} />
+            </div>
+
+            <div className={styles.grid}>
+              {filteredExams.length > 0 ? (
+                filteredExams.map((exam) => (
+                  <div key={exam.examId} className={styles.examCardWrapper}>
+                    <ExamCard exam={exam} onTake={() => handleTakeExam(exam)} />
+                    <div className={styles.examFeatures}>
+                      <span className={styles.featureTag}>
+                        <Sparkles size={14} />
+                        AI-Powered
+                      </span>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className={styles.centerWrapper}>
+                  <NothingFound
+                    imageSrc="/src/assets/sad_cloud.png"
+                    title="No writing exams found"
+                    message="Try adjusting your search keywords."
+                  />
                 </div>
-              ))
-            ) : (
-              <div className={styles.centerWrapper}>
-                <NothingFound
-                  imageSrc="/src/assets/sad_cloud.png"
-                  title="No writing exams available"
-                  message="Please check back later or try another skill."
-                />
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
