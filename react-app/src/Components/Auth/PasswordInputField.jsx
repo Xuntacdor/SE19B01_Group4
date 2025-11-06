@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import styles from "./InputField.module.css";
-import lockIcon from "../../assets/auth_lock.png";
 
-const PasswordInputField = ({ placeholder, name, value, onChange, disabled = false }) => {
+const PasswordInputField = ({ placeholder, name, value, onChange, onBlur, disabled = false, required = true, minLength, title }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordVisibility = () => {
@@ -13,19 +12,17 @@ const PasswordInputField = ({ placeholder, name, value, onChange, disabled = fal
   return (
     <div className={styles.formGroup}>
       <div className={styles.inputWrapper}>
-        <img 
-          src={lockIcon} 
-          alt="Lock" 
-          className={styles.inputIcon}
-        />
         <input
-          className={styles.passwordInputWithIcon}
+          className={styles.passwordInputNoIcon}
           type={showPassword ? "text" : "password"}
           name={name}
           value={value}
           onChange={onChange}
+          onBlur={onBlur}
           placeholder={placeholder}
-          required
+          required={required}
+          minLength={minLength}
+          title={title}
           disabled={disabled}
         />
         <button
