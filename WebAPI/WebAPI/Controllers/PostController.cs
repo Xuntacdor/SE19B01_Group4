@@ -31,10 +31,11 @@ namespace WebAPI.Controllers
         public ActionResult<IEnumerable<PostDTO>> GetPostsByFilter(
             string filter,
             [FromQuery] int page = 1,
-            [FromQuery] int limit = 10)
+            [FromQuery] int limit = 10,
+            [FromQuery] string? tag = null)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
-            var posts = _postService.GetPostsByFilter(filter, page, limit, userId);
+            var posts = _postService.GetPostsByFilter(filter, page, limit, userId, tag);
             return Ok(posts);
         }
 
