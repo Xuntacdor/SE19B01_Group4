@@ -129,7 +129,7 @@ const VerifyOtp = () => {
             {error && (
               <div className="error-message">
                 <div className="error-icon">
-                  <AlertCircle size={14} />
+                  <AlertCircle size={18} />
                 </div>
                 <div className="error-text">{error}</div>
               </div>
@@ -151,14 +151,14 @@ const VerifyOtp = () => {
 
             {timeLeft > 0 && (
               <div className="timer">
-                <Clock size={16} />
+                <Clock size={18} />
                 <span>Code expires in {formatTime(timeLeft)}</span>
               </div>
             )}
 
             {timeLeft === 0 && (
               <div className="expired-message">
-                <AlertTriangle size={16} />
+                <AlertTriangle size={18} />
                 <span>Verification code has expired</span>
               </div>
             )}
@@ -171,7 +171,7 @@ const VerifyOtp = () => {
               >
                 {loading ? (
                   <div className="loading-content">
-                    <Loader2 size={14} className="loading-spinner" />
+                    <Loader2 size={16} className="loading-spinner" />
                     <span>Verifying...</span>
                   </div>
                 ) : (

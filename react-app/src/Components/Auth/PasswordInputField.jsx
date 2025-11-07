@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import styles from "./InputField.module.css";
 
-const PasswordInputField = ({ placeholder, name, value, onChange, onBlur, disabled = false, required = true, minLength, title }) => {
+const PasswordInputField = ({ placeholder, name, value, onChange, onBlur, onFocus, disabled = false, required = true, minLength, title, inputRef }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordVisibility = () => {
@@ -13,12 +13,14 @@ const PasswordInputField = ({ placeholder, name, value, onChange, onBlur, disabl
     <div className={styles.formGroup}>
       <div className={styles.inputWrapper}>
         <input
+          ref={inputRef}
           className={styles.passwordInputNoIcon}
           type={showPassword ? "text" : "password"}
           name={name}
           value={value}
           onChange={onChange}
           onBlur={onBlur}
+          onFocus={onFocus}
           placeholder={placeholder}
           required={required}
           minLength={minLength}

@@ -13,207 +13,12 @@ import {
   Mail, 
   AlertCircle, 
   CheckCircle, 
-  Loader2 
+  Loader2,
+  Check,
+  X,
+  XCircle
 } from "lucide-react";
 
-// Validation Popup Component - Login Form Specific
-const LoginFormValidationPopup = ({ message, targetElement }) => {
-  const loginFormPopupRef = useRef(null);
-  const positionUpdateTimeoutRef = useRef(null);
-  
-  // Calculate initial position immediately based on target element
-  const getInitialPosition = () => {
-    if (!targetElement) return { top: 0, left: 0, isAbove: true };
-    
-    const rect = targetElement.getBoundingClientRect();
-    const estimatedPopupHeight = 60;
-    const estimatedPopupWidth = 280;
-    
-    const inputCenterX = rect.left + (rect.width / 2);
-    let left = inputCenterX - (estimatedPopupWidth / 2);
-    
-    const horizontalPadding = 10;
-    if (left < horizontalPadding) left = horizontalPadding;
-    if (left + estimatedPopupWidth > window.innerWidth - horizontalPadding) {
-      left = window.innerWidth - estimatedPopupWidth - horizontalPadding;
-    }
-    
-    const verticalSpacing = 12;
-    let top = rect.top - estimatedPopupHeight - verticalSpacing;
-    let isAbove = true;
-    
-    const verticalPadding = 10;
-    if (top < verticalPadding) {
-      top = rect.bottom + verticalSpacing;
-      isAbove = false;
-    }
-    
-    top = Math.max(verticalPadding, top);
-    
-    return { top, left, isAbove };
-  };
-  
-  const [loginFormPopupPosition, setLoginFormPopupPosition] = useState(() => getInitialPosition());
-
-  useEffect(() => {
-    if (!targetElement || !message) return;
-    
-    // Update initial position when targetElement changes
-    const initialPos = getInitialPosition();
-    setLoginFormPopupPosition(initialPos);
-    
-    const updateLoginFormPopupPosition = () => {
-      if (!targetElement) return;
-      
-      // Get the input element's position relative to the viewport
-      const rect = targetElement.getBoundingClientRect();
-      
-      // Get popup dimensions - wait for actual dimensions
-      const popupElement = loginFormPopupRef.current;
-      if (!popupElement) {
-        // If popup not rendered yet, schedule another update
-        requestAnimationFrame(updateLoginFormPopupPosition);
-        return;
-      }
-      
-      // Force a reflow to ensure dimensions are calculated
-      popupElement.offsetHeight;
-      
-      const popupHeight = popupElement.offsetHeight || 60;
-      const popupWidth = popupElement.offsetWidth || 280;
-      
-      // Calculate center position of input field
-      const inputCenterX = rect.left + (rect.width / 2);
-      
-      // Position popup centered above the input field
-      let left = inputCenterX - (popupWidth / 2);
-      
-      // Ensure popup doesn't go off screen horizontally
-      const horizontalPadding = 10;
-      if (left < horizontalPadding) {
-        left = horizontalPadding;
-      } else if (left + popupWidth > window.innerWidth - horizontalPadding) {
-        left = window.innerWidth - popupWidth - horizontalPadding;
-      }
-      
-      // Position popup above the input field with spacing
-      const verticalSpacing = 12;
-      let top = rect.top - popupHeight - verticalSpacing;
-      let isAbove = true;
-      
-      // Check if there's enough space above
-      const verticalPadding = 10;
-      if (top < verticalPadding) {
-        // Not enough space above, position below instead
-        top = rect.bottom + verticalSpacing;
-        isAbove = false;
-      }
-      
-      // Ensure popup doesn't go below viewport
-      if (top + popupHeight > window.innerHeight - verticalPadding) {
-        top = window.innerHeight - popupHeight - verticalPadding;
-      }
-      
-      // Ensure top is never negative
-      top = Math.max(verticalPadding, top);
-      
-      setLoginFormPopupPosition({
-        top: top,
-        left: left,
-        isAbove: isAbove
-      });
-    };
-
-    // Clear any pending timeouts
-    if (positionUpdateTimeoutRef.current) {
-      clearTimeout(positionUpdateTimeoutRef.current);
-    }
-
-    // Wait for next frame to ensure popup is in DOM
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        updateLoginFormPopupPosition();
-        
-        // Update again after popup is fully rendered with accurate dimensions
-        positionUpdateTimeoutRef.current = setTimeout(() => {
-          updateLoginFormPopupPosition();
-        }, 100);
-      });
-    });
-    
-    // Event handlers for dynamic updates
-    const handleScroll = () => {
-      updateLoginFormPopupPosition();
-    };
-    
-    const handleResize = () => {
-      updateLoginFormPopupPosition();
-    };
-    
-    // Use passive listeners for better performance
-    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-    window.addEventListener('resize', handleResize, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll, { capture: true });
-      window.removeEventListener('resize', handleResize);
-      if (positionUpdateTimeoutRef.current) {
-        clearTimeout(positionUpdateTimeoutRef.current);
-      }
-    };
-  }, [targetElement, message]);
-
-  if (!message || !targetElement) {
-    return null;
-  }
-
-  const popupStyle = {
-    position: 'fixed',
-    top: `${loginFormPopupPosition.top}px`,
-    left: `${loginFormPopupPosition.left}px`,
-    zIndex: 10000,
-    pointerEvents: 'none',
-    visibility: loginFormPopupPosition.top > 0 ? 'visible' : 'hidden' // Hide if position not calculated yet
-  };
-  
-  const popupContent = (
-    <div 
-      ref={loginFormPopupRef}
-      className="login-form-validation-popup"
-      style={popupStyle}
-    >
-      <div className="login-form-validation-popup-content">
-        <div className="login-form-validation-popup-icon">
-          <AlertCircle size={20} />
-        </div>
-        <div className="login-form-validation-popup-message">{message}</div>
-      </div>
-      <div className={`login-form-validation-popup-arrow ${loginFormPopupPosition.isAbove ? 'arrow-down' : 'arrow-up'}`}></div>
-    </div>
-  );
-  
-  // Use portal to render popup at document body level to avoid overflow issues
-  return createPortal(popupContent, document.body);
-};
-
-// Reusable Input with Popup Wrapper Component
-const InputWithPopup = ({ 
-  children, 
-  fieldName, 
-  showPopup, 
-  popupMessage, 
-  targetElement 
-}) => (
-  <div className="input-with-popup-wrapper">
-    {children}
-    {showPopup && (
-      <LoginFormValidationPopup 
-        message={popupMessage}
-        targetElement={targetElement}
-      />
-    )}
-  </div>
-);
 
 // Reusable Message Components
 const ErrorMessage = ({ message, icon }) => (
@@ -238,22 +43,135 @@ const LoadingButtonContent = ({ text, iconSize = 14 }) => (
   </div>
 );
 
+// Reusable Email Guide Popup Component
+const EmailGuidePopup = ({ show, position, popupRef, requirements, onClose }) => {
+  if (!show) return null;
+  
+  return createPortal(
+    <div 
+      ref={popupRef}
+      className="email-guide-popup"
+      style={{
+        position: 'fixed',
+        top: `${position.top}px`,
+        left: `${position.left}px`
+      }}
+    >
+      <button
+        className="email-guide-close-btn"
+        onClick={onClose}
+        type="button"
+        aria-label="Close email guide"
+      >
+        <XCircle size={18} />
+      </button>
+      <div className="email-guide-title">
+        <AlertCircle size={14} />
+        Email Requirements
+      </div>
+      <ul className="email-guide-list">
+        <li className={`email-guide-item ${requirements.hasAtSymbol ? 'valid' : 'invalid'}`}>
+          {requirements.hasAtSymbol ? (
+            <Check size={14} className="email-guide-icon" />
+          ) : (
+            <X size={14} className="email-guide-icon" />
+          )}
+          <span>Must contain @ symbol</span>
+        </li>
+        <li className={`email-guide-item ${requirements.hasDomain ? 'valid' : 'invalid'}`}>
+          {requirements.hasDomain ? (
+            <Check size={14} className="email-guide-icon" />
+          ) : (
+            <X size={14} className="email-guide-icon" />
+          )}
+          <span>Must have domain (e.g., gmail.com)</span>
+        </li>
+        <li className={`email-guide-item ${requirements.hasValidFormat ? 'valid' : 'invalid'}`}>
+          {requirements.hasValidFormat ? (
+            <Check size={14} className="email-guide-icon" />
+          ) : (
+            <X size={14} className="email-guide-icon" />
+          )}
+          <span>Valid email format</span>
+        </li>
+      </ul>
+      <div className="email-example">
+        Example: user@gmail.com
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// Reusable Password Guide Popup Component
+const PasswordGuidePopup = ({ show, position, popupRef, requirements, onClose }) => {
+  if (!show) return null;
+  
+  return createPortal(
+    <div 
+      ref={popupRef}
+      className="password-guide-popup"
+      style={{
+        position: 'fixed',
+        top: `${position.top}px`,
+        left: `${position.left}px`
+      }}
+    >
+      <button
+        className="password-guide-close-btn"
+        onClick={onClose}
+        type="button"
+        aria-label="Close password guide"
+      >
+        <XCircle size={18} />
+      </button>
+      <div className="password-guide-title">
+        <AlertCircle size={14} />
+        Password Requirements
+      </div>
+      <ul className="password-guide-list">
+        <li className={`password-guide-item ${requirements.minLength ? 'valid' : 'invalid'}`}>
+          {requirements.minLength ? (
+            <Check size={14} className="password-guide-icon" />
+          ) : (
+            <X size={14} className="password-guide-icon" />
+          )}
+          <span>At least 6 characters</span>
+        </li>
+      </ul>
+    </div>,
+    document.body
+  );
+};
+
 const Login = () => {
     const [mode, setMode] = useState("login");
     const [form, setForm] = useState({ email: "", password: "", username: "", confirmPassword: "" });
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [validationErrors, setValidationErrors] = useState({});
-    const [loginFormShowValidationPopup, setLoginFormShowValidationPopup] = useState({ field: null, message: "" });
-    const [loginFormInvalidFieldRef, setLoginFormInvalidFieldRef] = useState(null);
+    const [invalidFields, setInvalidFields] = useState(new Set());
+    const [showPasswordGuide, setShowPasswordGuide] = useState(false);
+    const [showEmailGuide, setShowEmailGuide] = useState(false);
+    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+    const [emailPopupPosition, setEmailPopupPosition] = useState({ top: 0, left: 0 });
+    const passwordInputRef = useRef(null);
+    const emailInputRef = useRef(null);
+    const guidePopupRef = useRef(null);
+    const emailGuidePopupRef = useRef(null);
     const navigate = useNavigate();
 
     // Handle URL parameters and sync container class
     useEffect(() => {
       const params = new URLSearchParams(window.location.search);
       const modeParam = params.get("mode");
-      if (modeParam) setMode(modeParam);
+      if (modeParam && modeParam !== mode) {
+        setMode(modeParam);
+      // Clear all popups when mode changes via URL
+      setShowPasswordGuide(false);
+      setShowEmailGuide(false);
+      setInvalidFields(new Set());
+      }
 
       // Handle OAuth login success
       const loginSuccess = params.get("login");
@@ -267,14 +185,18 @@ const Login = () => {
         const routes = { admin: "/admin/dashboard", moderator: "/moderator/dashboard" };
         navigate(routes[user.role] || "/home");
       }
-    }, [navigate]);
+    }, [navigate, mode]);
 
-    // Sync container class with mode changes
+    // Sync container class with mode changes and clear popups
     useEffect(() => {
       const container = document.getElementById("animated-login-container");
       if (container) {
         container.classList.toggle("right-panel-active", mode === "register");
       }
+      // Clear all popups when mode changes
+      setShowPasswordGuide(false);
+      setShowEmailGuide(false);
+      setInvalidFields(new Set());
     }, [mode]);
 
     // Helper functions
@@ -293,9 +215,7 @@ const Login = () => {
     const getEmailValidationError = (email) => {
       if (!email) return "Email is required";
       if (!validateEmail(email)) {
-        return !email.includes("@") 
-          ? `Please include an '@' in the email address. '${email}' is missing an '@'.`
-          : "Please enter a valid email address";
+        return "Email is required";
       }
       return null;
     };
@@ -340,17 +260,18 @@ const Login = () => {
       return errors;
     };
 
-    // Helper to show validation popup
-    const showValidationPopup = (fieldName, message, element) => {
-      setLoginFormInvalidFieldRef(element);
-      setLoginFormShowValidationPopup({ field: fieldName, message });
+    // Helper to mark field as invalid
+    const markFieldInvalid = (fieldName) => {
+      setInvalidFields(prev => new Set(prev).add(fieldName));
     };
 
-    // Helper to clear validation popup
-    const clearValidationPopup = (fieldName) => {
-      if (loginFormShowValidationPopup.field === fieldName) {
-        setLoginFormShowValidationPopup({ field: null, message: "" });
-      }
+    // Helper to mark field as valid
+    const markFieldValid = (fieldName) => {
+      setInvalidFields(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fieldName);
+        return newSet;
+      });
     };
 
     const handleChange = (e) => {
@@ -361,44 +282,155 @@ const Login = () => {
       if (error) setError("");
       if (success) setSuccess("");
       
-      if (validationErrors[fieldName]) {
-        setValidationErrors(prev => ({ ...prev, [fieldName]: "" }));
-      }
       
       // Re-validate confirmPassword when password changes
       if (fieldName === "password" && form.confirmPassword) {
         clearTimeout(window.validationTimeout_confirmPassword);
         window.validationTimeout_confirmPassword = setTimeout(() => {
-          const confirmElement = document.querySelector('[name="confirmPassword"]');
-          if (confirmElement) {
-            const errorMsg = fieldValue !== form.confirmPassword ? "Passwords do not match" : null;
-            errorMsg ? showValidationPopup("confirmPassword", errorMsg, confirmElement) : clearValidationPopup("confirmPassword");
-          }
+          const errorMsg = fieldValue !== form.confirmPassword ? "Passwords do not match" : null;
+          errorMsg ? markFieldInvalid("confirmPassword") : markFieldValid("confirmPassword");
         }, 500);
       }
       
+      // Show password guide when user starts typing in password field (register mode only)
+      if (fieldName === 'password' && mode === "register" && fieldValue.length > 0) {
+        setShowPasswordGuide(true);
+      }
+
+      // Show email guide when user starts typing in email field
+      if (fieldName === 'email' && fieldValue.length > 0) {
+        setShowEmailGuide(true);
+      }
+
       // Real-time validation with debounce
       clearTimeout(window[`validationTimeout_${fieldName}`]);
       window[`validationTimeout_${fieldName}`] = setTimeout(() => {
         const errorMsg = validateField(fieldName, fieldValue);
-        errorMsg ? showValidationPopup(fieldName, errorMsg, e.target) : clearValidationPopup(fieldName);
+        errorMsg ? markFieldInvalid(fieldName) : markFieldValid(fieldName);
       }, 500);
     };
 
     const handleBlur = (e) => {
       const fieldName = e.target.name;
       const errorMsg = validateField(fieldName, e.target.value);
-      errorMsg ? showValidationPopup(fieldName, errorMsg, e.target) : clearValidationPopup(fieldName);
+      errorMsg ? markFieldInvalid(fieldName) : markFieldValid(fieldName);
     };
 
     const switchMode = (newMode) => {
       setMode(newMode);
       setError("");
       setSuccess("");
-      setValidationErrors({});
       setForm({ email: "", password: "", username: "", confirmPassword: "" });
-      setLoginFormShowValidationPopup({ field: null, message: "" });
+      setInvalidFields(new Set());
+      setShowPasswordGuide(false);
+      setShowEmailGuide(false);
     };
+
+    // Check password requirements
+    const checkPasswordRequirements = (password) => {
+      return {
+        minLength: password.length >= 6
+      };
+    };
+
+    const passwordRequirements = checkPasswordRequirements(form.password);
+
+    const handlePasswordFocus = () => {
+      if (mode === "register") {
+        setShowPasswordGuide(true);
+      }
+    };
+
+    const handlePasswordBlur = (e) => {
+      // Delay hiding to allow clicking on the guide
+      setTimeout(() => {
+        if (!guidePopupRef.current?.contains(document.activeElement)) {
+          setShowPasswordGuide(false);
+        }
+      }, 200);
+    };
+
+    const handleEmailFocus = () => {
+      setShowEmailGuide(true);
+    };
+
+    const handleEmailBlur = (e) => {
+      // Delay hiding to allow clicking on the guide
+      setTimeout(() => {
+        if (!emailGuidePopupRef.current?.contains(document.activeElement)) {
+          setShowEmailGuide(false);
+        }
+      }, 200);
+    };
+
+    // Check email requirements
+    const checkEmailRequirements = (email) => {
+      if (!email) {
+        return {
+          hasAtSymbol: false,
+          hasDomain: false,
+          hasValidFormat: false
+        };
+      }
+      
+      const hasAt = email.includes('@');
+      const parts = email.split('@');
+      const hasDomain = hasAt && parts.length === 2 && parts[1].includes('.');
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const hasValidFormat = emailRegex.test(email);
+      
+      return {
+        hasAtSymbol: hasAt,
+        hasDomain: hasDomain,
+        hasValidFormat: hasValidFormat
+      };
+    };
+
+    const emailRequirements = checkEmailRequirements(form.email);
+
+    // Update popup position when it's shown
+    useEffect(() => {
+      if (showPasswordGuide && passwordInputRef.current && mode === "register") {
+        const updatePosition = () => {
+          const rect = passwordInputRef.current.getBoundingClientRect();
+          setPopupPosition({
+            top: rect.bottom + 8,
+            left: rect.left
+          });
+        };
+        
+        updatePosition();
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        
+        return () => {
+          window.removeEventListener('scroll', updatePosition, true);
+          window.removeEventListener('resize', updatePosition);
+        };
+      }
+    }, [showPasswordGuide, mode]);
+
+    // Update email popup position when it's shown
+    useEffect(() => {
+      if (showEmailGuide && emailInputRef.current) {
+        const updatePosition = () => {
+          const rect = emailInputRef.current.getBoundingClientRect();
+          setEmailPopupPosition({
+            top: rect.bottom + 8,
+            left: rect.left
+          });
+        };
+        
+        updatePosition();
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+        
+        return () => {
+          window.removeEventListener('scroll', updatePosition, true);
+          window.removeEventListener('resize', updatePosition);
+        };
+      }
+    }, [showEmailGuide]);
 
     // Helper to find input element
     const findInputElement = (formElement, fieldName) => {
@@ -424,7 +456,21 @@ const Login = () => {
         setError(defaultMessage);
       }
       
-      console.error("Auth error:", statusCode, errorData || err.message);
+      // Safely log error without circular references
+      try {
+        const errorInfo = {
+          statusCode: statusCode,
+          message: errorData?.message || err.message || defaultMessage,
+          error: errorData ? JSON.parse(JSON.stringify(errorData)) : null
+        };
+        console.error("Auth error:", errorInfo);
+      } catch (e) {
+        // If JSON.stringify fails, log only safe properties
+        console.error("Auth error:", {
+          statusCode: statusCode,
+          message: errorData?.message || err.message || defaultMessage
+        });
+      }
     };
 
     const handleSubmit = (e) => {
@@ -433,28 +479,27 @@ const Login = () => {
       
       setError("");
       setSuccess("");
-      setValidationErrors({});
       setIsLoading(true);
 
       const errors = validateForm();
       
       if (Object.keys(errors).length > 0) {
         setIsLoading(false);
-        setValidationErrors(errors);
         
+        // Mark all invalid fields
+        Object.keys(errors).forEach(fieldName => {
+          markFieldInvalid(fieldName);
+        });
+        
+        // Focus on first error field
         const firstErrorField = Object.keys(errors)[0];
         const inputElement = findInputElement(formElement, firstErrorField);
-        
         if (inputElement) {
-          showValidationPopup(firstErrorField, errors[firstErrorField], inputElement);
           requestAnimationFrame(() => {
             setTimeout(() => {
               inputElement.focus();
-              setTimeout(() => setLoginFormShowValidationPopup({ field: null, message: "" }), 5000);
             }, 100);
           });
-        } else {
-          showValidationPopup(firstErrorField, errors[firstErrorField], null);
         }
         return;
       }
@@ -517,12 +562,7 @@ const Login = () => {
               {error && mode === "register" && <ErrorMessage message={error} icon={getErrorIcon(error)} />}
               {success && mode === "register" && <SuccessMessage message={success} />}
 
-              <InputWithPopup
-                fieldName="username"
-                showPopup={loginFormShowValidationPopup.field === "username"}
-                popupMessage={loginFormShowValidationPopup.message}
-                targetElement={loginFormInvalidFieldRef}
-              >
+              <div className={invalidFields.has("username") ? "input-field-error" : ""}>
                 <FormInput
                   name="username"
                   type="text"
@@ -533,14 +573,9 @@ const Login = () => {
                   minLength={3}
                   title="Username must be at least 3 characters"
                 />
-              </InputWithPopup>
+              </div>
 
-              <InputWithPopup
-                fieldName="email"
-                showPopup={loginFormShowValidationPopup.field === "email"}
-                popupMessage={loginFormShowValidationPopup.message}
-                targetElement={loginFormInvalidFieldRef}
-              >
+              <div className={invalidFields.has("email") ? "input-field-error" : ""} style={{ position: 'relative' }}>
                 <FormInput
                   name="email"
                   type="email"
@@ -548,33 +583,41 @@ const Login = () => {
                   value={form.email}
                   onChange={handleChange}
                   onBlur={handleBlur}
+                  onFocus={handleEmailFocus}
                   title="Please enter a valid email address"
+                  inputRef={emailInputRef}
                 />
-              </InputWithPopup>
+                <EmailGuidePopup
+                  show={showEmailGuide}
+                  position={emailPopupPosition}
+                  popupRef={emailGuidePopupRef}
+                  requirements={emailRequirements}
+                  onClose={() => setShowEmailGuide(false)}
+                />
+              </div>
 
-              <InputWithPopup
-                fieldName="password"
-                showPopup={loginFormShowValidationPopup.field === "password"}
-                popupMessage={loginFormShowValidationPopup.message}
-                targetElement={loginFormInvalidFieldRef}
-              >
+              <div className={invalidFields.has("password") ? "input-field-error" : ""} style={{ position: 'relative' }}>
                 <PasswordInputField
                   name="password"
                   placeholder="Password"
                   value={form.password}
                   onChange={handleChange}
-                  onBlur={handleBlur}
+                  onBlur={handlePasswordBlur}
+                  onFocus={handlePasswordFocus}
                   minLength={6}
                   title="Password is required and must be at least 6 characters"
+                  inputRef={passwordInputRef}
                 />
-              </InputWithPopup>
+                <PasswordGuidePopup
+                  show={showPasswordGuide && mode === "register"}
+                  position={popupPosition}
+                  popupRef={guidePopupRef}
+                  requirements={passwordRequirements}
+                  onClose={() => setShowPasswordGuide(false)}
+                />
+              </div>
 
-              <InputWithPopup
-                fieldName="confirmPassword"
-                showPopup={loginFormShowValidationPopup.field === "confirmPassword"}
-                popupMessage={loginFormShowValidationPopup.message}
-                targetElement={loginFormInvalidFieldRef}
-              >
+              <div className={invalidFields.has("confirmPassword") ? "input-field-error" : ""}>
                 <PasswordInputField
                   name="confirmPassword"
                   placeholder="Confirm Password"
@@ -583,7 +626,7 @@ const Login = () => {
                   onBlur={handleBlur}
                   title="Please confirm your password"
                 />
-              </InputWithPopup>
+              </div>
 
               <div className="button-wrapper">
                 <Button type="submit" variant="yellow" disabled={isLoading}>
@@ -626,12 +669,7 @@ const Login = () => {
 
               {mode === "forgot" ? (
                 <>
-                  <InputWithPopup
-                    fieldName="email"
-                    showPopup={loginFormShowValidationPopup.field === "email"}
-                    popupMessage={loginFormShowValidationPopup.message}
-                    targetElement={loginFormInvalidFieldRef}
-                  >
+                  <div className={invalidFields.has("email") ? "input-field-error" : ""} style={{ position: 'relative' }}>
                     <FormInput
                       name="email"
                       type="email"
@@ -639,9 +677,18 @@ const Login = () => {
                       value={form.email}
                       onChange={handleChange}
                       onBlur={handleBlur}
+                      onFocus={handleEmailFocus}
                       title="Please enter a valid email address"
+                      inputRef={emailInputRef}
                     />
-                  </InputWithPopup>
+                    <EmailGuidePopup
+                      show={showEmailGuide}
+                      position={emailPopupPosition}
+                      popupRef={emailGuidePopupRef}
+                      requirements={emailRequirements}
+                      onClose={() => setShowEmailGuide(false)}
+                    />
+                  </div>
                   <div className="button-wrapper">
                     <Button type="submit" variant="yellow" disabled={isLoading}>
                       {isLoading ? <LoadingButtonContent text="Sending..." /> : "Send Reset Link"}
@@ -653,12 +700,7 @@ const Login = () => {
                 </>
               ) : (
                 <>
-                  <InputWithPopup
-                    fieldName="email"
-                    showPopup={loginFormShowValidationPopup.field === "email"}
-                    popupMessage={loginFormShowValidationPopup.message}
-                    targetElement={loginFormInvalidFieldRef}
-                  >
+                  <div className={invalidFields.has("email") ? "input-field-error" : ""} style={{ position: 'relative' }}>
                     <FormInput
                       name="email"
                       type="email"
@@ -666,16 +708,20 @@ const Login = () => {
                       value={form.email}
                       onChange={handleChange}
                       onBlur={handleBlur}
+                      onFocus={handleEmailFocus}
                       title="Please enter a valid email address"
+                      inputRef={emailInputRef}
                     />
-                  </InputWithPopup>
+                    <EmailGuidePopup
+                      show={showEmailGuide}
+                      position={emailPopupPosition}
+                      popupRef={emailGuidePopupRef}
+                      requirements={emailRequirements}
+                      onClose={() => setShowEmailGuide(false)}
+                    />
+                  </div>
 
-                  <InputWithPopup
-                    fieldName="password"
-                    showPopup={loginFormShowValidationPopup.field === "password"}
-                    popupMessage={loginFormShowValidationPopup.message}
-                    targetElement={loginFormInvalidFieldRef}
-                  >
+                  <div className={invalidFields.has("password") ? "input-field-error" : ""}>
                     <PasswordInputField
                       name="password"
                       placeholder="Password"
@@ -684,7 +730,7 @@ const Login = () => {
                       onBlur={handleBlur}
                       title="Password is required"
                     />
-                  </InputWithPopup>
+                  </div>
 
                   <a href="#" className="forgot-link" onClick={(e) => { e.preventDefault(); switchMode("forgot"); }}>
                     Forgot your password?
