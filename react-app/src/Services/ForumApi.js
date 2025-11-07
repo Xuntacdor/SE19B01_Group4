@@ -11,8 +11,12 @@ const TAG_API = axios.create({
 });
 
 // Posts API
-export function getPostsByFilter(filter, page = 1, limit = 10) {
-  return API.get(`/posts/filter/${filter}?page=${page}&limit=${limit}`);
+export function getPostsByFilter(filter, page = 1, limit = 10, tag = null) {
+  const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+  if (tag && tag !== 'all') {
+    params.append('tag', tag);
+  }
+  return API.get(`/posts/filter/${filter}?${params.toString()}`);
 }
 
 export function getPost(postId, incrementView = true) {

@@ -23,6 +23,7 @@
   overflow-x: hidden;
   max-height: 480px;
   scroll-behavior: smooth;
+  z-index: 0;
 }
 
 /* ===== Scrollbar ===== */
