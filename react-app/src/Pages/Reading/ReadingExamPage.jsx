@@ -40,7 +40,10 @@ export default function ReadingExamPage() {
   // Countdown
   useEffect(() => {
     if (!timeLeft || submitted) return;
-    const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
+    const timer = setInterval(
+      () => setTimeLeft((t) => Math.max(0, t - 1)),
+      1000
+    );
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
 
@@ -109,7 +112,8 @@ export default function ReadingExamPage() {
       questionKeys.forEach((key) => {
         const val = answers[key];
         if (Array.isArray(val) && val.length > 0) taskAnswers[key] = val;
-        else if (typeof val === "string" && val.trim() !== "") taskAnswers[key] = val;
+        else if (typeof val === "string" && val.trim() !== "")
+          taskAnswers[key] = val;
         else taskAnswers[key] = "_";
       });
 
@@ -174,6 +178,15 @@ export default function ReadingExamPage() {
   const currentTaskData = (tasks || [])[currentTask];
   const questionCount = getQuestionCount(currentTaskData?.readingQuestion);
 
+  // ===== helper ONLY for the question bar =====
+  const isAnswered = (readingId, qNumber) => {
+    const key = `${readingId}_q${qNumber}`;
+    const val = answers[key];
+    if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === "string") return val.trim() !== "";
+    return false;
+  };
+
   return (
     <div className={styles.examWrapper}>
       {/* Header */}
@@ -201,60 +214,99 @@ export default function ReadingExamPage() {
           <div
             className={styles.passageContent}
             dangerouslySetInnerHTML={{
-              __html: passageMarkdownToHtml(currentTaskData?.readingContent || ""),
+              __html: passageMarkdownToHtml(
+                currentTaskData?.readingContent || ""
+              ),
             }}
           />
         </div>
 
         {/* Right: Questions */}
         <div className={styles.rightPanel}>
-          <form ref={formRef} onChange={handleChange} onInput={handleChange}>
-            {currentTaskData?.readingQuestion ? (
-              <ExamMarkdownRenderer
-                markdown={currentTaskData.readingQuestion}
-                showAnswers={false} // explanations hidden on exam
-                skillId={currentTaskData.readingId}
-              />
-            ) : (
-              <div className={styles.questionSection}>
-                <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>
-                  <h3>No Questions Found</h3>
-                  <p>This reading test doesn't have any questions configured yet.</p>
+          {/* Dock fixes clipping & alignment */}
+          <div className={styles.rightPanelDock}>
+            <form ref={formRef} onChange={handleChange} onInput={handleChange}>
+              {currentTaskData?.readingQuestion ? (
+                <ExamMarkdownRenderer
+                  markdown={currentTaskData.readingQuestion}
+                  showAnswers={false} // explanations hidden on exam
+                  skillId={currentTaskData.readingId}
+                />
+              ) : (
+                <div className={styles.questionSection}>
+                  <div
+                    style={{
+                      padding: "40px",
+                      textAlign: "center",
+                      color: "#666",
+                    }}
+                  >
+                    <h3>No Questions Found</h3>
+                    <p>
+                      This reading test doesn't have any questions configured
+                      yet.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </form>
+              )}
+            </form>
+          </div>
         </div>
       </div>
 
-      {/* Bottom Nav */}
+      {/* Bottom Nav — replaced with listening-like behavior */}
       <div className={styles.bottomNavigation}>
         <div className={styles.navScrollContainer}>
           {(tasks || []).map((task, taskIndex) => {
             const count = getQuestionCount(task.readingQuestion);
             return (
               <div key={task.readingId} className={styles.navSection}>
-                <div className={styles.navSectionTitle}>Part {taskIndex + 1}</div>
+                <div
+                  className={`${styles.navSectionTitle} ${
+                    currentTask === taskIndex
+                      ? styles.navSectionTitleActive
+                      : ""
+                  }`}
+                  onClick={() => {
+                    setCurrentTask(taskIndex);
+                    document
+                      .querySelector(`.${styles.examWrapper}`)
+                      ?.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  role="button"
+                >
+                  Part {taskIndex + 1}
+                </div>
                 <div className={styles.navQuestions}>
-                  {Array.from({ length: count }, (_, qIndex) => (
-                    <button
-                      type="button"
-                      key={`${taskIndex}-${qIndex}`}
-                      className={`${styles.navButton} ${
-                        currentTask === taskIndex && qIndex === 0
-                          ? styles.activeNavButton
-                          : ""
-                      }`}
-                      onClick={() => {
-                        setCurrentTask(taskIndex);
-                        document
-                          .querySelector(`.${styles.examWrapper}`)
-                          ?.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    >
-                      {qIndex + 1}
-                    </button>
-                  ))}
+                  {Array.from({ length: count }, (_, qIndex) => {
+                    const qNum = qIndex + 1;
+                    const answered = isAnswered(task.readingId, qNum);
+                    const isCurrentPart = currentTask === taskIndex;
+                    return (
+                      <button
+                        type="button"
+                        key={`${taskIndex}-${qIndex}`}
+                        className={[
+                          styles.navButton,
+                          answered
+                            ? styles.completedNavButton
+                            : styles.unansweredNavButton,
+                          isCurrentPart && qIndex === 0
+                            ? styles.activeNavButton
+                            : "",
+                        ].join(" ")}
+                        title={answered ? "Answered" : "Unanswered"}
+                        onClick={() => {
+                          setCurrentTask(taskIndex);
+                          document
+                            .querySelector(`.${styles.examWrapper}`)
+                            ?.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      >
+                        {qNum}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             );
