@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { verifyOtp } from '../../Services/AuthApi';
-import BrandPanel from '../../Components/Layout/BrandPanel.jsx';
-import AuthLayout from '../../Components/Layout/AuthLayout';
+import { verifyOtp, forgotPassword } from '../../Services/AuthApi';
 import Button from '../../Components/Auth/Button';
-import { Loader2, ArrowLeft, Clock, AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Clock, AlertTriangle, AlertCircle } from 'lucide-react';
+import './Login.css';
 import './VerifyOtp.css';
 
 const VerifyOtp = () => {
@@ -13,28 +12,47 @@ const VerifyOtp = () => {
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(60); // 1 minute in seconds
+  const timerRef = useRef(null);
 
   const email = location.state?.email;
 
-  useEffect(() => {
-    if (!email) {
-      navigate('/forgot-password');
-      return;
+  // Function to start the timer
+  const startTimer = useCallback(() => {
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
 
-    const timer = setInterval(() => {
+    timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          clearInterval(timer);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
+  }, []);
 
-    return () => clearInterval(timer);
-  }, [email, navigate]);
+  useEffect(() => {
+    if (!email) {
+      navigate('/login?mode=forgot');
+      return;
+    }
+
+    startTimer();
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [email, navigate, startTimer]);
 
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -53,7 +71,8 @@ const VerifyOtp = () => {
         navigate('/reset-password', { state: { email, resetToken: response.data.resetToken } });
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
+      const errorData = err.response?.data;
+      setError(errorData?.message || 'Invalid OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -62,30 +81,26 @@ const VerifyOtp = () => {
   const handleOtpChange = (e) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 6);
     setOtpCode(value);
+    if (error) setError('');
   };
 
   const handleResendOtp = async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-        credentials: 'include',
-      });
-      
-      if (response.ok) {
-        setTimeLeft(600); // Reset timer
-        setOtpCode('');
-      } else {
-        const data = await response.json();
-        setError(data.message || 'Failed to resend OTP');
+      await forgotPassword(email);
+      // Clear existing timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
       }
+      // Reset timer to 1 minute and restart
+      setTimeLeft(60);
+      startTimer();
+      setOtpCode('');
     } catch (err) {
-      setError('Failed to resend OTP. Please try again.');
+      const errorData = err.response?.data;
+      setError(errorData?.message || 'Failed to resend OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -96,72 +111,74 @@ const VerifyOtp = () => {
   }
 
   return (
-    <div className="verify-otp-page">
-      <BrandPanel />
-      <div className="right-part">
-        <div className="auth-card">
-          <AuthLayout title="Verify Your Email">
+    <div className="animated-login-page">
+      <div className="animated-login-container verify-otp-container">
+        <div className="form-container sign-in-container verify-otp-form-container">
+          <form onSubmit={handleSubmit} className="animated-form" noValidate>
+            <div className="website-branding verify-otp-branding">
+              <h2 className="brand-title verify-otp-brand-title">IELTS PHOBIC</h2>
+            </div>
+            
+            <h1>Verify Your Email</h1>
+            
             <div className="verify-otp-header">
               <p>We've sent a 6-digit verification code to</p>
               <p className="email-address">{email}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="verify-otp-form">
-              <div className="form-group">
-                <label htmlFor="otp">Enter Verification Code</label>
-                <input
-                  type="text"
-                  id="otp"
-                  value={otpCode}
-                  onChange={handleOtpChange}
-                  placeholder="000000"
-                  maxLength="6"
-                  required
-                  disabled={loading}
-                  className="verify-otp-input"
-                />
+            {error && (
+              <div className="error-message">
+                <div className="error-icon">
+                  <AlertCircle size={14} />
+                </div>
+                <div className="error-text">{error}</div>
               </div>
+            )}
 
-              {timeLeft > 0 && (
-                <div className="timer">
-                  <Clock size={16} />
-                  Code expires in {formatTime(timeLeft)}
-                </div>
-              )}
+            <div className="form-group otp-input-group">
+              <input
+                type="text"
+                id="otp"
+                value={otpCode}
+                onChange={handleOtpChange}
+                placeholder="000000"
+                maxLength="6"
+                required
+                disabled={loading}
+                className="verify-otp-input"
+              />
+            </div>
 
-              {timeLeft === 0 && (
-                <div className="expired-message">
-                  <AlertTriangle size={16} />
-                  Verification code has expired
-                </div>
-              )}
+            {timeLeft > 0 && (
+              <div className="timer">
+                <Clock size={16} />
+                <span>Code expires in {formatTime(timeLeft)}</span>
+              </div>
+            )}
 
-              {error && (
-                <div className="error-message">
-                  <div className="error-icon">
-                    <AlertCircle size={16} />
+            {timeLeft === 0 && (
+              <div className="expired-message">
+                <AlertTriangle size={16} />
+                <span>Verification code has expired</span>
+              </div>
+            )}
+
+            <div className="button-wrapper">
+              <Button 
+                type="submit" 
+                variant="yellow"
+                disabled={loading || otpCode.length !== 6 || timeLeft === 0}
+              >
+                {loading ? (
+                  <div className="loading-content">
+                    <Loader2 size={14} className="loading-spinner" />
+                    <span>Verifying...</span>
                   </div>
-                  <div className="error-text">{error}</div>
-                </div>
-              )}
-
-              <div className="button-location">
-                <Button 
-                  type="submit" 
-                  variant="yellow"
-                  disabled={loading || otpCode.length !== 6 || timeLeft === 0}
-                >
-                  {loading ? (
-                    <div className="loading-content">
-                      <Loader2 size={10} className="loading-spinner" />
-                      <span>Verifying...</span>
-                    </div>
-                  ) : (
-                    "Verify Code"
-                  )}
-                </Button>
-              </div>
-            </form>
+                ) : (
+                  "Verify Code"
+                )}
+              </Button>
+            </div>
 
             <div className="resend-section">
               <p>Didn't receive the code?</p>
@@ -175,17 +192,17 @@ const VerifyOtp = () => {
               </button>
             </div>
 
-            <div className="verify-otp-footer">
-              <button 
-                type="button"
-                className="verify-otp-back-btn"
-                onClick={() => navigate('/login?mode=forgot')}
-              >
-                <ArrowLeft size={16} />
-                Back to Email
-              </button>
-            </div>
-          </AuthLayout>
+            <a 
+              href="#" 
+              className="forgot-link" 
+              onClick={(e) => { 
+                e.preventDefault(); 
+                navigate('/login?mode=forgot'); 
+              }}
+            >
+              ← Back to Email
+            </a>
+          </form>
         </div>
       </div>
     </div>
