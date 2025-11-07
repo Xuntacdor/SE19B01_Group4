@@ -9,7 +9,7 @@
   overflow: visible;
   width: 450px;
   max-width: 90%;
-  min-height: 680px;
+  min-height: 600px;
   z-index: 1;
 }
 
@@ -24,17 +24,23 @@
 
 /* Reduce form padding for Verify OTP */
 .verify-otp-form-container .animated-form {
-  padding: 10px 40px !important;
+  padding: 20px 40px !important;
 }
 
 /* Reduce button wrapper and link sizes */
 .verify-otp-form-container .button-wrapper {
-  margin: 8px 0 !important;
+  margin: 4px 0 !important;
+}
+
+/* Make verify button bigger */
+.verify-otp-form-container .button-wrapper button {
+  padding: 16px 45px !important;
+  font-size: 14px !important;
 }
 
 .verify-otp-form-container .forgot-link {
-  font-size: 12px !important;
-  margin: 8px 0 !important;
+  font-size: 14px !important;
+  margin: 4px 0 !important;
 }
 
 /* Ensure brand title is centered - using specific class names to avoid overrides */
@@ -44,13 +50,13 @@
   align-items: center !important;
   width: 100% !important;
   display: flex !important;
-  margin-bottom: 5px !important;
+  margin-bottom: 2px !important;
 }
 
 /* Reduce h1 size in Verify OTP page */
 .verify-otp-form-container h1 {
-  font-size: 1.4rem !important;
-  margin: 5px 0 8px !important;
+  font-size: 2rem !important;
+  margin: 2px 0 4px !important;
 }
 
 .verify-otp-brand-title {
@@ -59,19 +65,19 @@
   margin: 0 auto !important;
   width: auto !important;
   display: block !important;
-  font-size: 2rem !important;
-  margin-bottom: 5px !important;
+  font-size: 3rem !important;
+  margin-bottom: 2px !important;
 }
 
 /* OTP Header */
 .verify-otp-header {
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 2px;
 }
 
 .verify-otp-header p {
   color: #666;
-  font-size: 12px;
+  font-size: 15px;
   line-height: 1.4;
   margin: 2px 0;
   font-family: "Montserrat", sans-serif;
@@ -80,29 +86,33 @@
 .email-address {
   color: #8C921F !important;
   font-weight: 600;
-  font-size: 13px !important;
+  font-size: 18px !important;
 }
 
 /* OTP Input Group */
 .otp-input-group {
   width: 100%;
-  margin-bottom: 10px;
+  margin-bottom: 2px;
+  display: flex;
+  justify-content: center;
 }
 
 .verify-otp-input {
   width: 100%;
-  padding: 8px 12px;
+  max-width: 450px;
+  padding: 12px 16px !important;
   background-color: #eee;
   border: none;
   border-radius: 8px;
-  font-size: 24px;
+  font-size: 32px !important;
   font-weight: 700;
   text-align: center;
-  letter-spacing: 8px;
+  letter-spacing: 14px;
   font-family: "Montserrat", sans-serif;
   transition: all 0.2s ease;
   box-sizing: border-box;
-  height: 50px;
+  height: 65px !important;
+  margin: 0 !important;
 }
 
 .verify-otp-input:focus {
@@ -119,7 +129,7 @@
 }
 
 .verify-otp-input::placeholder {
-  letter-spacing: 8px;
+  letter-spacing: 14px;
   color: #999;
 }
 
@@ -127,25 +137,25 @@
 .timer {
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   color: #92400e;
-  padding: 6px 12px;
+  padding: 10px 16px;
   border-radius: 6px;
-  margin: 6px 0 10px;
+  margin: 4px 0 6px;
   text-align: center;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   border: 1px solid #fbbf24;
-  font-size: 11px;
+  font-size: 14px;
   font-family: "Montserrat", sans-serif;
 }
 
 .timer svg {
   color: #f59e0b;
   flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .timer span {
@@ -156,25 +166,25 @@
 .expired-message {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   color: #dc2626;
-  padding: 6px 12px;
+  padding: 10px 16px;
   border-radius: 6px;
-  margin: 6px 0 10px;
+  margin: 4px 0 6px;
   text-align: center;
   font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   border: 1px solid #fecaca;
-  font-size: 11px;
+  font-size: 14px;
   font-family: "Montserrat", sans-serif;
 }
 
 .expired-message svg {
   color: #ef4444;
   flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .expired-message span {
@@ -185,9 +195,9 @@
 .error-message {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  margin: 4px 0 8px;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 2px 0 4px;
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   border: 1px solid #fecaca;
   border-left: 3px solid #ef4444;
@@ -210,13 +220,13 @@
 }
 
 .error-icon svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .error-text {
   color: #dc2626;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.3;
   flex: 1;
@@ -232,15 +242,15 @@
 /* Resend Section */
 .resend-section {
   text-align: center;
-  margin: 12px 0 10px;
-  padding-top: 10px;
+  margin: 6px 0 4px;
+  padding-top: 6px;
   border-top: 1px solid #e5e7eb;
 }
 
 .resend-section p {
   color: #666;
-  margin-bottom: 8px;
-  font-size: 11px;
+  margin-bottom: 6px;
+  font-size: 13px;
   font-family: "Montserrat", sans-serif;
 }
 
@@ -248,9 +258,9 @@
   background: transparent;
   color: #8C921F;
   border: 2px solid #8C921F;
-  padding: 6px 14px;
+  padding: 10px 20px;
   border-radius: 16px;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: bold;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -279,14 +289,14 @@
 .loading-content {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .loading-content svg {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
 }
 
 .loading-spinner {
@@ -310,61 +320,3 @@
   }
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .verify-otp-container {
-    width: 100%;
-    min-height: 650px;
-  }
-
-  .verify-otp-input {
-    font-size: 28px;
-    letter-spacing: 10px;
-    height: 60px;
-  }
-
-  .verify-otp-header p {
-    font-size: 13px;
-  }
-  
-  .email-address {
-    font-size: 14px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .verify-otp-input {
-    font-size: 24px;
-    letter-spacing: 8px;
-    height: 55px;
-    padding: 10px 12px;
-  }
-
-  .verify-otp-header p {
-    font-size: 12px;
-  }
-  
-  .email-address {
-    font-size: 13px !important;
-  }
-  
-  .timer,
-  .expired-message {
-    font-size: 12px;
-    padding: 8px 12px;
-  }
-  
-  .resend-section p {
-    font-size: 12px;
-  }
-  
-  .resend-btn {
-    font-size: 11px;
-    padding: 8px 16px;
-  }
-
-  .error-text {
-    font-size: 10px;
-    line-height: 1.2;
-  }
-}
