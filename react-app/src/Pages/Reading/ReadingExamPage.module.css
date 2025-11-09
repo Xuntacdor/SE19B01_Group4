@@ -28,9 +28,7 @@
   font-size: 14px;
 }
 
-.backBtn:hover {
-  background: #5a6268;
-}
+.backBtn:hover { background: #5a6268; }
 
 .examTitle {
   font-size: 20px;
@@ -78,9 +76,7 @@
   gap: 16px;
 }
 
-.authorAvatar {
-  flex-shrink: 0;
-}
+.authorAvatar { flex-shrink: 0; }
 
 .avatarCircle {
   width: 60px;
@@ -103,9 +99,7 @@
   line-height: 1.5;
 }
 
-.authorSummary li {
-  margin-bottom: 4px;
-}
+.authorSummary li { margin-bottom: 4px; }
 
 .expandLink {
   color: #dc3545;
@@ -115,9 +109,7 @@
   display: inline-block;
 }
 
-.expandLink:hover {
-  text-decoration: underline;
-}
+.expandLink:hover { text-decoration: underline; }
 
 /* Passage Title */
 .passageTitle {
@@ -134,22 +126,41 @@
   text-align: justify;
 }
 
-.passageContent p {
-  margin-bottom: 16px;
-}
+.passageContent p { margin-bottom: 16px; }
 
-/* Right Panel - Questions */
+/* Right Panel - Questions
+   >>> Make questions sit LEFT and CLIP to TOP <<< */
 .rightPanel {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
   background-color: #ffffff;
+
+  /* new */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;    /* left edge */
+  justify-content: flex-start;/* top edge (no centering) */
+  padding-top: 0;             /* clip to the top border */
+}
+
+/* Stretch direct children to panel width */
+.rightPanel > * { align-self: stretch; }
+
+/* Ensure the form content (markdown) starts at top-left */
+.rightPanel form {
+  margin: 0;
+  max-width: none;
+}
+
+/* Robust: force left text alignment inside rendered markdown */
+.rightPanel :where(h1,h2,h3,h4,h5,h6,p,ul,ol,li,table,blockquote,pre,code) {
+  text-align: left !important;
+  margin-inline: 0;
 }
 
 /* Question Sections */
-.questionSection {
-  margin-bottom: 32px;
-}
+.questionSection { margin: 0 0 32px 0; } /* remove stray top gap */
 
 .sectionTitle {
   font-size: 16px;
@@ -212,9 +223,7 @@
   margin: 20px 0 16px 0;
 }
 
-.notesSection {
-  margin-left: 16px;
-}
+.notesSection { margin-left: 16px; }
 
 .notesTitle {
   font-size: 14px;
@@ -246,121 +255,9 @@
   flex-shrink: 0;
 }
 
-/* Bottom Navigation */
-.bottomNavigation {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 24px;
-  background-color: #f8f9fa;
-  border-top: 1px solid #e0e0e0;
-}
-
-.navButton {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 4px;
-  background-color: #28a745;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.navButton:hover {
-  background-color: #218838;
-}
-
-.activeNavButton {
-  background-color: #155724;
-}
-
-.completeButton {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: bold;
-  margin-left: 16px;
-}
-
-.completeButton:hover {
-  background-color: #0056b3;
-}
-
-.completeButton:disabled {
-  background-color: #6c757d;
-  cursor: not-allowed;
-}
-
-/* Fullscreen center styles */
-.fullscreenCenter {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 60vh;
-  text-align: center;
-}
-
-.fullscreenCenter h2 {
-  color: #333;
-  margin-bottom: 20px;
-}
-
-.fullscreenCenter h3 {
-  color: #28a745;
-  margin-bottom: 15px;
-}
-
-.fullscreenCenter p {
-  color: #666;
-  margin-bottom: 25px;
-  font-size: 16px;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .mainContent {
-    flex-direction: column;
-  }
-  
-  .leftPanel,
-  .rightPanel {
-    flex: none;
-    max-height: 50vh;
-  }
-  
-  .leftPanel {
-    border-right: none;
-    border-bottom: 1px solid #e0e0e0;
-  }
-  
-  .bottomNavigation {
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  
-  .navButton {
-    width: 32px;
-    height: 32px;
-    font-size: 12px;
-  }
-}
-
-.unanswered {
-  outline: 2px solid #ef4444;
-  background-color: #fee2e2;
-}
-
+/* ================================
+   Sticky Bottom Navigation (keep)
+   ================================ */
 .bottomNavigation {
   display: flex;
   align-items: center;
@@ -382,10 +279,7 @@
   scrollbar-width: thin;
   scrollbar-color: #ccc transparent;
 }
-
-.navScrollContainer::-webkit-scrollbar {
-  height: 6px;
-}
+.navScrollContainer::-webkit-scrollbar { height: 6px; }
 .navScrollContainer::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 10px;
@@ -421,16 +315,28 @@
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 32px;
 }
 
-.navButton:hover {
-  background: #f1f5f9;
-}
+.navButton:hover { background: #f1f5f9; }
 
 .activeNavButton {
   background: #2563eb;
   color: white;
   border-color: #2563eb;
+}
+
+/* Answer state pills used by the question bar */
+.completedNavButton {
+  border-color: #22c55e;
+  background: #ecfdf5;
+  color: #166534;
+  font-weight: 600;
+}
+.unansweredNavButton {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #6b7280;
 }
 
 .completeButton {
@@ -446,6 +352,71 @@
   transition: all 0.2s ease;
 }
 
-.completeButton:hover {
-  background: #15803d;
+.completeButton:hover { background: #15803d; }
+
+.completeButton:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
 }
+
+/* Fullscreen center styles */
+.fullscreenCenter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  text-align: center;
+}
+
+.fullscreenCenter h2 { color: #333; margin-bottom: 20px; }
+.fullscreenCenter h3 { color: #28a745; margin-bottom: 15px; }
+.fullscreenCenter p  { color: #666; margin-bottom: 25px; font-size: 16px; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .mainContent { flex-direction: column; }
+
+  .leftPanel,
+  .rightPanel {
+    flex: none;
+    max-height: 50vh;
+  }
+
+  .leftPanel {
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .bottomNavigation { flex-wrap: wrap; gap: 4px; }
+
+  .navButton { min-width: 28px; font-size: 12px; }
+}
+
+/* Unanswered input highlight */
+.unanswered {
+  outline: 2px solid #ef4444;
+  background-color: #fee2e2;
+}
+/* Make right panel clip to top-left and stretch children */
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;    /* left */
+  justify-content: flex-start;/* top */
+  padding-top: 0;
+}
+
+/* The dock removes stray margins and lets content use full width */
+.rightPanelDock {
+  align-self: stretch;
+  width: 100%;
+  margin: 0;
+}
+
+/* Ensure markdown-rendered content is not centered by upstream styles */
+.rightPanelDock :where(h1,h2,h3,h4,h5,h6,p,ul,ol,li,table,blockquote,pre,code) {
+  text-align: left !important;
+  margin-inline: 0;
+}
+

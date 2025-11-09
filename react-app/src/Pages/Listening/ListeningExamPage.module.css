@@ -15,7 +15,7 @@
   padding: 16px 24px;
   background-color: #ffffff;
   border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .backBtn {
@@ -27,10 +27,7 @@
   cursor: pointer;
   font-size: 14px;
 }
-
-.backBtn:hover {
-  background: #5a6268;
-}
+.backBtn:hover { background: #5a6268; }
 
 .examTitle {
   font-size: 20px;
@@ -51,60 +48,39 @@
   color: #1d4ed8;
 }
 
-/* Main Content Layout */
-.mainContent {
-  display: flex;
+/* === Middle rail grid === */
+.middleGrid {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr minmax(740px, 920px) 1fr; /* side gutters | middle rail | side gutters */
+  gap: 0;
+  background: #fff;
 }
 
-/* Left Panel - Audio Player */
-.leftPanel {
-  flex: 1;
-  padding: 24px;
-  border-right: 1px solid #e0e0e0;
-  background-color: #ffffff;
+.middleRail {
+  grid-column: 2; /* place content in the middle column */
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  align-items: stretch; /* keep content left-aligned, not centered text */
+  padding: 20px 16px 0;
 }
 
-.audioContainer {
-  width: 100%;
-  max-width: 600px;
-  background-color: #f5f5f5;
+.questionCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
   padding: 24px;
-  border-radius: 8px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 20px rgba(2, 6, 23, 0.04);
+  /* Make sure content is left aligned */
+  text-align: left;
 }
 
-.audioTitle {
+.passageTitle {
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 700;
+  color: #1f2937;
   margin-bottom: 12px;
-  color: #333;
-}
-
-.audioPlayer {
-  width: 100%;
-  outline: none;
-}
-
-.noAudio {
-  font-size: 15px;
-  color: #777;
-  text-align: center;
-  padding: 40px;
-}
-
-/* Right Panel - Questions */
-.rightPanel {
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-  background-color: #ffffff;
 }
 
 .noQuestionBox {
@@ -113,13 +89,31 @@
   color: #666;
 }
 
-/* Bottom Navigation (Grouped Parts + Questions) */
+/* Slim audio playbar under the questions */
+.audioPlaybarWrap {
+  display: flex;
+  justify-content: stretch;
+  padding: 12px 0 0 0;
+  margin-bottom: 6px;
+}
+
+.audioPlaybar {
+  width: 100%;
+  height: 40px;
+}
+
+.noAudioSmall {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Bottom Navigation */
 .bottomNavigation {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid #e5e7eb;
   background: #fafafa;
   position: sticky;
   bottom: 0;
@@ -135,10 +129,7 @@
   scrollbar-width: thin;
   scrollbar-color: #ccc transparent;
 }
-
-.navScrollContainer::-webkit-scrollbar {
-  height: 6px;
-}
+.navScrollContainer::-webkit-scrollbar { height: 6px; }
 .navScrollContainer::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 10px;
@@ -154,9 +145,16 @@
 .navSectionTitle {
   font-weight: 600;
   font-size: 13px;
-  color: #555;
+  color: #6b7280;
   margin-bottom: 6px;
   white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.navSectionTitleActive {
+  color: #111827;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .navQuestions {
@@ -166,24 +164,34 @@
 }
 
 .navButton {
-  border: 1px solid #ccc;
+  border: 1px solid #d1d5db;
   background: white;
-  color: #333;
+  color: #374151;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 32px;
 }
-
-.navButton:hover {
-  background: #f1f5f9;
-}
+.navButton:hover { background: #f3f4f6; }
 
 .activeNavButton {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+/* answered vs unanswered */
+.completedNavButton {
+  border-color: #22c55e;
+  background: #ecfdf5;
+  color: #166534;
+  font-weight: 600;
+}
+.unansweredNavButton {
+  border-color: #d1d5db;
+  background: #ffffff;
+  color: #6b7280;
 }
 
 .completeButton {
@@ -198,15 +206,8 @@
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
-
-.completeButton:hover {
-  background: #15803d;
-}
-
-.completeButton:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
+.completeButton:hover { background: #15803d; }
+.completeButton:disabled { background: #9ca3af; cursor: not-allowed; }
 
 /* Centered screens (No exam / Submitted) */
 .fullscreenCenter {
@@ -217,56 +218,23 @@
   height: 60vh;
   text-align: center;
 }
+.fullscreenCenter h2 { color: #333; margin-bottom: 20px; }
+.fullscreenCenter h3 { color: #22c55e; margin-bottom: 15px; }
+.fullscreenCenter p { color: #666; margin-bottom: 25px; font-size: 16px; }
 
-.fullscreenCenter h2 {
-  color: #333;
-  margin-bottom: 20px;
-}
-
-.fullscreenCenter h3 {
-  color: #22c55e;
-  margin-bottom: 15px;
-}
-
-.fullscreenCenter p {
-  color: #666;
-  margin-bottom: 25px;
-  font-size: 16px;
-}
-
-/* Responsive Design */
+/* Responsive: shrink middle rail on small screens */
 @media (max-width: 768px) {
-  .mainContent {
-    flex-direction: column;
+  .middleGrid {
+    grid-template-columns: 0 minmax(0, 1fr) 0; /* just the middle column on mobile */
   }
-
-  .leftPanel {
-    border-right: none;
-    border-bottom: 1px solid #e0e0e0;
-    padding: 16px;
-  }
-
-  .audioContainer {
-    padding: 16px;
-  }
-
-  .audioTitle {
-    font-size: 16px;
-  }
-
-  .bottomNavigation {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .navButton {
-    padding: 3px 6px;
-    font-size: 12px;
-  }
+  .middleRail { padding: 12px 10px 0; }
+  .questionCard { padding: 16px; }
 }
 
-/* Unanswered question highlight */
+/* Optional: highlight unanswered inputs (you can add this class where you render inputs) */
 .unanswered {
   outline: 2px solid #ef4444;
   background-color: #fee2e2;
 }
+
+.questionCard :where(h1,h2,h3,h4,h5,h6,p,ul,ol,li,table,blockquote,code,pre){text-align:left!important;margin-inline:0;}

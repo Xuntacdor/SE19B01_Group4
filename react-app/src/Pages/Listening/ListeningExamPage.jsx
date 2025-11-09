@@ -7,20 +7,20 @@ import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 import { Clock } from "lucide-react";
 import styles from "./ListeningExamPage.module.css";
 
-// ---------- Markdown config for the PASSAGE ----------
+// ---------- Markdown config ----------
 marked.setOptions({
   gfm: true,
-  breaks: true, // single newlines -> <br>
+  breaks: true,
   mangle: false,
   headerIds: false,
 });
 
-// Remove [H*id]...[/H] wrappers and render full Markdown (so headings, lists, breaks work)
+// Strip [H*] wrappers (if any) and keep inner content
 function passageMarkdownToHtml(raw) {
   if (!raw) return "";
   const cleaned = String(raw).replace(
     /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
-    (_match, _id, inner) => inner // keep inner text; drop the wrapper entirely
+    (_match, _id, inner) => inner
   );
   return marked.parse(cleaned);
 }
@@ -40,10 +40,7 @@ export default function ListeningExamPage() {
   // Countdown
   useEffect(() => {
     if (!timeLeft || submitted) return;
-    const timer = setInterval(
-      () => setTimeLeft((t) => Math.max(0, t - 1)),
-      1000
-    );
+    const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
 
@@ -53,7 +50,7 @@ export default function ListeningExamPage() {
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
-  // Capture form changes
+  // Track answers
   const handleChange = (e) => {
     const { name, value, type, checked, multiple, options, dataset } = e.target;
     if (!name) return;
@@ -93,7 +90,16 @@ export default function ListeningExamPage() {
     setAnswers((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Submit attempt
+  // Helper: is question answered?
+  const isAnswered = (skillId, qNumber) => {
+    const key = `${skillId}_q${qNumber}`;
+    const val = answers[key];
+    if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === "string") return val.trim() !== "";
+    return false;
+  };
+
+  // Submit
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
@@ -112,8 +118,7 @@ export default function ListeningExamPage() {
       questionKeys.forEach((key) => {
         const val = answers[key];
         if (Array.isArray(val) && val.length > 0) taskAnswers[key] = val;
-        else if (typeof val === "string" && val.trim() !== "")
-          taskAnswers[key] = val;
+        else if (typeof val === "string" && val.trim() !== "") taskAnswers[key] = val;
         else taskAnswers[key] = "_";
       });
 
@@ -147,21 +152,23 @@ export default function ListeningExamPage() {
       .finally(() => setIsSubmitting(false));
   };
 
-  // For nav buttons: count [!num]
+  // Count [!num] markers
   const getQuestionCount = (listeningQuestion) => {
     if (!listeningQuestion) return 0;
     const numMarkers = listeningQuestion.match(/\[!num\]/g);
     return numMarkers ? numMarkers.length : 0;
   };
 
+  // Scroll top when switching parts
+  useEffect(() => {
+    document.querySelector(`.${styles.examWrapper}`)?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentTask]);
+
   if (!exam)
     return (
       <div className={styles.fullscreenCenter}>
         <h2>No exam selected</h2>
-        <button
-          className={styles.backBtn}
-          onClick={() => navigate("/listening")}
-        >
+        <button className={styles.backBtn} onClick={() => navigate("/listening")}>
           ← Back
         </button>
       </div>
@@ -172,10 +179,7 @@ export default function ListeningExamPage() {
       <div className={styles.fullscreenCenter}>
         <h3>✅ Listening Test Submitted!</h3>
         <p>Your answers have been recorded successfully.</p>
-        <button
-          className={styles.backBtn}
-          onClick={() => navigate("/listening")}
-        >
+        <button className={styles.backBtn} onClick={() => navigate("/listening")}>
           ← Back to Listening List
         </button>
       </div>
@@ -188,10 +192,7 @@ export default function ListeningExamPage() {
     <div className={styles.examWrapper}>
       {/* Header */}
       <div className={styles.topHeader}>
-        <button
-          className={styles.backBtn}
-          onClick={() => navigate("/listening")}
-        >
+        <button className={styles.backBtn} onClick={() => navigate("/listening")}>
           ← Back
         </button>
         <h2 className={styles.examTitle}>{exam.examName}</h2>
@@ -201,105 +202,88 @@ export default function ListeningExamPage() {
         </div>
       </div>
 
-      <div className={styles.mainContent}>
-        {/* Left: Passage */}
-        <div className={styles.leftPanel}>
-          {currentTaskData?.passageTitle && (
-            <div className={styles.passageHeader}>
-              <h3 className={styles.passageTitle}>
-                {currentTaskData.passageTitle}
-              </h3>
-            </div>
-          )}
-          {currentTaskData?.listeningContent ? (
-            <div className={styles.audioContainer}>
-              <h3 className={styles.audioTitle}>Audio Track</h3>
-              <audio controls className={styles.audioPlayer}>
-                <source
-                  src={currentTaskData.listeningContent}
-                  type="audio/mpeg"
+      {/* Middle rail (panel stays in the middle, content left-aligned) */}
+      <div className={styles.middleGrid}>
+        <div className={styles.middleRail}>
+          <div className={styles.questionCard}>
+            <form ref={formRef} onChange={handleChange} onInput={handleChange}>
+              {currentTaskData?.passageTitle && (
+                <h3 className={styles.passageTitle}>{currentTaskData.passageTitle}</h3>
+              )}
+
+              {currentTaskData?.listeningQuestion ? (
+                <ExamMarkdownRenderer
+                  markdown={currentTaskData.listeningQuestion}
+                  showAnswers={false}
+                  skillId={currentTaskData.listeningId}
                 />
+              ) : (
+                <div className={styles.noQuestionBox}>
+                  <h3>No Questions Found</h3>
+                  <p>This listening test doesn't have any questions configured yet.</p>
+                </div>
+              )}
+            </form>
+          </div>
+
+          {/* Slim audio playbar BELOW the panel */}
+          <div className={styles.audioPlaybarWrap}>
+            {currentTaskData?.listeningContent ? (
+              <audio controls className={styles.audioPlaybar}>
+                <source src={currentTaskData.listeningContent} type="audio/mpeg" />
                 Your browser does not support the audio element.
               </audio>
-            </div>
-          ) : (
-            <div className={styles.noAudio}>
-              No audio available for this task.
-            </div>
-          )}
-        </div>
-
-        {/* Right: Questions */}
-        <div className={styles.rightPanel}>
-          <form ref={formRef} onChange={handleChange} onInput={handleChange}>
-            {currentTaskData?.listeningQuestion ? (
-              <ExamMarkdownRenderer
-                markdown={currentTaskData.listeningQuestion}
-                showAnswers={false} // explanations hidden on exam
-                skillId={currentTaskData.listeningId}
-              />
             ) : (
-              <div className={styles.questionSection}>
-                <div
-                  style={{
-                    padding: "40px",
-                    textAlign: "center",
-                    color: "#666",
-                  }}
-                >
-                  <h3>No Questions Found</h3>
-                  <p>
-                    This listening test doesn't have any questions configured
-                    yet.
-                  </p>
-                </div>
-              </div>
+              <div className={styles.noAudioSmall}>No audio available for this part.</div>
             )}
-          </form>
+          </div>
         </div>
       </div>
 
-      {/* Bottom Nav */}
+      {/* Bottom Navigation */}
       <div className={styles.bottomNavigation}>
         <div className={styles.navScrollContainer}>
           {(tasks || []).map((task, taskIndex) => {
             const count = getQuestionCount(task.listeningQuestion);
             return (
               <div key={task.listeningId} className={styles.navSection}>
-                <div className={styles.navSectionTitle}>
+                <div
+                  className={`${styles.navSectionTitle} ${
+                    currentTask === taskIndex ? styles.navSectionTitleActive : ""
+                  }`}
+                  onClick={() => setCurrentTask(taskIndex)}
+                  role="button"
+                >
                   Part {taskIndex + 1}
                 </div>
                 <div className={styles.navQuestions}>
-                  {Array.from({ length: count }, (_, qIndex) => (
-                    <button
-                      type="button"
-                      key={`${taskIndex}-${qIndex}`}
-                      className={`${styles.navButton} ${
-                        currentTask === taskIndex && qIndex === 0
-                          ? styles.activeNavButton
-                          : ""
-                      }`}
-                      onClick={() => {
-                        setCurrentTask(taskIndex);
-                        document
-                          .querySelector(`.${styles.examWrapper}`)
-                          ?.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    >
-                      {qIndex + 1}
-                    </button>
-                  ))}
+                  {Array.from({ length: count }, (_, qIndex) => {
+                    const qNum = qIndex + 1;
+                    const answered = isAnswered(task.listeningId, qNum);
+                    const isCurrentPart = currentTask === taskIndex;
+                    return (
+                      <button
+                        type="button"
+                        key={`${taskIndex}-${qIndex}`}
+                        className={[
+                          styles.navButton,
+                          answered ? styles.completedNavButton : styles.unansweredNavButton,
+                          isCurrentPart && qIndex === 0 ? styles.activeNavButton : "",
+                        ].join(" ")}
+                        title={answered ? "Answered" : "Unanswered"}
+                        onClick={() => setCurrentTask(taskIndex)}
+                      >
+                        {qNum}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
         </div>
 
-        <button
-          className={styles.completeButton}
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-        >
+        <button className={styles.completeButton} onClick={handleSubmit} disabled={isSubmitting}>
           {isSubmitting ? "Submitting..." : "Complete"}
         </button>
       </div>

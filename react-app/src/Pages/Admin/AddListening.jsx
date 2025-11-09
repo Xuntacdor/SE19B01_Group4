@@ -74,9 +74,7 @@ export default function AddListening() {
     setStatus({ icon: <Upload size={16} />, message: "Uploading audio..." });
 
     try {
-      // Convert File to Blob (same as speaking test)
-      const blob = new Blob([file], { type: file.type });
-      const res = await UploadApi.uploadAudio(blob);
+      const res = await UploadApi.uploadAudio(file);
       const audioUrl = res?.url || res?.path || (typeof res === "string" ? res : null);
       if (!audioUrl) throw new Error("No audio URL returned");
 
