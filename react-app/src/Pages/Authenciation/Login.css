@@ -5,15 +5,7 @@
   box-sizing: border-box;
 }
 
-/* Prevent body/html scrollbars */
-body, html {
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
+/* Scoped to login page only - prevents scrollbars without affecting other pages */
 .animated-login-page {
   font-family: "Montserrat", sans-serif;
   display: flex;
@@ -29,7 +21,7 @@ body, html {
   background-size: 200% 200%;
   animation: gradientShift 8s ease infinite;
   position: relative;
-  overflow: hidden; /* Changed to hidden to prevent scrollbars */
+  overflow: hidden; /* Prevents scrollbars by containing all content */
 }
 
 .animated-login-page::before {
@@ -141,17 +133,18 @@ body, html {
   }
 }
 
-h1 {
+/* Scoped element styles - only apply within login page */
+.animated-login-page h1 {
   font-weight: bold;
   margin: 10px 0;
   font-size: 1.8rem;
 }
 
-h2 {
+.animated-login-page h2 {
   text-align: center;
 }
 
-p {
+.animated-login-page p {
   font-size: 14px;
   font-weight: 100;
   line-height: 20px;
@@ -159,13 +152,13 @@ p {
   margin: 20px 0 30px;
 }
 
-span {
+.animated-login-page span {
   font-size: 12px;
   color: #666;
   margin: 5px 0;
 }
 
-a {
+.animated-login-page a {
   color: #8C921F;
   font-size: 14px;
   text-decoration: none;
@@ -173,11 +166,11 @@ a {
   cursor: pointer;
 }
 
-a:hover {
+.animated-login-page a:hover {
   text-decoration: underline;
 }
 
-button {
+.animated-login-page button {
   border-radius: 20px;
   border: 1px solid #8C921F;
   background-color: #8C921F;
@@ -192,22 +185,22 @@ button {
   font-family: "Montserrat", sans-serif;
 }
 
-button:active {
+.animated-login-page button:active {
   transform: scale(0.95);
 }
 
-button:focus {
+.animated-login-page button:focus {
   outline: none;
 }
 
-button:disabled {
+.animated-login-page button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
 }
 
-button.ghost,
-.overlay-panel button.ghost {
+.animated-login-page button.ghost,
+.animated-login-page .overlay-panel button.ghost {
   background-color: transparent;
   border-color: #ffffff;
   border-radius: 20px;
@@ -226,8 +219,8 @@ button.ghost,
   margin: 0;
 }
 
-button.ghost:hover,
-.overlay-panel button.ghost:hover {
+.animated-login-page button.ghost:hover,
+.animated-login-page .overlay-panel button.ghost:hover {
   transform: scale(0.95);
 }
 
