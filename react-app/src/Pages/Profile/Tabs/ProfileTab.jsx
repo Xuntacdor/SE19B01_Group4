@@ -3,6 +3,7 @@ import { User } from "lucide-react";
 import { compressAndUploadImage } from "../../../utils/ImageHelper";
 import { updateUser } from "../../../Services/UserApi";
 import ChangePasswordModal from "../../../Components/Auth/ChangePasswordModal";
+import InputField from "../../../Components/Auth/InputField";
 import "./ProfileTab.css";
 
 export default function ProfileTab({ user, profileData, setProfileData }) {
@@ -65,9 +66,10 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
         {/* ===== Name ===== */}
         <div className="form-group">
           <label>Name</label>
-          <input
+          <InputField
             name="name"
             type="text"
+            placeholder="Enter your name"
             value={profileData.name}
             onChange={handleChange}
           />
@@ -76,9 +78,10 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
         {/* ===== Gmail ===== */}
         <div className="form-group">
           <label>Gmail</label>
-          <input
+          <InputField
             name="gmail"
             type="email"
+            placeholder="Enter your email"
             value={profileData.gmail}
             onChange={handleChange}
           />
@@ -87,9 +90,10 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
         {/* ===== Account Name ===== */}
         <div className="form-group">
           <label>Account Name</label>
-          <input
+          <InputField
             name="accountName"
             type="text"
+            placeholder="Enter your account name"
             value={profileData.accountName}
             onChange={handleChange}
           />
