@@ -80,18 +80,20 @@ function normalizeUser(raw) {
   return { arr: [s.toLowerCase()], isMissing: false };
 }
 
-// Post-process the final HTML of a QUESTION block and turn [H*id]...[/H] into <details> ... </details>.
-// We do this AFTER markdown runs so nothing escapes as literal text.
+// Robustly handle missing keys (no property present)
+function getUserNormFor(key, obj) {
+  const hasKey =
+    obj != null && Object.prototype.hasOwnProperty.call(obj, key);
+  return normalizeUser(hasKey ? obj[key] : undefined);
+}
+
+// Remove or render explanations
 function applyQuestionExplanationsHTML(html, showAnswers) {
-  // If we’re on the exam page, explanations should not render at all.
   if (!showAnswers) {
     return html.replace(/\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g, "");
   }
-
-  // On result page, inject details/summary blocks.
   return html.replace(/\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g, (_, rawId, inner) => {
     const hid = (rawId || "").trim();
-    // Note: inner is already HTML (line breaks became <br/>, etc.) because this runs after marked.parse
     return `
       <details class="explainBlock" ${hid ? `data-hid="${escapeHtml(hid)}"` : ""}>
         <summary class="explainBtn" ${hid ? `data-hid="${escapeHtml(hid)}"` : ""}>
@@ -117,21 +119,22 @@ function processQuestionBlock(
   const safeId = skillId && skillId > 0 ? skillId : "X";
   const key = `${safeId}_q${qIndex}`;
 
-  const userNorm = normalizeUser(userAnsObj?.[key]);
+  // normalize answers
+  const userNorm = getUserNormFor(key, userAnsObj);
   const cArr = normalize(correctAnsObj?.[key]);
   const uSet = new Set(userNorm.arr);
   const cSet = new Set(cArr);
 
-  // 🟢 Text inputs [T*answer]
+  // [T*answer] — if missing: mark the readonly answer with qa-missing (old class)
   text = text.replace(/\[T\*([^\]]+)\]/g, (_, ans) => {
     const width = Math.min(Math.max(ans.length + 5, 10), 30);
     if (!showAnswers) {
       return `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}" style="width:${width}ch;" />`;
     }
-    const uRaw = userAnsObj?.[key];
-    const uFirst = Array.isArray(uRaw) ? uRaw[0] ?? "" : uRaw ?? "";
-    const uFirstTrim = String(uFirst).trim();
-    const isMissing = uFirstTrim === "" || uFirstTrim === "_";
+
+    const userNormForText = getUserNormFor(key, userAnsObj);
+    const uFirstTrim = userNormForText.arr[0] ? String(userNormForText.arr[0]).trim() : "";
+    const isMissing = userNormForText.isMissing || uFirstTrim === "" || uFirstTrim === "_";
     const ok =
       !isMissing &&
       uFirstTrim.toLowerCase() === String(ans).trim().toLowerCase();
@@ -155,7 +158,7 @@ function processQuestionBlock(
     return `<input type="text" class="inlineTextbox" name="${safeId}_q${qIndex}" style="width:${width}ch;" disabled />`;
   });
 
-  // 🟢 Dropdowns [D] ... [/D]
+  // Dropdowns [D] ... [/D] — if missing: select gets qa-missing; correct option also gets qa-missing
   const choiceRegex = /\[([* ])\]\s*([^\n\[]+)/g;
   const dropdownRegex = /\[D\]([\s\S]*?)\[\/D\]/g;
   text = text.replace(dropdownRegex, (_, inner) => {
@@ -164,8 +167,7 @@ function processQuestionBlock(
       text: m[2].trim(),
     }));
 
-    const userPickRaw = userAnsObj?.[key];
-    const userPickNorm = normalizeUser(userPickRaw);
+    const userPickNorm = getUserNormFor(key, userAnsObj);
     const userPick = userPickNorm.arr[0] || "";
     const correctPick =
       (options.find((o) => o.correct)?.text ?? "").toLowerCase();
@@ -183,24 +185,25 @@ function processQuestionBlock(
       Math.max(...options.map((o) => o.text.length)) + 5,
       30
     );
+
     return (
       `<select name="${safeId}_q${qIndex}" class="dropdownInline ${selectStatus}" style="width:${longest}ch" ${
         showAnswers ? "disabled" : ""
       }>` +
       `<option value="" disabled selected hidden></option>` +
       options
-        .map(
-          (o) =>
-            `<option value="${escapeHtml(o.text)}"${
-              showAnswers && o.correct ? " selected" : ""
-            }>${escapeHtml(o.text)}</option>`
-        )
+        .map((o) => {
+          const optionMissing =
+            showAnswers && userPickNorm.isMissing && o.correct ? ' class="qa-missing"' : '';
+          const selectedStr = showAnswers && o.correct ? " selected" : "";
+          return `<option value="${escapeHtml(o.text)}"${optionMissing}${selectedStr}>${escapeHtml(o.text)}</option>`;
+        })
         .join("") +
       "</select>"
     );
   });
 
-  // 🟢 Radio / Checkbox group
+  // Radio / Checkbox group — if missing: only correct options get qa-missing
   const choiceRegex2 = /\[([* ])\]\s*([^\n\[]+)/g;
   const outsideDropdown = text.replace(/\[D\][\s\S]*?\[\/D\]/g, "");
   const correctCount = (outsideDropdown.match(/\[\*\]/g) || []).length;
@@ -220,7 +223,7 @@ function processQuestionBlock(
     let hl = "";
     if (showAnswers) {
       if (applyGroupMissing) {
-        hl = "qa-missing";
+        if (cSet.has(vKey)) hl = "qa-missing"; // old class name, applied only to corrects
       } else if (cSet.has(vKey)) {
         hl = "qa-right";
       } else if (uSet.has(vKey) && !cSet.has(vKey)) {
@@ -244,10 +247,10 @@ function processQuestionBlock(
   // Number
   text = text.replace(/\[!num\]/g, `<span class="numberIndex">Q${qIndex}.</span>`);
 
-  // First, convert all markdown to HTML:
+  // Convert markdown to HTML
   let html = marked.parse(text);
 
-  // Then, replace the [H*id]...[/H] markers (now living inside that HTML) with the explanation UI (or remove on exam page)
+  // Apply [H] explanations
   html = applyQuestionExplanationsHTML(html, showAnswers);
 
   return html;
@@ -328,7 +331,7 @@ export function renderMarkdownToHtmlAndAnswers(markdown, readingId = 0) {
     allAnswers[`${safeId}_q${qCounter}`] =
       answersForThisQ.length > 1 ? answersForThisQ : answersForThisQ[0] || "_";
 
-    // For exam preview, we do not inject explanations
+    // exam preview: do not inject explanations
     htmlOutput += marked.parse(full);
   });
 
