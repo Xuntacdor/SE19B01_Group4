@@ -10,7 +10,7 @@ export default defineConfig({
       "/api": {
         target: "https://webapi-823340438485.asia-southeast1.run.app",
         changeOrigin: true,
-        secure: true, =
+        secure: true, 
       },
     },
   },
