@@ -1,7 +1,8 @@
 import axios from "axios";
+import { getApiUrl } from "../config/api";
 
 const API = axios.create({
-  baseURL: "/api/moderator",
+  baseURL: getApiUrl("moderator"),
   withCredentials: true,
 });
 
