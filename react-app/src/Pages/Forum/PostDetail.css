@@ -150,11 +150,12 @@
   color: #333;
 }
 
-.post-content {
+/* Scoped post content for post detail page */
+.post-detail-card .post-detail-content-body {
   margin-bottom: 20px;
 }
 
-.post-title {
+.post-detail-card .post-detail-title {
   font-size: 28px !important;
   font-weight: 600;
   color: #333;
@@ -222,14 +223,15 @@
   margin: 8px 0;
 }
 
-.post-tags {
+/* Scoped post tags for post detail page */
+.post-detail-card .post-detail-tags {
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
-.post-tag {
+.post-detail-card .post-detail-tag {
   background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
   color: white;
   padding: 6px 12px;
@@ -242,7 +244,7 @@
   box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
 }
 
-.post-tag:hover {
+.post-detail-card .post-detail-tag:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
 }
@@ -287,8 +289,8 @@
   color: #666;
 }
 
-/* Modal Styles */
-.modal-overlay {
+/* Modal Styles - scoped for post detail (not used currently, but scoped to avoid conflicts) */
+.post-detail-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -301,7 +303,7 @@
   z-index: 1000;
 }
 
-.modal {
+.post-detail-modal {
   background: white;
   border-radius: 8px;
   padding: 24px;
@@ -311,12 +313,12 @@
   overflow-y: auto;
 }
 
-.modal h3 {
+.post-detail-modal h3 {
   margin: 0 0 16px 0;
   color: #333;
 }
 
-.modal textarea {
+.post-detail-modal textarea {
   width: 100%;
   padding: 12px;
   border: 1px solid #ddd;
@@ -326,42 +328,10 @@
   resize: vertical;
 }
 
-.modal-actions {
+.post-detail-modal-actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: #dc3545;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #c82333;
-}
-
-.btn-primary:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #5a6268;
 }
 
 /* User Profile Card */
@@ -466,7 +436,7 @@
   color: #333;
 }
 
-/* Post Menu Styles */
+/* Post Menu Styles - scoped for post detail */
 .post-menu-container {
   position: relative;
 }
@@ -502,7 +472,7 @@
   overflow: hidden;
 }
 
-.menu-item {
+.post-menu-dropdown .post-detail-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -517,51 +487,51 @@
   transition: background-color 0.2s ease;
 }
 
-.menu-item:hover {
+.post-menu-dropdown .post-detail-menu-item:hover {
   background-color: #f8f9fa;
 }
 
-.menu-item.delete {
+.post-menu-dropdown .post-detail-menu-item.delete {
   color: #dc3545;
 }
 
-.menu-item.delete:hover {
+.post-menu-dropdown .post-detail-menu-item.delete:hover {
   background-color: #f8d7da;
 }
 
-.menu-item.hide {
+.post-menu-dropdown .post-detail-menu-item.hide {
   color: #6c757d;
 }
 
-.menu-item.hide:hover {
+.post-menu-dropdown .post-detail-menu-item.hide:hover {
   background-color: #f8f9fa;
 }
 
-.menu-item.pin {
+.post-menu-dropdown .post-detail-menu-item.pin {
   color: #ffc107;
 }
 
-.menu-item.pin:hover {
+.post-menu-dropdown .post-detail-menu-item.pin:hover {
   background-color: #fff3cd;
 }
 
-.menu-item.report {
+.post-menu-dropdown .post-detail-menu-item.report {
   color: #dc3545;
 }
 
-.menu-item.report:hover {
+.post-menu-dropdown .post-detail-menu-item.report:hover {
   background-color: #f8d7da;
 }
 
-/* Pinned indicator */
-.pinned-indicator {
+/* Pinned indicator - scoped for post detail */
+.post-detail-card .post-detail-pinned-indicator {
   font-size: 28px;
   color: #ffc107;
-  animation: pulse 2s infinite;
+  animation: postDetailPulse 2s infinite;
   margin-right: 8px;
 }
 
-@keyframes pulse {
+@keyframes postDetailPulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.1); }
   100% { transform: scale(1); }

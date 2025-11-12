@@ -32,10 +32,10 @@ export default function PostItem({ post, onPostUpdated, isInClosedSection = fals
       </div>
 
       {/* Main Content - Topic Column */}
-      <div className="post-content">
-        <h3 className="post-title">
+      <div className="forum-list-post-content">
+        <h3 className="forum-list-post-title">
           {isPinned && (
-            <span className="pinned-indicator" title="Bài viết đã được ghim">
+            <span className="forum-list-pinned-indicator" title="Bài viết đã được ghim">
               <Pin size={16} />
             </span>
           )}
@@ -49,9 +49,9 @@ export default function PostItem({ post, onPostUpdated, isInClosedSection = fals
         
         {/* Tags Section */}
         {post.tags && post.tags.length > 0 && (
-          <div className="post-tags">
+          <div className="forum-list-post-tags">
             {post.tags.map((tag, index) => (
-              <span key={index} className="post-tag">
+              <span key={index} className="forum-list-post-tag">
                 #{tag.tagName}
               </span>
             ))}

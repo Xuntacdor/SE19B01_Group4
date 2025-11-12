@@ -148,13 +148,13 @@ export default function CommentSection({ postId, postOwnerId }) {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Type here your wise suggestion"
-            rows={4}
+            rows={5}
             required
           />
           <div className="comment-actions">
             <button
               type="submit"
-              className="btn btn-primary"
+              className="forum-comment-btn forum-comment-btn-primary"
               disabled={submitting || !newComment.trim()}
             >
               {submitting ? "Suggesting..." : "Suggest"}

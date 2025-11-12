@@ -178,13 +178,15 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
             "https://localhost:5173",
             "http://localhost:5173",
-            "https://ieltsphobic.web.app/"
+            "https://ieltsphobic.web.app",
+            "https://ieltsphobic.firebaseapp.com"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials();
     });
 });
+
 
 // ======================================
 // Authentication (Google + Cookie)

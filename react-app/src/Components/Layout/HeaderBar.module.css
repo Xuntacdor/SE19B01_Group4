@@ -57,14 +57,20 @@
   color: #1976d2;
 }
 
+.notificationIcon.bell.hasUnread {
+  color: #1976d2;
+}
+
 .notificationDot {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: 6px;
+  right: 6px;
   width: 8px;
   height: 8px;
   background-color: #dc3545;
   border-radius: 50%;
+  border: 2px solid #fff;
+  z-index: 1;
 }
 
 .userAvatarContainer {
