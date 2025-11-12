@@ -3,7 +3,7 @@ import styles from "./NothingFound.module.css";
 import { useNavigate } from "react-router-dom";
 
 export default function NothingFound({
-  imageSrc = "/src/assets/sad_cloud.png",
+  imageSrc = "../assets/images/nothing-found.png",
   title = "Nothing here yet",
   message = "There is no data to display.",
   actionLabel,
