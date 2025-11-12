@@ -381,6 +381,7 @@
   border-radius: 6px;
   min-width: auto;
   min-height: auto;
+  position: relative;
 }
 
 .create-post-form .btn-insert-image:hover:not(:disabled) {
@@ -388,6 +389,57 @@
   border-color: #218838;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(40, 167, 69, 0.2);
+}
+
+/* Tooltip for insert image button */
+.create-post-form .btn-insert-image[data-tooltip] {
+  position: relative;
+}
+
+.create-post-form .btn-insert-image[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background-color: #333;
+  color: white;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 6px;
+  white-space: nowrap;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateX(-50%) translateY(-4px);
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-family: 'Inter', sans-serif;
+}
+
+.create-post-form .btn-insert-image[data-tooltip]::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 2px;
+  border: 5px solid transparent;
+  border-top-color: #333;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateX(-50%) translateY(-4px);
+  z-index: 1000;
+}
+
+.create-post-form .btn-insert-image[data-tooltip]:hover::before,
+.create-post-form .btn-insert-image[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .create-post-form .btn-remove-file {
