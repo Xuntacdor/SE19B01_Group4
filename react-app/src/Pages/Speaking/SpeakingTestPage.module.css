@@ -103,6 +103,10 @@ h3 {
 }
 
 .questionContent {
+  display: flex;
+  align-items: center; /* Align vertically */
+  justify-content: center; /* Keep text left-aligned */
+  gap: 10px; /* Space between text and button */
   margin-top: 10px;
 }
 
@@ -110,21 +114,31 @@ h3 {
   font-size: 1rem;
   color: #334155;
   line-height: 1.6;
-  margin-bottom: 8px;
+  margin: 0;
+  flex: 1;
+  max-width: 480px;
+  font-size: large;
 }
 
 .playBtn {
   background: #e0f2fe;
   border: none;
   border-radius: 50%;
-  padding: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   color: #2563eb;
-  transition: 0.2s;
+  flex-shrink: 0;
+  transition: background 0.2s ease, transform 0.1s ease;
+  padding: 0%;
 }
 
 .playBtn:hover {
   background: #bfdbfe;
+  transform: scale(1.05);
 }
 
 /* ---------- Recording ---------- */
@@ -140,6 +154,11 @@ h3 {
   align-items: center;
   gap: 8px;
   transition: 0.2s;
+  margin-top: 20%;
+  max-width: 25%;
+  display: flex;
+  justify-content: center;
+  margin-left: 38%;
 }
 
 .recordBtn:hover {

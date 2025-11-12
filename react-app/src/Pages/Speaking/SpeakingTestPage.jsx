@@ -492,6 +492,11 @@ export default function SpeakingTest() {
           <div className={styles.questionPanel}>
             <div className={styles.questionHeader}>
               <h3>Question</h3>
+            </div>
+            <div className={styles.questionContent}>
+              <p>
+                <strong>Q:</strong> {currentTask?.speakingQuestion}
+              </p>
               <button
                 className={styles.playBtn}
                 onClick={() =>
@@ -500,11 +505,6 @@ export default function SpeakingTest() {
               >
                 <Volume2 size={18} />
               </button>
-            </div>
-            <div className={styles.questionContent}>
-              <p>
-                <strong>Q:</strong> {currentTask?.speakingQuestion}
-              </p>
             </div>
 
             <div className={styles.dynamicSection}>
