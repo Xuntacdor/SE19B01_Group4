@@ -165,7 +165,7 @@ export default function RightSidebar() {
                 className="sidebar-item clickable"
                 onClick={() => handlePostClick(post.postId)}
               >
-                <div className="post-title">{post.title}</div>
+                <div className="sidebar-post-title">{post.title}</div>
                 <div className="post-votes">
                   <ThumbsUp size={14} />
                   {post.voteCount || 0}

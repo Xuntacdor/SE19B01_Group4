@@ -269,6 +269,10 @@
 }
 
 .create-post-form .file-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 20px;
 }
@@ -278,6 +282,13 @@
   color: white;
   border: 1px solid #007bff;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
+  width: auto;
+  min-width: 150px;
 }
 
 .create-post-form .btn-file-upload:hover:not(:disabled) {
