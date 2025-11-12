@@ -1,8 +1,9 @@
 // src/Services/VipPaymentApi.js
 import axios from "axios";
+import { getApiUrl } from "../config/api";
 
 const API = axios.create({
-  baseURL: "/api/vip",
+  baseURL: getApiUrl("vip"),
   withCredentials: true,
 });
 

@@ -1,12 +1,13 @@
 import axios from "axios";
+import { getApiUrl } from "../config/api";
 
 const API = axios.create({
-  baseURL: "/api/forum",
+  baseURL: getApiUrl("forum"),
   withCredentials: true,
 });
 
 const TAG_API = axios.create({
-  baseURL: "/api/tag",
+  baseURL: getApiUrl("tag"),
   withCredentials: true,
 });
 

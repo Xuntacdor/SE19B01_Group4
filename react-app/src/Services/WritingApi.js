@@ -1,7 +1,8 @@
 import axios from "axios";
+import { getApiUrl } from "../config/api";
 
 const API = axios.create({
-  baseURL: "/api/writing",
+  baseURL: getApiUrl("writing"),
   withCredentials: true,
 });
 
@@ -30,9 +31,11 @@ export function remove(id) {
 }
 
 export function attachImageToWriting(writingId, file) {
-  return uploadImage(file)
-    .then((url) => update(writingId, { imageUrl: url }))
-    .then((res) => res);
+  // Import uploadImage dynamically to avoid circular dependency
+  return import('./UploadApi').then(({ uploadImage }) => 
+    uploadImage(file)
+      .then((res) => update(writingId, { imageUrl: res.url }))
+  );
 }
 
 export function gradeWriting(gradeData) {

@@ -16,9 +16,23 @@ using WebAPI.Services.Payments;
 using WebAPI.Services.Webhooks;
 //using WebAPI.Services.Payments;
 //using WebAPI.Services.Webhooks;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+var secretsJson = Environment.GetEnvironmentVariable("IELTSWebSecret");
+if (!string.IsNullOrWhiteSpace(secretsJson))
+{
+    try {
 
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(secretsJson));
+        builder.Configuration.AddJsonStream(stream);
+        Console.WriteLine("[CONFIG] Loaded secrets from env IELTSWebSecret (JSON)");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[ERROR] Failed to load IELTSWebSecret JSON: {ex.Message}");
+    }
+}
 // ======================================
 // Controllers & JSON config
 // ======================================
@@ -163,7 +177,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             "https://localhost:5173",
-            "http://localhost:5173"
+            "http://localhost:5173",
+            "https://ieltsphobic.web.app/"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -177,7 +192,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = "Google"; // Google login challenge
+    //options.DefaultChallengeScheme = "Google"; // Google login challenge
 })
 .AddCookie(options =>
 {
@@ -213,14 +228,14 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
-})
-.AddGoogle("Google", options =>
-{
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-    options.CallbackPath = "/api/auth/google/response";
-    options.SaveTokens = true;
 });
+//.AddGoogle("Google", options =>
+//{
+//    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+//    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+//    options.CallbackPath = "/api/auth/google/response";
+//    options.SaveTokens = true;
+//});
 
 
 // ======================================

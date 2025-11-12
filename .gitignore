@@ -46,6 +46,87 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.development
+*.env
+
+###########################
+# 🐳 Docker
+###########################
+# Docker override files (thường chứa secrets)
+docker-compose.override.yml
+docker-compose.*.local.yml
+docker-compose.*.override.yml
+
+# Docker volumes và data
+docker-data/
+docker-volumes/
+*.docker-data
+*.volume
+
+# Docker logs
+docker.log
+docker-compose.log
+*.docker.log
+
+# Docker build cache
+.docker/
+
+# Docker build outputs
+WebAPI/out/
+out/
+*.docker-build
+
+# Docker secrets
+docker-secrets/
+*.docker-secret
+secrets/
+*.secret
+
+# Docker deployment scripts với credentials
+deploy-to-gcp.sh
+deploy.sh
+*.deploy.sh
+!deploy-to-gcp.sh.example
+
+###########################
+# ☁️ Google Cloud Platform
+###########################
+# GCP Service Account Keys (JSON files với credentials)
+*-service-account*.json
+*service-account*.json
+*key*.json
+*gcp-credentials*.json
+*google-credentials*.json
+credentials.json
+gcp-credentials.json
+google-credentials.json
+service-account-key.json
+*-key.json
+account-key.json
+
+# GCP config files với secrets
+gcp-config.json
+google-cloud-config.json
+cloud-config.json
+
+# GCP Application Default Credentials
+.gcloud/
+.gcloudignore
+gcloud-config/
+
+# GCP CLI config
+~/.config/gcloud/
+.gcloud/
+
+# GCP deployment configs với secrets
+.gcloudignore.local
+gcloud-deploy-config.json
+cloudbuild.yaml.local
+
+# Artifact Registry credentials
+.artifact-registry/
 
 ###########################
 # Misc

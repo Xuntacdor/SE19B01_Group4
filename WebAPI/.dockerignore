@@ -1,0 +1,22 @@
+.git
+.vs
+**/bin/
+**/obj/
+**/out/
+**/coveragereport/
+**/*.user
+**/*.Backup.tmp
+
+# bỏ tests hoàn toàn
+WebAPI.Tests/
+**/*Tests*/
+**/*.Tests/*
+**/*.test.*
+**/*.spec.*
+
+# nếu có artifacts khác
+node_modules
+dist
+.env
+.env.*
+**/appsettings.Development.json

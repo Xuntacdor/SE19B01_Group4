@@ -1,8 +1,9 @@
 import axios from "axios";
+import { getApiUrl } from "../config/api";
 
 // Tạo instance riêng cho word API
 const API = axios.create({
-  baseURL: "/api/words",
+  baseURL: getApiUrl("words"),
   withCredentials: true,
 });
 

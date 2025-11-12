@@ -3,9 +3,10 @@ import { createPortal } from "react-dom";
 import FormInput from "../../Components/Auth/InputField";
 import PasswordInputField from "../../Components/Auth/PasswordInputField";
 import Button from "../../Components/Auth/Button";
-import { login, register, loginWithGoogle, forgotPassword } from "../../Services/AuthApi.js";
 import google from "../../assets/google.png";
 import "./Login.css";
+import { login, register, forgotPassword } from "../../Services/AuthApi";
+
 import { useNavigate } from "react-router-dom";
 import { 
   User, 
@@ -552,7 +553,6 @@ const Login = () => {
                 <button
                   type="button"
                   className="social google-btn"
-                  onClick={loginWithGoogle}
                 >
                   <img src={google} alt="Google" className="social-img" />
                 </button>
@@ -655,7 +655,6 @@ const Login = () => {
                     <button
                       type="button"
                       className="social google-btn"
-                      onClick={loginWithGoogle}
                     >
                       <img src={google} alt="Google" className="social-img" />
                     </button>

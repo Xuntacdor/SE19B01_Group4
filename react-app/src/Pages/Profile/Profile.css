@@ -136,30 +136,64 @@
   gap: 24px 32px;
 }
 
-.form-group {
+/* Scoped form styles - only apply within profile-form */
+.profile-form .form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.form-group label {
+.profile-form .form-group label {
   font-size: 0.9rem;
   font-weight: 500;
   color: #374151;
 }
 
-.form-group input {
-  height: 42px;
-  padding: 0 12px;
+.profile-form .form-group input {
+  height: 48px;
+  padding: 0 16px;
   border: 1px solid #d1d5db;
   border-radius: 10px;
   outline: none;
   transition: 0.2s;
+  font-size: 15px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
-.form-group input:focus {
+.profile-form .form-group input:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Override InputField component styles for Profile page */
+.profile-form .form-group input {
+  height: 48px !important;
+  padding: 0 16px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 10px !important;
+  background: white !important;
+  font-size: 15px !important;
+  color: #1a1a1a !important;
+  outline: none;
+  transition: 0.2s;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.profile-form .form-group input:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+  outline: none;
+}
+
+.profile-form .form-group input::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Override InputField wrapper styles */
+.profile-form .form-group > div {
+  margin-bottom: 0;
 }
 
 /* ===== Avatar upload ===== */
@@ -227,7 +261,7 @@
   cursor: not-allowed;
 }
 
-.form-actions {
+.profile-form .form-actions {
   grid-column: span 2;
   display: flex;
   justify-content: flex-end;
@@ -277,7 +311,7 @@
 }
 
 /* ===== Nhóm nút hành động căn đều ===== */
-.profile-actions {
+.profile-form .profile-actions {
   grid-column: span 2;
   display: flex;
   justify-content: space-between;

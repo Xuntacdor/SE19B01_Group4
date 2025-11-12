@@ -1,8 +1,9 @@
 // src/services/examService.js
 import axios from "axios";
+import { getApiUrl } from "../config/api";
 
 const API = axios.create({
-  baseURL: "/api/exam",
+  baseURL: getApiUrl("exam"),
   withCredentials: true,
 });
 
