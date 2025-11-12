@@ -103,6 +103,10 @@ h3 {
 }
 
 .questionContent {
+  display: flex;
+  align-items: center; /* Align vertically */
+  justify-content: center; /* Keep text left-aligned */
+  gap: 10px; /* Space between text and button */
   margin-top: 10px;
 }
 
@@ -110,21 +114,31 @@ h3 {
   font-size: 1rem;
   color: #334155;
   line-height: 1.6;
-  margin-bottom: 8px;
+  margin: 0;
+  flex: 1;
+  max-width: 480px;
+  font-size: large;
 }
 
 .playBtn {
   background: #e0f2fe;
   border: none;
   border-radius: 50%;
-  padding: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   color: #2563eb;
-  transition: 0.2s;
+  flex-shrink: 0;
+  transition: background 0.2s ease, transform 0.1s ease;
+  padding: 0%;
 }
 
 .playBtn:hover {
   background: #bfdbfe;
+  transform: scale(1.05);
 }
 
 /* ---------- Recording ---------- */
@@ -140,6 +154,11 @@ h3 {
   align-items: center;
   gap: 8px;
   transition: 0.2s;
+  margin-top: 20%;
+  max-width: 25%;
+  display: flex;
+  justify-content: center;
+  margin-left: 38%;
 }
 
 .recordBtn:hover {
@@ -417,4 +436,85 @@ h3 {
 
 .navInfo {
   font-weight: 600;
+}
+.chatPanel {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  height: 100%;
+}
+
+.chatBox {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #e5e7eb;
+  max-height: 360px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.chatPlaceholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.chatMessage {
+  margin: 6px 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.userMsg {
+  background: #dbeafe;
+  align-self: flex-end;
+  border: 1px solid #93c5fd;
+}
+
+.botMsg {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.chatTyping {
+  font-style: italic;
+  color: #9ca3af;
+  padding: 4px;
+}
+
+.chatActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chatBtn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s;
+}
+
+.chatBtn:hover {
+  background: #1d4ed8;
+}
+.botMsg > div {
+  width: 100%;
+}
+
+.botMsg :global(.vocabContainer) {
+  margin-top: 8px;
 }

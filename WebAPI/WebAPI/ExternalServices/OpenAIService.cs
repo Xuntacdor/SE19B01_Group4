@@ -132,9 +132,81 @@ Essay Answer:
         }
 
         // ========================================
-        // == 2. SPEECH-TO-TEXT ==
+        // == 2.Speaking Suggestion ==
         // ========================================
-     
+
+        public JsonDocument GetSpeakingSuggestion(string question)
+        {
+            try
+            {
+                var chatClient = _client.GetChatClient(_chatModel);
+                string prompt = $@"
+You are an **IELTS Speaking coach** and English linguist.
+Given an IELTS Speaking question, produce JSON that includes:
+
+1️. A short, natural **sample answer** (Band 7–8 style).
+2️. A list of **topic-related vocabulary** divided by level.
+
+Return **STRICT JSON ONLY**, following this exact structure:
+
+{{
+  ""question"": ""original question"",
+  ""sample_answer"": ""2–4 sentences model answer in natural IELTS English."",
+  ""vocabulary_by_level"": {{
+    ""basic"": [
+      ""5–10 simple common words relevant to the topic""
+    ],
+    ""intermediate"": [
+      ""5–10 moderately advanced words or short phrases""
+    ],
+    ""advanced"": [
+      ""5–10 high-level or idiomatic expressions""
+    ]
+  }}
+}}
+
+IELTS Speaking Question:
+{question}
+";
+
+                var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage("You are a certified IELTS Speaking coach. Always return valid JSON following the schema."),
+            new UserChatMessage(prompt)
+        };
+
+                var result = chatClient.CompleteChat(messages, new ChatCompletionOptions
+                {
+                    MaxOutputTokenCount = 1000,
+                    Temperature = 0.7f
+                });
+
+                string raw = result.Value.Content[0].Text ?? "{}";
+                int first = raw.IndexOf('{');
+                int last = raw.LastIndexOf('}');
+                string jsonText = (first >= 0 && last > first)
+                    ? raw.Substring(first, last - first + 1)
+                    : "{}";
+
+                jsonText = Regex.Replace(jsonText, @"\r\n|\r|\n", " ");
+                jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
+
+                _logger.LogInformation("[OpenAIService] Speaking suggestion JSON generated successfully");
+
+                return JsonDocument.Parse(jsonText);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to parse JSON from Speaking suggestion output.");
+                return JsonDocument.Parse(@"{ ""error"": ""Invalid JSON returned from AI"" }");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[OpenAIService] Speaking suggestion generation failed.");
+                var msg = ex.Message.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
+                return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
+            }
+        }
 
         // ========================================
         // == 3. SPEAKING GRADER ==

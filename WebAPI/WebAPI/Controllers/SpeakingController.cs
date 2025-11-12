@@ -167,6 +167,30 @@ namespace WebAPI.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+        // Suggestion
+        [HttpGet("suggestion")]
+        [AllowAnonymous]
+        public IActionResult GetSpeakingSuggestion([FromQuery] int speakingId)
+        {
+            if (speakingId <= 0)
+                return BadRequest(new { message = "Invalid speakingId." });
+
+            try
+            {
+                var result = _speakingService.GetSpeakingSuggestionById(speakingId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = $"Speaking question with ID {speakingId} not found." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SpeakingController] Failed to get speaking suggestion.");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
 
         [HttpPost("grade")]
         [AllowAnonymous]
@@ -214,9 +238,8 @@ namespace WebAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,
-                    "[SpeakingController] Speaking grading failed for exam {ExamId}, user {UserId}",
-                    dto?.ExamId, userId);
+                _logger.LogInformation("[GradeSpeaking] Exam {ExamId}, User {UserId}, Mode {Mode}, Answers {Count}", dto.ExamId, userId, dto.Mode, dto.Answers.Count);
+
 
                 return StatusCode(500, new
                 {

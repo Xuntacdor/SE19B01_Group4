@@ -59,3 +59,16 @@ export async function getFeedbackBySpeakingId(speakingId, userId) {
 
 export const getFeedback = (examId, userId) =>
   API.get(`/feedback/${examId}/${userId}`).then((r) => r.data);
+
+export const getSpeakingSuggestion = async (speakingId) => {
+  try {
+    const res = await API.get(`/suggestion?speakingId=${speakingId}`);
+    return res.data;
+  } catch (err) {
+    console.error(
+      " Failed to fetch speaking suggestion:",
+      err.response?.data || err.message
+    );
+    throw err;
+  }
+};

@@ -16,7 +16,6 @@ namespace WebAPI.Data
         public virtual DbSet<Reading> Reading { get; set; }
         public virtual DbSet<Listening> Listening { get; set; }
         public virtual DbSet<Writing> Writing { get; set; }
-        public virtual DbSet<Speaking> Speaking { get; set; }
         public virtual DbSet<VocabGroup> VocabGroup { get; set; }
         public virtual DbSet<Word> Word { get; set; }
         public virtual DbSet<Report> Report { get; set; }
