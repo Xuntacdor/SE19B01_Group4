@@ -396,7 +396,7 @@ export default function EditPost({ onNavigate }) {
                                 type="button"
                                 className="btn btn-insert-image"
                                 onClick={() => handleInsertImage(file.url, file.fileName)}
-                                title="Insert into content"
+                                data-tooltip="Insert image at cursor position in content area"
                               >
                                 <ImagePlus size={14} />
                               </button>
@@ -432,7 +432,7 @@ export default function EditPost({ onNavigate }) {
                                 type="button"
                                 className="btn btn-insert-image"
                                 onClick={() => handleInsertImage(file.url, file.fileName)}
-                                title="Insert into content"
+                                data-tooltip="Insert image at cursor position in content area"
                               >
                                 <ImagePlus size={14} />
                               </button>

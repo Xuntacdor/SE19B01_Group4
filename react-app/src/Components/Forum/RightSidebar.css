@@ -82,8 +82,8 @@
   font-size: 16px;
 }
 
-/* Post title and votes layout */
-.sidebar-item .post-title {
+/* Post title and votes layout - scoped for sidebar */
+.sidebar-item .sidebar-post-title {
   font-weight: 500;
   margin-bottom: 6px;
   font-size: 22px !important;

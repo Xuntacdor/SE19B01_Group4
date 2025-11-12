@@ -366,15 +366,15 @@ export default function PostDetail() {
                         {user && post && (user.userId === post.user.userId || user.role === 'admin') ? (
                           // Menu for post owner or admin
                           <>
-                            <button className="menu-item edit" onClick={handleEditPost}>
+                            <button className="post-detail-menu-item edit" onClick={handleEditPost}>
                               <Edit size={16} />
                               Edit Post
                             </button>
-                            <button className="menu-item delete" onClick={handleDeletePost}>
+                            <button className="post-detail-menu-item delete" onClick={handleDeletePost}>
                               <Trash2 size={16} />
                               Delete Post
                             </button>
-                            <button className="menu-item pin" onClick={handlePinPost}>
+                            <button className="post-detail-menu-item pin" onClick={handlePinPost}>
                               <Pin size={16} />
                               {isPinned ? "Unpin Post" : "Pin Post"}
                             </button>
@@ -382,11 +382,11 @@ export default function PostDetail() {
                         ) : (
                           // Menu for other users
                           <>
-                            <button className="menu-item hide" onClick={post.isHiddenByUser ? handleUnhidePost : handleHidePost}>
+                            <button className="post-detail-menu-item hide" onClick={post.isHiddenByUser ? handleUnhidePost : handleHidePost}>
                               <EyeOff size={16} />
                               {post.isHiddenByUser ? "Unhide Post" : "Hide Post"}
                             </button>
-                            <button className="menu-item pin" onClick={handlePinPost}>
+                            <button className="post-detail-menu-item pin" onClick={handlePinPost}>
                               <Pin size={16} />
                               {isPinned ? "Unpin Post" : "Pin Post"}
                             </button>
@@ -398,10 +398,10 @@ export default function PostDetail() {
                 </div>
               </div>
 
-              <div className="post-content">
-                <h1 className="post-title">
+              <div className="post-detail-content-body">
+                <h1 className="post-detail-title">
                   {isPinned && (
-                    <span className="pinned-indicator" title="Already pinned!">
+                    <span className="post-detail-pinned-indicator" title="Already pinned!">
                       <Pin size={16} />
                     </span>
                   )}
@@ -410,9 +410,9 @@ export default function PostDetail() {
 
                 {/* Tags Section - Moved directly below title */}
                 {post.tags && post.tags.length > 0 && (
-                  <div className="post-tags">
+                  <div className="post-detail-tags">
                     {post.tags.map((tag, index) => (
-                      <span key={index} className="post-tag">
+                      <span key={index} className="post-detail-tag">
                         #{tag.tagName}
                       </span>
                     ))}

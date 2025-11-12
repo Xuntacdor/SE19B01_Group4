@@ -134,7 +134,7 @@ export default function HeaderBar({ title }) {
 
             {/* icon chuông */}
             <div
-              className={`${styles.notificationIcon} ${styles.bell}`}
+              className={`${styles.notificationIcon} ${styles.bell} ${hasUnreadNotifications ? styles.hasUnread : ''}`}
               onClick={toggleNotification}
               ref={notificationRef}
             >

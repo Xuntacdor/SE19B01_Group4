@@ -188,7 +188,6 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                   {formatTimeVietnam(notification.createdAt)}
                 </span>
               </div>
-              {!notification.isRead && <div className="notification-dot"></div>}
               <button 
                 className="notification-item-delete"
                 onClick={(e) => {
@@ -288,7 +287,6 @@ export default function NotificationDropdown({ isOpen, onClose, onNotificationRe
                       {formatTimeVietnam(notification.createdAt)}
                     </span>
                   </div>
-                  {!notification.isRead && <div className="notification-modal-dot"></div>}
                   <button 
                     className="notification-modal-item-delete"
                     onClick={(e) => {
