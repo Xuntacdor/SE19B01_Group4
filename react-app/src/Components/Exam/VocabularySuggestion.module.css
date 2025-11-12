@@ -1,0 +1,78 @@
+.vocabContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.levelSection h3 {
+  font-size: large;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.wordGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.wordCard {
+  flex: 1 1 calc(45% - 8px);
+  background: #fff;
+  border: 1px dashed #f0abfc;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.wordCard:hover {
+  border-color: #d946ef;
+  transform: translateY(-2px);
+}
+
+.wordHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wordText {
+  font-weight: 600;
+  color: #db2777;
+  font-size: medium;
+  flex: 1;
+}
+
+.audioBtn,
+.saveBtn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #06b6d4;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.audioBtn:hover {
+  color: #0891b2;
+}
+
+.saveBtn {
+  color: #ec4899;
+}
+
+.saveBtn:hover {
+  color: #db2777;
+}
+
+.wordMeaning {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-top: 4px;
+}

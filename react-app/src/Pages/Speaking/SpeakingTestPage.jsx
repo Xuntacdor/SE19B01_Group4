@@ -7,6 +7,10 @@ import * as UploadApi from "../../Services/UploadApi";
 import LoadingComponent from "../../Components/Exam/LoadingComponent";
 import MicroCheck from "../../Components/Exam/MicroCheck";
 import FloatingDictionaryChat from "../../Components/Dictionary/FloatingDictionaryChat";
+import { getSpeakingSuggestion } from "../../Services/SpeakingApi";
+import VocabularySuggestion from "../../Components/Exam/VocabularySuggestion";
+import SampleAnswerBox from "../../Components/Exam/SampleAnswerBox";
+import AudioTextBox from "../../Components/Common/AudioTextBox";
 import {
   Mic,
   MicOff,
@@ -31,6 +35,8 @@ export default function SpeakingTest() {
   const [note, setNote] = useState("");
   const [feedback, setFeedback] = useState(null);
   const [showPrepPopup, setShowPrepPopup] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatLoading, setChatLoading] = useState(false);
 
   // ===== Navigation state =====
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -42,6 +48,11 @@ export default function SpeakingTest() {
 
   const [params] = useSearchParams();
   const speakingId = params.get("speakingId");
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
 
   // ===== Load Task =====
   useEffect(() => {
@@ -154,9 +165,9 @@ export default function SpeakingTest() {
 
           setRecordings((p) => ({ ...p, [currentId]: blob }));
           setAudioUrls((p) => ({ ...p, [currentId]: audioUrl }));
-          console.log("✅ Uploaded audio:", audioUrl);
+          console.log(" Uploaded audio:", audioUrl);
         } catch (err) {
-          console.error("❌ Upload failed:", err);
+          console.error(" Upload failed:", err);
           alert("Upload failed, please try again.");
         } finally {
           setUploading((p) => ({ ...p, [currentId]: false }));
@@ -168,7 +179,7 @@ export default function SpeakingTest() {
       mediaRecorderRef.current = mediaRecorder;
     } catch (err) {
       alert("Cannot access microphone!");
-      console.error("❌ Microphone error:", err);
+      console.error(" Microphone error:", err);
       setPhase("idle");
     }
   };
@@ -239,7 +250,7 @@ export default function SpeakingTest() {
       }
       setPhase("waiting");
     } catch (err) {
-      console.error("❌ Submit failed:", err);
+      console.error(" Submit failed:", err);
       setPhase("idle");
     }
   };
@@ -493,19 +504,10 @@ export default function SpeakingTest() {
             <div className={styles.questionHeader}>
               <h3>Question</h3>
             </div>
-            <div className={styles.questionContent}>
-              <p>
-                <strong>Q:</strong> {currentTask?.speakingQuestion}
-              </p>
-              <button
-                className={styles.playBtn}
-                onClick={() =>
-                  speakQuestion(currentTask?.speakingQuestion || "")
-                }
-              >
-                <Volume2 size={18} />
-              </button>
-            </div>
+            <AudioTextBox
+              //label="Question"
+              text={currentTask?.speakingQuestion}
+            />
 
             <div className={styles.dynamicSection}>
               {renderDynamicSection()}
@@ -515,13 +517,112 @@ export default function SpeakingTest() {
               renderNavigationBar()}
           </div>
 
-          <aside className={styles.notePanel}>
-            <h4>My Notes</h4>
-            <textarea
-              placeholder="Write your notes here..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
+          <aside className={styles.chatPanel}>
+            <h4>Speaking Assistant</h4>
+
+            <div className={styles.chatBox}>
+              {chatMessages.length === 0 ? (
+                <p className={styles.chatPlaceholder}>
+                  Hello! I can help you practice your speaking. Choose one of
+                  the options below to get started.
+                </p>
+              ) : (
+                chatMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`${styles.chatMessage} ${
+                      msg.role === "user" ? styles.userMsg : styles.botMsg
+                    }`}
+                  >
+                    {msg.text && <div>{msg.text}</div>}
+                    {msg.component && msg.component}
+                  </div>
+                ))
+              )}
+
+              {chatLoading && (
+                <p className={styles.chatTyping}>AI is typing....</p>
+              )}
+              <div ref={chatEndRef}></div>
+            </div>
+
+            <div className={styles.chatActions}>
+              <button
+                className={styles.chatBtn}
+                onClick={async () => {
+                  if (!currentId) return;
+                  setChatLoading(true);
+                  setChatMessages((prev) => [
+                    ...prev,
+                    { role: "user", text: "Show me a sample answer" },
+                  ]);
+                  try {
+                    const res = await getSpeakingSuggestion(currentId);
+                    setChatMessages((prev) => [
+                      ...prev,
+                      {
+                        role: "bot",
+                        component: (
+                          <SampleAnswerBox
+                            text={
+                              res.sample_answer ||
+                              "Không tìm thấy câu mẫu cho câu hỏi này."
+                            }
+                          />
+                        ),
+                      },
+                    ]);
+                  } catch (err) {
+                    setChatMessages((prev) => [
+                      ...prev,
+                      {
+                        role: "bot",
+                        text: " Error fetching sample answer. Please try again.",
+                      },
+                    ]);
+                  } finally {
+                    setChatLoading(false);
+                  }
+                }}
+              >
+                Sample Answer
+              </button>
+
+              <button
+                className={styles.chatBtn}
+                onClick={async () => {
+                  if (!currentId) return;
+                  setChatLoading(true);
+                  setChatMessages((prev) => [
+                    ...prev,
+                    { role: "user", text: "Show me topic vocabulary" },
+                  ]);
+                  try {
+                    const res = await getSpeakingSuggestion(currentId);
+                    const vocab = res.vocabulary_by_level;
+                    setChatMessages((prev) => [
+                      ...prev,
+                      {
+                        role: "bot",
+                        component: <VocabularySuggestion vocab={vocab} />,
+                      },
+                    ]);
+                  } catch {
+                    setChatMessages((prev) => [
+                      ...prev,
+                      {
+                        role: "bot",
+                        text: " Lỗi khi lấy từ vựng, thử lại sau nhé.",
+                      },
+                    ]);
+                  } finally {
+                    setChatLoading(false);
+                  }
+                }}
+              >
+                Topic Vocabulary
+              </button>
+            </div>
           </aside>
         </div>
       </div>
