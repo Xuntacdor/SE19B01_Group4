@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #f3f4f6;
+  background: #f97316;
   border: 1px solid #d1d5db;
   border-radius: 20px;
   padding: 6px 14px;
@@ -17,6 +17,7 @@
 
 .microcheck-btn:hover {
   background: #e5e7eb;
+  color: #000;
 }
 
 .microcheck-overlay {
