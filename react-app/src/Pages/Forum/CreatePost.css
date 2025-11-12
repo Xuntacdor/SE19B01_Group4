@@ -18,14 +18,20 @@
   flex: 1;
   gap: 20px;
   padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .create-post-main {
-  flex: 2;
+  flex: 3;
+  min-width: 0;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .create-post-header {
@@ -43,13 +49,20 @@
 
 .create-post-form {
   padding: 24px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
-.form-group {
+/* Scoped form styles - only apply within create-post-form */
+.create-post-form .form-group {
   margin-bottom: 24px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.form-group label {
+.create-post-form .form-group label {
   display: block;
   margin-bottom: 12px;
   font-weight: 500;
@@ -58,32 +71,33 @@
   font-family: 'Inter', sans-serif;
 }
 
-.form-input {
+.create-post-form .form-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 16px 20px;
   border: 2px solid #e8e8e8;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 400;
   color: #1a1a1a;
   background: white;
   transition: all 0.2s ease;
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
+  min-height: 56px;
 }
 
-.form-input:focus {
+.create-post-form .form-input:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
-.form-input::placeholder {
+.create-post-form .form-input::placeholder {
   color: #8e8e8e;
   font-weight: 400;
 }
 
-.form-textarea {
+.create-post-form .form-textarea {
   width: 100%;
   padding: 16px;
   border: 2px solid #e8e8e8;
@@ -100,18 +114,18 @@
   box-sizing: border-box;
 }
 
-.form-textarea:focus {
+.create-post-form .form-textarea:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
-.form-textarea::placeholder {
+.create-post-form .form-textarea::placeholder {
   color: #8e8e8e;
   font-weight: 400;
 }
 
-.form-actions {
+.create-post-form .form-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -120,13 +134,13 @@
   flex-wrap: wrap;
 }
 
-.form-actions-left {
+.create-post-form .form-actions-left {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.btn {
+.create-post-form .btn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -143,64 +157,64 @@
   white-space: nowrap;
 }
 
-.btn:disabled {
+.create-post-form .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.btn-image {
+.create-post-form .btn-image {
   background: #007bff;
   color: white;
   border: 1px solid #007bff;
 }
 
-.btn-image:hover:not(:disabled) {
+.create-post-form .btn-image:hover:not(:disabled) {
   background: #0056b3;
   border-color: #0056b3;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
 }
 
-.btn-draft {
+.create-post-form .btn-draft {
   background: #f8f9fa;
   color: #6c757d;
   border: 1px solid #dee2e6;
 }
 
-.btn-draft:hover:not(:disabled) {
+.create-post-form .btn-draft:hover:not(:disabled) {
   background: #e9ecef;
   color: #495057;
   border-color: #adb5bd;
   transform: translateY(-1px);
 }
 
-.btn-publish {
+.create-post-form .btn-publish {
   background: #ff6b35;
   color: white;
   border: 1px solid #ff6b35;
 }
 
-.btn-publish:hover:not(:disabled) {
+.create-post-form .btn-publish:hover:not(:disabled) {
   background: #e55a2b;
   border-color: #e55a2b;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(255, 107, 53, 0.2);
 }
 
-.btn-cancel {
+.create-post-form .btn-cancel {
   background: #6c757d;
   color: white;
   border: 1px solid #6c757d;
 }
 
-.btn-cancel:hover:not(:disabled) {
+.create-post-form .btn-cancel:hover:not(:disabled) {
   background: #5a6268;
   border-color: #5a6268;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(108, 117, 125, 0.2);
 }
 
-.btn svg {
+.create-post-form .btn svg {
   width: 16px;
   height: 16px;
 }
@@ -216,31 +230,32 @@
     flex: none;
   }
   
-  .form-actions {
+  .create-post-form .form-actions {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
   }
   
-  .form-actions-left {
+  .create-post-form .form-actions-left {
     flex-direction: column;
     width: 100%;
     gap: 8px;
   }
   
-  .btn {
+  .create-post-form .btn {
     width: 100%;
     justify-content: center;
     padding: 14px 20px;
   }
   
-  .form-input, .form-textarea {
+  .create-post-form .form-input, 
+  .create-post-form .form-textarea {
     font-size: 16px; /* Prevent zoom on iOS */
   }
 }
 
-/* File Upload Styles */
-.file-upload-section {
+/* File Upload Styles - Scoped to create-post-form */
+.create-post-form .file-upload-section {
   border: 2px dashed #dee2e6;
   border-radius: 8px;
   padding: 20px;
@@ -248,49 +263,49 @@
   transition: all 0.2s ease;
 }
 
-.file-upload-section:hover {
+.create-post-form .file-upload-section:hover {
   border-color: #007bff;
   background: #f0f8ff;
 }
 
-.file-upload-area {
+.create-post-form .file-upload-area {
   text-align: center;
   padding: 20px;
 }
 
-.btn-file-upload {
+.create-post-form .btn-file-upload {
   background: #007bff;
   color: white;
   border: 1px solid #007bff;
   margin-bottom: 12px;
 }
 
-.btn-file-upload:hover:not(:disabled) {
+.create-post-form .btn-file-upload:hover:not(:disabled) {
   background: #0056b3;
   border-color: #0056b3;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
 }
 
-.btn-file-upload:disabled {
+.create-post-form .btn-file-upload:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.upload-hint {
+.create-post-form .upload-hint {
   color: #6c757d;
   font-size: 12px;
   margin: 4px 0;
   font-family: 'Inter', sans-serif;
 }
 
-.uploaded-files {
+.create-post-form .uploaded-files {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid #dee2e6;
 }
 
-.uploaded-files h4 {
+.create-post-form .uploaded-files h4 {
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
@@ -298,7 +313,7 @@
   font-family: 'Inter', sans-serif;
 }
 
-.uploaded-file-item {
+.create-post-form .uploaded-file-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -310,44 +325,44 @@
   transition: all 0.2s ease;
 }
 
-.uploaded-file-item:hover {
+.create-post-form .uploaded-file-item:hover {
   border-color: #007bff;
   box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
 }
 
-.file-info {
+.create-post-form .file-info {
   display: flex;
   align-items: center;
   gap: 12px;
   flex: 1;
 }
 
-.file-details {
+.create-post-form .file-details {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.file-name {
+.create-post-form .file-name {
   font-size: 14px;
   font-weight: 500;
   color: #1a1a1a;
   font-family: 'Inter', sans-serif;
 }
 
-.file-size {
+.create-post-form .file-size {
   font-size: 12px;
   color: #6c757d;
   font-family: 'Inter', sans-serif;
 }
 
-.file-actions {
+.create-post-form .file-actions {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-.btn-insert-image {
+.create-post-form .btn-insert-image {
   background: #28a745;
   color: white;
   border: 1px solid #28a745;
@@ -357,14 +372,14 @@
   min-height: auto;
 }
 
-.btn-insert-image:hover:not(:disabled) {
+.create-post-form .btn-insert-image:hover:not(:disabled) {
   background: #218838;
   border-color: #218838;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(40, 167, 69, 0.2);
 }
 
-.btn-remove-file {
+.create-post-form .btn-remove-file {
   background: #dc3545;
   color: white;
   border: 1px solid #dc3545;
@@ -374,14 +389,14 @@
   min-height: auto;
 }
 
-.btn-remove-file:hover:not(:disabled) {
+.create-post-form .btn-remove-file:hover:not(:disabled) {
   background: #c82333;
   border-color: #c82333;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
 }
 
-.error-message {
+.create-post-form .error-message {
   background: #f8d7da;
   color: #721c24;
   padding: 12px 16px;
@@ -392,9 +407,8 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* Tag Selection Styles */
-
-.selected-tags {
+/* Tag Selection Styles - Scoped to create-post-form */
+.create-post-form .selected-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -406,7 +420,7 @@
   background: #f8f9fa;
 }
 
-.selected-tag {
+.create-post-form .selected-tag {
   background: #007bff;
   color: white;
   padding: 6px 12px;
@@ -419,7 +433,7 @@
   font-family: 'Inter', sans-serif;
 }
 
-.remove-tag {
+.create-post-form .remove-tag {
   background: none;
   border: none;
   color: white;
@@ -432,11 +446,11 @@
   transition: background-color 0.2s ease;
 }
 
-.remove-tag:hover {
+.create-post-form .remove-tag:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.tag-selection {
+.create-post-form .tag-selection {
   background: white;
   border: 2px solid #e8e8e8;
   border-radius: 8px;
@@ -444,12 +458,12 @@
   transition: all 0.2s ease;
 }
 
-.tag-selection:focus-within {
+.create-post-form .tag-selection:focus-within {
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
-.dropdown-header {
+.create-post-form .dropdown-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -461,12 +475,12 @@
   font-family: 'Inter', sans-serif;
 }
 
-.dropdown-content {
+.create-post-form .dropdown-content {
   max-height: 150px;
   overflow-y: auto;
 }
 
-.tag-option {
+.create-post-form .tag-option {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -477,15 +491,15 @@
   font-family: 'Inter', sans-serif;
 }
 
-.tag-option:hover {
+.create-post-form .tag-option:hover {
   background: #f8f9fa;
 }
 
-.tag-option:last-child {
+.create-post-form .tag-option:last-child {
   border-bottom: none;
 }
 
-.tag-count {
+.create-post-form .tag-count {
   color: #6c757d;
   font-size: 12px;
   font-weight: 400;
