@@ -1,7 +1,8 @@
 import axios from "axios";
+import { getApiUrl } from "../config/api";
 
 const API = axios.create({
-  baseURL: "https://localhost:7264/api/upload",
+  baseURL: getApiUrl("upload"),
   withCredentials: true,
 });
 

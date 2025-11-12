@@ -1,7 +1,8 @@
 import axios from "axios";
+import { getApiUrl } from "../config/api";
 
 const API = axios.create({
-  baseURL: "/api/vocabgroups",
+  baseURL: getApiUrl("vocabgroups"),
   withCredentials: true,
 });
 
@@ -10,14 +11,14 @@ export function getById(id) {
 }
 
 export function getByUser(userId) {
-  return axios.get(`/api/users/${userId}/vocabgroups`, { withCredentials: true });
+  const url = getApiUrl(`users/${userId}/vocabgroups`);
+  return axios.get(url, { withCredentials: true });
 }
 
 export function getByName(userId, groupName) {
-  return axios.get(
-    `/api/users/${userId}/vocabgroups?name=${encodeURIComponent(groupName)}`,
-    { withCredentials: true }
-  );
+  const baseUrl = getApiUrl(`users/${userId}/vocabgroups`);
+  const url = `${baseUrl}?name=${encodeURIComponent(groupName)}`;
+  return axios.get(url, { withCredentials: true });
 }
 
 export function countWords(groupId) {

@@ -192,7 +192,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = "Google"; // Google login challenge
+    //options.DefaultChallengeScheme = "Google"; // Google login challenge
 })
 .AddCookie(options =>
 {
