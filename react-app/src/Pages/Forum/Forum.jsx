@@ -7,6 +7,7 @@ import RightSidebar from "../../Components/Forum/RightSidebar";
 import { getPostsByFilter, getTags } from "../../Services/ForumApi";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
+import Cloud from "../../assets/sad_cloud.png"
 
 export default function Forum() {
   const [posts, setPosts] = useState([]);
