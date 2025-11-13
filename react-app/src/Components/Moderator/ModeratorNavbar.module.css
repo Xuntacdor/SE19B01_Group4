@@ -43,7 +43,7 @@
   width: 100%;
 }
 
-.sidebarNav .navItem {
+.navItem {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -65,26 +65,18 @@
   overflow: hidden;
 }
 
-.sidebarNav .navItem:link,
-.sidebarNav .navItem:visited,
-.sidebarNav .navItem:active {
-  text-decoration: none;
-}
-
-.sidebarNav .navItem:hover {
+.navItem:hover {
   background-color: #f1f3f5;
   color: #1976d2;
-  text-decoration: none;
 }
 
-.sidebarNav .navItem.active {
+.navItem.active {
   background-color: #e3f2fd;
   color: #1976d2;
   position: relative;
-  text-decoration: none;
 }
 
-.sidebarNav .navItem.active::after {
+.navItem.active::after {
   content: "";
   position: absolute;
   right: 0;
@@ -101,14 +93,10 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  flex-shrink: 0;
 }
 
 .label {
   flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .sidebarFooter {
@@ -132,12 +120,9 @@
   font-size: clamp(12px, 1vw, 14px);
 }
 
-.emptyMenu {
-  font-size: 30px;
-}
 @media (max-width: 1536px) {
   .sidebar {
-    width: 200px; /* giảm từ 240px xuống */
+    width: 200px;
     font-size: clamp(12px, 0.9vw, 15px);
   }
 
@@ -157,30 +142,15 @@
     padding: 10px 0;
   }
 
-  .sidebarNav .navItem {
+  .navItem {
     gap: 8px;
     padding: 10px 16px;
     font-size: clamp(12px, 0.9vw, 15px);
-    text-decoration: none;
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
   }
 
-  .sidebarNav .navItem svg {
+  .navItem svg {
     width: 18px;
     height: 18px;
-  }
-  
-  .sidebarNav .navItem:link,
-  .sidebarNav .navItem:visited,
-  .sidebarNav .navItem:active,
-  .sidebarNav .navItem:hover {
-    text-decoration: none;
-  }
-  
-  .sidebarNav .navItem.active {
-    text-decoration: none;
   }
 
   .sidebarFooter {
@@ -190,20 +160,13 @@
   .footerText {
     font-size: clamp(14px, 1vw, 18px);
   }
-  
-  .sidebarNav .navItem.active::after {
-    width: 3px;
-  }
-
-  .moneySymbols {
-    font-size: clamp(10px, 0.9vw, 12px);
-  }
 
   .cloudIcon {
     font-size: clamp(16px, 1.2vw, 18px);
   }
 
-  .emptyMenu {
-    font-size: 22px;
+  .moneySymbols {
+    font-size: clamp(10px, 0.9vw, 12px);
   }
 }
+
