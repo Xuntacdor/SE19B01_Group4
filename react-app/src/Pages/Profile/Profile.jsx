@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { User, ClipboardList, CreditCard, LogIn } from "lucide-react";
+import { User, CreditCard, LogIn } from "lucide-react";
 import "./Profile.css";
 import useAuth from "../../Hook/UseAuth";
-import useExamAttempts from "../../Hook/UseExamAttempts";
 import AppLayout from "../../Components/Layout/AppLayout";
 
 import ProfileTab from "./Tabs/ProfileTab";
-import TestHistoryTab from "./Tabs/TestHistoryTab";
 import PaymentTab from "./Tabs/PaymentTab";
 import SignInTab from "./Tabs/SignInTab";
 import { useLocation } from "react-router-dom";
 
 export default function Profile() {
   const { user, loading, refreshUser } = useAuth();
-  const { attempts, loading: attemptsLoading } = useExamAttempts(user?.userId);
   const [activeTab, setActiveTab] = useState("profile");
   const [profileData, setProfileData] = useState({
     name: "",
@@ -21,6 +18,7 @@ export default function Profile() {
     accountName: "",
     avatar: "",
   });
+
   const location = useLocation();
 
   // handle tab navigation from router state
@@ -67,17 +65,13 @@ export default function Profile() {
             setProfileData={setProfileData}
           />
         );
-      case "test-history":
-        return (
-          <TestHistoryTab
-            attempts={attempts}
-            attemptsLoading={attemptsLoading}
-          />
-        );
+
       case "payment-history":
         return <PaymentTab />;
+
       case "sign-in-history":
         return <SignInTab />;
+
       default:
         return null;
     }
@@ -110,11 +104,6 @@ export default function Profile() {
                 key: "profile",
                 icon: <User size={18} />,
                 label: "Your Profile",
-              },
-              {
-                key: "test-history",
-                icon: <ClipboardList size={18} />,
-                label: "Test History",
               },
               {
                 key: "payment-history",

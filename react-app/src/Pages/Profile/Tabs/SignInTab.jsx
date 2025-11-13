@@ -12,28 +12,45 @@ export default function SignInTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (!user?.userId) return;
-    setLoading(true);
-    getSignInHistory(user.userId)
-      .then((res) => {
-        const data =
-          res.data?.map((x) => ({
-            signInTime: x.signedInAt,
-            ipAddress: x.ipAddress,
-            device: simplifyDeviceInfo(x.deviceInfo),
-          })) || [];
-        setHistory(data);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error("Failed to load sign-in history:", err);
-        setError("Failed to fetch sign-in history.");
-      })
-      .finally(() => setLoading(false));
-  }, [user?.userId]);
+  // -----------------------------
+  // FIX TIMESTAMP (BACKEND sends VN-time but JS reads as UTC)
+  // -----------------------------
+  function parseServerTime(raw) {
+    if (!raw) return new Date();
 
-  // === Helper function to simplify user agent ===
+    const d = new Date(raw);
+
+    // JS hiểu "2025-11-13T01:45:59" là UTC → bị +7h sai
+    // Ta bù trừ timezone offset để đưa về đúng local time backend
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  }
+
+  // -----------------------------
+  // FORMAT IP ADDRESS
+  // -----------------------------
+  function formatIpAddress(ip) {
+    if (!ip) return "Unknown";
+
+    ip = ip.trim();
+
+    if (ip === "::1") return "localhost";
+
+    const mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    if (mapped) return mapped[1];
+
+    const ipv4 = ip.match(/^(\d{1,3}\.){3}\d{1,3}$/);
+    if (ipv4) return ip;
+
+    if (ip.includes(":")) {
+      return ip.replace(/^::ffff:/, "").toLowerCase();
+    }
+
+    return ip;
+  }
+
+  // -----------------------------
+  // FORMAT USER-AGENT
+  // -----------------------------
   function simplifyDeviceInfo(ua) {
     if (!ua) return "Unknown Device";
 
@@ -55,6 +72,37 @@ export default function SignInTab() {
 
     return `${os} / ${browser}`;
   }
+
+  // -----------------------------
+  // FETCH DATA
+  // -----------------------------
+  useEffect(() => {
+    if (!user?.userId) return;
+
+    setLoading(true);
+
+    getSignInHistory(user.userId)
+      .then((res) => {
+        const data =
+          res.data?.map((x) => ({
+            signInTime: parseServerTime(x.signedInAt), // <= FIXED
+            ipAddress: formatIpAddress(x.ipAddress),
+            device: simplifyDeviceInfo(x.deviceInfo),
+          })) || [];
+
+        setHistory(data);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error("Failed to load sign-in history:", err);
+        setError("Failed to fetch sign-in history.");
+      })
+      .finally(() => setLoading(false));
+  }, [user?.userId]);
+
+  // -----------------------------
+  // UI
+  // -----------------------------
 
   if (loading) return <p>Loading sign-in history...</p>;
 
@@ -95,24 +143,28 @@ export default function SignInTab() {
               </th>
             </tr>
           </thead>
+
           <tbody>
             {history.map((record, i) => (
               <tr key={i}>
                 <td>
                   <div className="time-cell">
                     <span className="main-time">
-                      {format(new Date(record.signInTime), "PPpp")}
+                      {format(record.signInTime, "PPpp")}
                     </span>
+
                     <span className="sub-time">
                       (
-                      {formatDistanceToNow(new Date(record.signInTime), {
+                      {formatDistanceToNow(record.signInTime, {
                         addSuffix: true,
                       })}
                       )
                     </span>
                   </div>
                 </td>
-                <td>{record.ipAddress || "Unknown"}</td>
+
+                <td>{record.ipAddress}</td>
+
                 <td className="device-cell">{record.device}</td>
               </tr>
             ))}
