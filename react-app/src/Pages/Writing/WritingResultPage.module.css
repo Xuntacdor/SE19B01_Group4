@@ -501,3 +501,38 @@
 .newWord:active {
   transform: scale(0.98);
 }
+/* ================= Custom Scrollbars ================= */
+.leftPanel::-webkit-scrollbar,
+.rightPanel::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.leftPanel::-webkit-scrollbar-track,
+.rightPanel::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.leftPanel::-webkit-scrollbar-thumb,
+.rightPanel::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+  transition: background 0.3s ease;
+}
+
+.leftPanel::-webkit-scrollbar-thumb:hover,
+.rightPanel::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
+}
+
+/* Firefox support */
+.leftPanel {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+.rightPanel {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}

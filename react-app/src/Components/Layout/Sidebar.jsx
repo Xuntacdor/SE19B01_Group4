@@ -1,9 +1,25 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Cloud, Wallet, GraduationCap } from "lucide-react";
 import styles from "./Sidebar.module.css";
 
 export default function Sidebar({ menuItems }) {
+  const location = useLocation();
+
+  // Custom function to check if Forum route is active
+  const isForumActive = (path, isActive) => {
+    if (path === "/forum") {
+      // Forum is active if we're on /forum, /create-post, /edit-post/*, or /post/*
+      return (
+        isActive ||
+        location.pathname === "/create-post" ||
+        location.pathname.startsWith("/edit-post/") ||
+        location.pathname.startsWith("/post/")
+      );
+    }
+    return isActive;
+  };
+
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sidebarHeader}>
@@ -26,7 +42,7 @@ export default function Sidebar({ menuItems }) {
               key={index}
               to={item.path}
               className={({ isActive }) =>
-                `${styles.navItem} ${isActive ? styles.active : ""}`
+                `${styles.navItem} ${isForumActive(item.path, isActive) ? styles.active : ""}`
               }
             >
               {item.icon && <span className={styles.icon}>{item.icon}</span>}

@@ -174,10 +174,12 @@
   padding: 10px;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+  transition: border-color 140ms ease, box-shadow 140ms ease,
+    background-color 140ms ease;
 }
-.taskOption  input{
-width: 30%;
+
+.taskOption input {
+  width: 30%;
 }
 .taskOption:hover {
   border-color: #cbd5e1;
@@ -193,7 +195,7 @@ width: 30%;
 
 .taskTitle {
   font-weight: 600;
-  font-size: 15px
+  font-size: 15px;
 }
 
 /* ===== Buttons ===== */
@@ -201,14 +203,15 @@ width: 30%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  width: 45px;
   height: 28px;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
   background: #fff;
   color: #475569;
   cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease,
+    color 120ms ease;
 }
 .inlineEditBtn:hover {
   background: #f8fafc;
@@ -227,7 +230,8 @@ width: 30%;
   border-radius: 10px;
   cursor: pointer;
   font-size: px;
-  transition: background-color 140ms ease, border-color 140ms ease, transform 80ms ease;
+  transition: background-color 140ms ease, border-color 140ms ease,
+    transform 80ms ease;
 }
 .secondaryBtn:hover {
   background: #e5e7eb;
@@ -245,7 +249,8 @@ width: 30%;
   border-radius: 10px;
   cursor: pointer;
   font-size: 20px;
-  transition: background-color 140ms ease, box-shadow 140ms ease, transform 80ms ease;
+  transition: background-color 140ms ease, box-shadow 140ms ease,
+    transform 80ms ease;
 }
 .primaryBtn:hover {
   background: #1d4ed8;
@@ -281,8 +286,7 @@ width: 30%;
 .infoValue {
   flex: 1;
   color: #111827;
-    font-size: 15px;
-
+  font-size: 15px;
 }
 
 .list {

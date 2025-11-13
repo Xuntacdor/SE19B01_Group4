@@ -16,19 +16,26 @@
   box-sizing: border-box;
 }
 
+.comment-form form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 .comment-form textarea {
   width: 100%;
   padding: 12px 16px;
   border: 1px solid #ddd;
   border-radius: 20px;
   font-size: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   resize: vertical;
-  min-height: 40px;
-  max-height: 200px;
+  min-height: 100px;
+  max-height: 400px;
   background: #f8f9fa;
   color: #333;
   box-sizing: border-box;
+  line-height: 1.5;
 }
 
 .comment-form textarea:focus {
@@ -43,9 +50,12 @@
   justify-content: flex-end;
   width: 100%;
   box-sizing: border-box;
+  margin-top: 12px;
+  padding-top: 0;
 }
 
-.btn {
+/* Scoped button styles for comment section */
+.comment-section .forum-comment-btn {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
@@ -54,26 +64,26 @@
   transition: all 0.2s;
 }
 
-.btn-primary {
+.comment-section .forum-comment-btn-primary {
   background: #ff6b35;
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
+.comment-section .forum-comment-btn-primary:hover:not(:disabled) {
   background: #e55a2b;
 }
 
-.btn-primary:disabled {
+.comment-section .forum-comment-btn-primary:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
 
-.btn-secondary {
+.comment-section .forum-comment-btn-secondary {
   background: #6c757d;
   color: white;
 }
 
-.btn-secondary:hover {
+.comment-section .forum-comment-btn-secondary:hover {
   background: #5a6268;
 }
 
@@ -94,9 +104,15 @@
   border: none;
   margin-bottom: 0;
   margin-top: 0;
+  margin-left: 0;
+  margin-right: 0;
   border-bottom: 1px solid #f0f0f0;
   position: relative;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: visible;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .comment-item:not(.reply-item) {
@@ -188,8 +204,10 @@
   padding: 8px 12px;
   margin-bottom: 4px;
   min-width: 0;
+  max-width: 100%;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  box-sizing: border-box;
 }
 
 .comment-username {
@@ -226,9 +244,12 @@
   align-items: center;
   margin-top: 4px;
   margin-left: 40px;
+  margin-right: 0;
   flex-wrap: wrap;
   width: calc(100% - 40px);
+  max-width: calc(100% - 40px);
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .comment-actions-left {
@@ -310,36 +331,72 @@
 }
 
 .reply-form {
-  margin-top: 8px;
+  margin-top: 12px;
+  margin-left: 40px;
+  margin-right: 16px;
   padding: 0;
   background: transparent;
   border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  max-width: calc(100% - 56px);
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 .reply-form textarea {
   width: 100%;
-  padding: 8px 12px;
+  max-width: 100%;
+  padding: 12px 16px;
   border: 1px solid #ddd;
   border-radius: 20px;
-  font-size: 14px;
-  margin-bottom: 8px;
+  font-size: 16px;
+  margin-bottom: 0;
+  margin-left: 0;
+  margin-right: 0;
   resize: vertical;
-  min-height: 36px;
-  max-height: 150px;
+  min-height: 80px;
+  max-height: 300px;
   background: #f8f9fa;
   color: #333;
   box-sizing: border-box;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
-.reply-actions {
+.reply-form textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Reply form actions - scoped to reply-form */
+.reply-form .reply-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  padding-left: 76.5%;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
-.reply-actions .btn {
-  padding: 6px 12px;
-  font-size: 12px;
+.reply-form .reply-actions .forum-comment-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 70px;
+  box-sizing: border-box;
 }
 
 
@@ -431,66 +488,80 @@
 
 .edit-comment-form {
   margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
-.edit-comment-form textarea {
+.edit-comment-form .forum-comment-edit-textarea {
   width: 100%;
-  padding: 8px 12px;
+  padding: 12px 16px;
   border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
-  margin-bottom: 8px;
+  border-radius: 20px;
+  font-size: 16px;
+  margin-bottom: 0;
   resize: vertical;
-  min-height: 60px;
-  max-height: 150px;
-  background: white;
+  min-height: 80px;
+  max-height: 300px;
+  background: #f8f9fa;
   color: #333;
   box-sizing: border-box;
+  line-height: 1.5;
+}
+
+.edit-comment-form .forum-comment-edit-textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .edit-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   justify-content: flex-end;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 12px;
 }
 
-.btn-save, .btn-cancel {
-  padding: 6px 12px;
+.forum-comment-btn-save, .forum-comment-btn-cancel {
+  padding: 10px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.btn-save {
+.forum-comment-btn-save {
   background: #007bff;
   color: white;
 }
 
-.btn-cancel {
+.forum-comment-btn-cancel {
   background: #6c757d;
   color: white;
 }
 
-.btn-save:hover {
+.forum-comment-btn-save:hover {
   background: #0056b3;
 }
 
-.btn-cancel:hover {
+.forum-comment-btn-cancel:hover {
   background: #545b62;
 }
 
-/* 3-dot menu styles */
+/* 3-dot menu styles - scoped for comment section */
 .comment-menu {
   position: relative;
 }
 
-.menu-btn {
+.comment-menu .forum-comment-menu-btn {
   padding: 4px 8px !important;
   border-radius: 4px;
 }
 
-.menu-btn:hover {
+.comment-menu .forum-comment-menu-btn:hover {
   background: #f8f9fa;
 }
 
@@ -508,7 +579,7 @@
   margin-top: 4px;
 }
 
-.menu-item {
+.comment-menu-dropdown .forum-comment-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -523,30 +594,30 @@
   transition: background-color 0.2s;
 }
 
-.menu-item:hover {
+.comment-menu-dropdown .forum-comment-menu-item:hover {
   background: #f8f9fa;
 }
 
-.menu-item.delete-item {
+.comment-menu-dropdown .forum-comment-menu-item.delete-item {
   color: #dc3545;
 }
 
-.menu-item.delete-item:hover {
+.comment-menu-dropdown .forum-comment-menu-item.delete-item:hover {
   background: #f8d7da;
   color: #721c24;
 }
 
-.menu-item.report-item {
+.comment-menu-dropdown .forum-comment-menu-item.report-item {
   color: #fd7e14;
 }
 
-.menu-item.report-item:hover {
+.comment-menu-dropdown .forum-comment-menu-item.report-item:hover {
   background: #fff3cd;
   color: #856404;
 }
 
-/* Report Modal Styles */
-.modal-overlay {
+/* Report Modal Styles - scoped for comment section */
+.forum-comment-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -560,7 +631,7 @@
   backdrop-filter: blur(2px);
 }
 
-.modal-content {
+.forum-comment-modal-content {
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
@@ -568,10 +639,10 @@
   max-width: 500px;
   max-height: 90vh;
   overflow: hidden;
-  animation: modalFadeIn 0.2s ease-out;
+  animation: forumCommentModalFadeIn 0.2s ease-out;
 }
 
-@keyframes modalFadeIn {
+@keyframes forumCommentModalFadeIn {
   from {
     opacity: 0;
     transform: scale(0.95) translateY(-10px);
@@ -582,7 +653,7 @@
   }
 }
 
-.comment-item .modal-header {
+.forum-comment-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -592,14 +663,14 @@
   border-bottom: none;
 }
 
-.modal-header h3 {
+.forum-comment-modal-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
   color: white;
 }
 
-.modal-close {
+.forum-comment-modal-close {
   background: none;
   border: none;
   font-size: 24px;
@@ -615,22 +686,22 @@
   transition: all 0.2s;
 }
 
-.modal-close:hover {
+.forum-comment-modal-close:hover {
   background: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
-.modal-body {
+.forum-comment-modal-body {
   padding: 16px 24px;
 }
 
-.modal-body p {
+.forum-comment-modal-body p {
   margin: 0 0 12px 0;
   color: #555;
   font-size: 14px;
 }
 
-.report-textarea {
+.forum-comment-report-textarea {
   width: 100%;
   padding: 12px 16px;
   border: 1px solid #ddd;
@@ -644,13 +715,13 @@
   transition: border-color 0.2s;
 }
 
-.report-textarea:focus {
+.forum-comment-report-textarea:focus {
   outline: none;
   border-color: #1976d2;
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.25);
 }
 
-.modal-actions {
+.forum-comment-modal-actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;

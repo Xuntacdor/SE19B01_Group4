@@ -132,9 +132,81 @@ Essay Answer:
         }
 
         // ========================================
-        // == 2. SPEECH-TO-TEXT ==
+        // == 2.Speaking Suggestion ==
         // ========================================
-     
+
+        public JsonDocument GetSpeakingSuggestion(string question)
+        {
+            try
+            {
+                var chatClient = _client.GetChatClient(_chatModel);
+                string prompt = $@"
+You are an **IELTS Speaking coach** and English linguist.
+Given an IELTS Speaking question, produce JSON that includes:
+
+1️. A short, natural **sample answer** (Band 7–8 style).
+2️. A list of **topic-related vocabulary** divided by level.
+
+Return **STRICT JSON ONLY**, following this exact structure:
+
+{{
+  ""question"": ""original question"",
+  ""sample_answer"": ""2–4 sentences model answer in natural IELTS English."",
+  ""vocabulary_by_level"": {{
+    ""basic"": [
+      ""5–10 simple common words relevant to the topic""
+    ],
+    ""intermediate"": [
+      ""5–10 moderately advanced words or short phrases""
+    ],
+    ""advanced"": [
+      ""5–10 high-level or idiomatic expressions""
+    ]
+  }}
+}}
+
+IELTS Speaking Question:
+{question}
+";
+
+                var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage("You are a certified IELTS Speaking coach. Always return valid JSON following the schema."),
+            new UserChatMessage(prompt)
+        };
+
+                var result = chatClient.CompleteChat(messages, new ChatCompletionOptions
+                {
+                    MaxOutputTokenCount = 1000,
+                    Temperature = 0.7f
+                });
+
+                string raw = result.Value.Content[0].Text ?? "{}";
+                int first = raw.IndexOf('{');
+                int last = raw.LastIndexOf('}');
+                string jsonText = (first >= 0 && last > first)
+                    ? raw.Substring(first, last - first + 1)
+                    : "{}";
+
+                jsonText = Regex.Replace(jsonText, @"\r\n|\r|\n", " ");
+                jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
+
+                _logger.LogInformation("[OpenAIService] Speaking suggestion JSON generated successfully");
+
+                return JsonDocument.Parse(jsonText);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to parse JSON from Speaking suggestion output.");
+                return JsonDocument.Parse(@"{ ""error"": ""Invalid JSON returned from AI"" }");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[OpenAIService] Speaking suggestion generation failed.");
+                var msg = ex.Message.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
+                return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
+            }
+        }
 
         // ========================================
         // == 3. SPEAKING GRADER ==
@@ -219,5 +291,56 @@ Transcript:
                 return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
             }
         }
+        public JsonDocument LookupWordAI(string query)
+        {
+            try
+            {
+                var chatClient = _client.GetChatClient(_chatModel);
+                string prompt = $@"
+You are a bilingual English–Vietnamese dictionary assistant.
+
+Detect the input language automatically and RETURN STRICT JSON ONLY with EXACT keys below:
+
+{{
+  ""term"": ""original user input"",
+  ""detected_language"": ""English"" | ""Vietnamese"",
+  ""englishTranslation"": ""natural English translation of the term (if input is Vietnamese). If input is English, repeat the original term or leave an empty string."",
+  ""vietnameseTranslation"": ""tự nhiên, súc tích tiếng Việt (nếu input là English). Nếu input là Vietnamese thì để chuỗi rỗng."",
+  ""example"": ""one natural English sentence using the term (or its translation)""
+}}
+
+Keep it concise. Do not include extra commentary or markdown.
+
+Input: {query}
+";
+
+                var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage("You return only valid JSON with the exact keys requested."),
+            new UserChatMessage(prompt)
+        };
+
+                var result = chatClient.CompleteChat(messages, new ChatCompletionOptions
+                {
+                    Temperature = 0.3f,
+                    MaxOutputTokenCount = 800
+                });
+
+                string raw = result.Value.Content[0].Text ?? "{}";
+                int first = raw.IndexOf('{');
+                int last = raw.LastIndexOf('}');
+                string jsonText = (first >= 0 && last > first) ? raw.Substring(first, last - first + 1) : "{}";
+                jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
+
+                return JsonDocument.Parse(jsonText);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[OpenAIService] LookupWordAI failed.");
+                var msg = ex.Message.Replace("\"", "\\\"");
+                return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
+            }
+        }
+
     }
 }

@@ -8,9 +8,12 @@ export default defineConfig({
     https: false,
     proxy: {
       "/api": {
-        target: "https://webapi-823340438485.asia-southeast1.run.app",
+        // target: "https://webapi-823340438485.asia-southeast1.run.app",
+        // changeOrigin: true,
+        // secure: true, 
+         target: "https://localhost:7264",
         changeOrigin: true,
-        secure: true, 
+        secure: false, 
       },
     },
   },
