@@ -58,9 +58,20 @@ namespace WebAPI.Repositories
                     f.SpeakingAttempt.ExamAttempt != null &&
                     f.SpeakingAttempt.SpeakingId == speakingId &&
                     f.SpeakingAttempt.ExamAttempt.UserId == userId)
-                .OrderByDescending(f => f.CreatedAt) // ✅ lấy feedback mới nhất
+                .OrderByDescending(f => f.CreatedAt)
                 .FirstOrDefault();
         }
+        public SpeakingFeedback GetBySpeakingAttemptAndUser(int speakingAttemptId, int userId)
+        {
+            return _context.SpeakingFeedbacks
+                .Include(f => f.SpeakingAttempt)
+                .ThenInclude(a => a.ExamAttempt)
+                .FirstOrDefault(f =>
+                    f.SpeakingAttemptId == speakingAttemptId &&
+                    f.SpeakingAttempt.ExamAttempt.UserId == userId
+                );
+        }
+
 
 
         public void Add(SpeakingFeedback entity)
@@ -111,7 +122,7 @@ namespace WebAPI.Repositories
             {
                 var entity = new SpeakingFeedback
                 {
-                    SpeakingAttemptId = attempt.SpeakingAttemptId, 
+                    SpeakingAttemptId = attempt.SpeakingAttemptId,
                     Pronunciation = band.GetProperty("pronunciation").GetDecimal(),
                     Fluency = band.GetProperty("fluency").GetDecimal(),
                     LexicalResource = band.GetProperty("lexical_resource").GetDecimal(),

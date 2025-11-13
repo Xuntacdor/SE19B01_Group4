@@ -399,60 +399,118 @@ export default function SpeakingTest() {
           feedback && (
             <div className={styles.resultBox}>
               <div className={styles.resultHeader}>
-                <Trophy size={28} color="#2563eb" />
-                <h3>Speaking Result</h3>
-              </div>
+                <div className={styles.resultLeft}>
+                  <Trophy size={28} color="#2563eb" />
+                  <h3>Speaking Result</h3>
+                </div>
 
-              <div className={styles.userAnswerSection}>
-                <h4>Your Answer</h4>
-                {feedback.audioUrl && (
-                  <div className={styles.audioPlayer}>
-                    <audio controls src={feedback.audioUrl} />
-                  </div>
-                )}
-                <p className={styles.transcriptText}>
-                  {feedback.transcript || "Transcript not available yet."}
-                </p>
+                <button
+                  className={styles.retakeBtn}
+                  onClick={() => {
+                    setPhase("idle");
+                    hasSubmittedRef.current = false;
+                    setFeedback(null);
+                  }}
+                >
+                  <RotateCcw size={18} /> Retake
+                </button>
               </div>
-
-              <div className={styles.scoreContainer}>
-                <div className={`${styles.scoreChip} ${styles.overall}`}>
-                  Overall <strong>{feedback.overall}</strong>
-                </div>
-                <div className={`${styles.scoreChip} ${styles.pron}`}>
-                  Pronunciation <strong>{feedback.pronunciation}</strong>
-                </div>
-                <div className={`${styles.scoreChip} ${styles.grammar}`}>
-                  Grammar <strong>{feedback.grammarAccuracy}</strong>
-                </div>
-                <div className={`${styles.scoreChip} ${styles.fluency}`}>
-                  Fluency <strong>{feedback.fluency}</strong>
-                </div>
-                <div className={`${styles.scoreChip} ${styles.coherence}`}>
-                  Coherence <strong>{feedback.coherence}</strong>
-                </div>
-              </div>
-
-              {feedback?.aiAnalysisJson && (
-                <div className={styles.feedbackText}>
-                  <h4>AI Feedback</h4>
-                  <p>
-                    {JSON.parse(feedback.aiAnalysisJson)?.ai_analysis
-                      ?.overview || "No feedback text."}
+              <div className={styles.resultBody}>
+                <div className={styles.userAnswerSection}>
+                  <h4>Your Answer</h4>
+                  {feedback.audioUrl && (
+                    <div className={styles.audioPlayer}>
+                      <audio controls src={feedback.audioUrl} />
+                    </div>
+                  )}
+                  <p className={styles.transcriptText}>
+                    {feedback.transcript || "Transcript not available yet."}
                   </p>
                 </div>
-              )}
 
-              <button
-                className={styles.recordAgainBtn}
-                onClick={() => {
-                  setPhase("idle");
-                  hasSubmittedRef.current = false;
-                  setFeedback(null);
-                }}
-              >
-                <RotateCcw size={20} /> Retake
-              </button>
+                <div className={styles.scoreContainer}>
+                  <div className={`${styles.scoreChip} ${styles.overall}`}>
+                    Overall <strong>{feedback.overall}</strong>
+                  </div>
+                  <div className={`${styles.scoreChip} ${styles.pron}`}>
+                    Pronunciation <strong>{feedback.pronunciation}</strong>
+                  </div>
+                  <div className={`${styles.scoreChip} ${styles.grammar}`}>
+                    Grammar <strong>{feedback.grammarAccuracy}</strong>
+                  </div>
+                  <div className={`${styles.scoreChip} ${styles.fluency}`}>
+                    Fluency <strong>{feedback.fluency}</strong>
+                  </div>
+                  <div className={`${styles.scoreChip} ${styles.coherence}`}>
+                    Coherence <strong>{feedback.coherence}</strong>
+                  </div>
+                </div>
+
+                {feedback?.aiAnalysisJson &&
+                  (() => {
+                    const ai =
+                      JSON.parse(feedback.aiAnalysisJson)?.ai_analysis || {};
+
+                    return (
+                      <div className={styles.aiSection}>
+                        <h4>AI Feedback</h4>
+
+                        {/* Overview */}
+                        {ai.overview && (
+                          <div className={styles.aiOverview}>{ai.overview}</div>
+                        )}
+
+                        {/* Strengths */}
+                        {ai.strengths?.length > 0 && (
+                          <>
+                            <div className={styles.aiSubTitle}>Strengths:</div>
+                            <ul className={styles.aiList}>
+                              {ai.strengths.map((s, i) => (
+                                <li key={i}>{s}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+
+                        {/* Weaknesses */}
+                        {ai.weaknesses?.length > 0 && (
+                          <>
+                            <div className={styles.aiSubTitle}>Weaknesses:</div>
+                            <ul className={styles.aiList}>
+                              {ai.weaknesses.map((w, i) => (
+                                <li key={i}>{w}</li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+
+                        {/* Advice */}
+                        {ai.advice && (
+                          <div className={styles.aiAdviceBox}>
+                            <strong>Advice:</strong> {ai.advice}
+                          </div>
+                        )}
+
+                        {/* Vocabulary Suggestions */}
+                        {ai.vocabulary_suggestions?.length > 0 && (
+                          <div className={styles.vocabSuggestBox}>
+                            <h4>Vocabulary Suggestions</h4>
+
+                            {ai.vocabulary_suggestions.map((v, i) => (
+                              <div key={i} className={styles.vocabItem}>
+                                <strong>{v.original_word}</strong> →{" "}
+                                {v.suggested_alternative}
+                                <p className={styles.vocabExplain}>
+                                  {v.explanation}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+              </div>
             </div>
           )
         );
