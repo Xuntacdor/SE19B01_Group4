@@ -1,10 +1,7 @@
-﻿using WebAPI.Models;
-using WebAPI.Repositories;
+﻿using System.Text.Json;
 using WebAPI.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
+using WebAPI.Models;
+using WebAPI.Repositories;
 
 namespace WebAPI.Services
 {
@@ -22,6 +19,35 @@ namespace WebAPI.Services
             return _listeningRepo.GetByExamId(examId);
         }
 
+        // ===================== IELTS BAND TABLES =====================
+        private static readonly (int Min, int Max, decimal Band)[] ScaleListeningAndReadingAcademic = new[]
+        {
+    (39, 40, 9.0m),
+    (37, 38, 8.5m),
+    (35, 36, 8.0m),
+    (33, 34, 7.5m),
+    (30, 32, 7.0m),
+    (27, 29, 6.5m),
+    (23, 26, 6.0m),
+    (20, 22, 5.5m),
+    (16, 19, 5.0m),
+    (13, 15, 4.5m),
+    (10, 12, 4.0m),
+    ( 7,  9, 3.5m),
+    ( 5,  6, 3.0m),
+    ( 3,  4, 2.5m),
+    ( 0,  2, 2.0m),
+};
+
+        private static decimal BandFrom(int correct, (int Min, int Max, decimal Band)[] scale)
+        {
+            foreach (var row in scale)
+                if (correct >= row.Min && correct <= row.Max)
+                    return row.Band;
+            return 0m;
+        }
+
+        // ===================== LISTENING =====================
         public decimal EvaluateListening(int examId, List<UserAnswerGroup> structuredAnswers)
         {
             var listenings = _listeningRepo.GetByExamId(examId);
@@ -31,11 +57,15 @@ namespace WebAPI.Services
                 .Where(g => g.Answers?.Count > 0)
                 .ToDictionary(g => g.SkillId, g => g.ToNormalizedMap());
 
-            int totalOptions = 0, correctCount = 0;
+            int totalMarks = 0;
+            int correctMarks = 0;
 
             foreach (var l in listenings)
             {
-                if (!answerMap.TryGetValue(l.ListeningId, out var userMap)) continue;
+                // use empty map if user has no answers for this part
+                var userMap = answerMap.TryGetValue(l.ListeningId, out var um)
+                    ? um
+                    : new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
 
                 var correctMap = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
                     l.CorrectAnswer ?? "{}", new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
@@ -51,16 +81,19 @@ namespace WebAPI.Services
                         _ => new[] { je.ToString()?.Trim() ?? "" }
                     };
 
-                    totalOptions += correctVals.Length;
-                    if (!userMap.TryGetValue(qKey, out var userVals)) continue;
+                    // count total from the key (ground truth), not from user answers
+                    totalMarks += correctVals.Length;
 
-                    var userSet = userVals.Select(v => v.Trim().ToLower()).ToHashSet();
-                    foreach (var opt in correctVals.Select(v => v.Trim().ToLower()))
-                        if (userSet.Contains(opt)) correctCount++;
+                    if (!userMap.TryGetValue(qKey, out var userVals) || userVals == null) continue;
+
+                    var userSet = userVals.Select(v => v.Trim().ToLowerInvariant()).ToHashSet();
+                    foreach (var opt in correctVals.Select(v => v.Trim().ToLowerInvariant()))
+                        if (userSet.Contains(opt)) correctMarks++;
                 }
             }
 
-            return totalOptions == 0 ? 0m : Math.Round((decimal)correctCount / totalOptions * 9, 1);
+            if (totalMarks != 40) return 0m; // non full exam
+            return BandFrom(correctMarks, ScaleListeningAndReadingAcademic);
         }
 
 
