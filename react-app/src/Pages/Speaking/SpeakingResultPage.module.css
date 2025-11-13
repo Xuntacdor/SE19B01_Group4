@@ -1,0 +1,326 @@
+/* ================================
+   GENERAL PAGE LAYOUT
+================================ */
+.container {
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ================================
+   LOADING / ERROR STATES
+================================ */
+.loading,
+.errorBox {
+  margin-top: 80px;
+  text-align: center;
+  color: #555;
+}
+
+.errorBox p {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+/* ================================
+   HEADER SECTION
+================================ */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+.header h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Back button */
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 14px;
+  background: #f1f5f9;
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  color: #000;
+
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.backBtn:hover {
+  background: #e2e8f0;
+}
+
+/* Overall score box */
+.overallScore {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  padding: 10px 16px;
+  border-radius: 10px;
+  text-align: right;
+}
+
+.overallScore span {
+  display: block;
+  font-size: 13px;
+  color: #555;
+}
+
+.overallScore strong {
+  font-size: 22px;
+  color: #4338ca;
+}
+
+/* ================================
+   TASK CARD LAYOUT
+================================ */
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.taskCard {
+  padding: 20px;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+}
+
+.questionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* ================================
+   AUDIO AREA
+================================ */
+.audioRow {
+  margin-bottom: 16px;
+}
+
+.audioBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 14px;
+  background: #e0f2fe;
+  color: #000;
+  border: 1px solid #7dd3fc;
+  border-radius: 8px;
+
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 14px;
+}
+
+.audioBtn:hover {
+  background: #bae6fd;
+}
+
+/* ================================
+   TRANSCRIPT
+================================ */
+.transcriptBox {
+  margin-top: 14px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.transcriptBox h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.transcriptBox p {
+  white-space: pre-line;
+  color: #333;
+  line-height: 1.5;
+}
+
+/* ================================
+   SCORES GRID
+================================ */
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 16px;
+  margin-top: 20px;
+  background: #fafafa;
+  padding: 18px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.scoreGrid div {
+  font-size: 14px;
+  color: #444;
+}
+
+/* ================================
+   AI FEEDBACK SECTION
+================================ */
+.aiBox {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #fefce8;
+  border: 1px solid #fef08a;
+}
+
+.aiBox h4 {
+  margin-bottom: 10px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* Overview */
+.overview {
+  margin-bottom: 12px;
+  color: #444;
+  line-height: 1.5;
+}
+
+/* Strength / Weakness list */
+.listBox {
+  margin-top: 16px;
+}
+
+.listBox h5 {
+  font-size: 14.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.listBox ul {
+  padding-left: 18px;
+}
+
+.listBox li {
+  margin-bottom: 4px;
+  color: #333;
+}
+
+/* Advice */
+.adviceBox {
+  margin-top: 14px;
+}
+
+.adviceBox h5 {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.adviceBox p {
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+/* Vocabulary suggestions */
+.vocabBox {
+  margin-top: 18px;
+}
+
+.vocabItem {
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.vocabItem strong {
+  color: #374151;
+}
+
+.vocabItem span {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.explain {
+  margin-top: 6px;
+  color: #4b5563;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+/* ================================
+   SCORE ITEM STYLING
+================================ */
+.scoreGrid div {
+  font-size: 15px;
+  font-weight: 500;
+  background: #ffffff;
+  padding: 12px 14px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+/* Label (Pronunciation, Fluency...) */
+.scoreGrid div strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* Band value ( số điểm ) */
+.scoreGrid div span {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+/* ================================
+   LIGHT COLOR FOR SCORE BOXES
+================================ */
+
+/* High score */
+.scoreHigh {
+  background: #e0f7ec !important; /* xanh nhạt */
+  border-color: #a5d6a7 !important;
+}
+
+/* Mid score */
+.scoreMid {
+  background: #fff8e1 !important; /* vàng nhạt */
+  border-color: #ffe082 !important;
+}
+
+/* Low score */
+.scoreLow {
+  background: #ffecec !important; /* đỏ nhạt */
+  border-color: #ffb3b3 !important;
+}

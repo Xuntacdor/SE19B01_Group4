@@ -32,7 +32,7 @@ export default function TransactionList() {
     search: local.search,
     dateFrom: `${local.date}T00:00:00`,
     dateTo: `${local.date}T23:59:59`,
-    filterStatus: local.status, // ✅ dùng field mới
+    filterStatus: local.status,
   });
 
   function resetFilters() {
@@ -78,7 +78,7 @@ export default function TransactionList() {
       sortDir: local.sortDir,
       dateFrom: `${local.date}T00:00:00`,
       dateTo: `${local.date}T23:59:59`,
-      filterStatus: local.status, // ✅ field mới
+      filterStatus: local.status,
     })
       .then((res) => {
         const blob = new Blob([res.data], { type: "text/csv" });
@@ -146,7 +146,7 @@ export default function TransactionList() {
                   setLocal({ ...local, status: newStatus });
                   setQuery((prev) => ({
                     ...prev,
-                    filterStatus: newStatus, // ✅ đổi field
+                    filterStatus: newStatus,
                     page: 1,
                   }));
                 }}

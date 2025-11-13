@@ -38,6 +38,7 @@ import ReadingResultPage from "./Pages/Reading/ReadingResultPage.jsx";
 import ListeningResultPage from "./Pages/Listening/ListeningResultPage.jsx";
 import VipPlans from "./Pages/Transactions/VipPlans.jsx";
 import PaymentSuccess from "./Pages/Transactions/PaymentSuccess.jsx";
+import SpeakingResultPage from "./Pages/Speaking/SpeakingResultPage.jsx";
 
 function App() {
   return (
@@ -70,6 +71,7 @@ function App() {
         <Route path="/writing/test" element={<WritingTestPage />} />
         <Route path="/writing/result" element={<WritingResultPage />} />
         <Route path="/speaking/test" element={<SpeakingTestPage />} />
+        <Route path="/speaking/result" element={<SpeakingResultPage />} />
 
         <Route path="/reading/result" element={<ReadingResultPage />} />
         <Route path="/listening/result" element={<ListeningResultPage />} />

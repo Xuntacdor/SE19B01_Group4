@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import styles from "./TransactionDetail.module.css";
+import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
 
 export default function TransactionDetail() {
   const { id } = useParams();
@@ -23,56 +24,76 @@ export default function TransactionDetail() {
     error: null,
   });
 
+  const [popup, setPopup] = useState({
+    show: false,
+    message: "",
+    action: null,
+  });
+
+  function openConfirm(message, onConfirm) {
+    setPopup({
+      show: true,
+      message,
+      action: () => {
+        setPopup({ show: false, message: "", action: null });
+        onConfirm();
+      },
+    });
+  }
+
   function load() {
     setState({ loading: true, data: null, error: null });
     getTransactionById(id)
-      .then(function (res) {
+      .then((res) => {
         setState({ loading: false, data: res.data, error: null });
       })
-      .catch(function (err) {
+      .catch((err) => {
         console.error("Failed to load transaction:", err);
         setState({ loading: false, data: null, error: err });
       });
   }
 
-  useEffect(
-    function () {
-      if (id) load();
-    },
-    [id]
-  );
+  useEffect(() => {
+    if (id) load();
+  }, [id]);
 
   function onApprove() {
-    if (!window.confirm("Approve this pending transaction?")) return;
-    approveTransaction(id)
-      .then(function () {
-        load();
-      })
-      .catch(function () {
-        alert("Failed to approve transaction.");
-      });
+    openConfirm("Approve this pending transaction?", () => {
+      approveTransaction(id)
+        .then(load)
+        .catch(() =>
+          setPopup({
+            show: true,
+            message: "Failed to approve transaction.",
+          })
+        );
+    });
   }
 
   function onCancel() {
-    if (!window.confirm("Cancel this transaction?")) return;
-    cancelTransaction(id)
-      .then(function () {
-        load();
-      })
-      .catch(function () {
-        alert("Failed to cancel transaction.");
-      });
+    openConfirm("Cancel this transaction?", () => {
+      cancelTransaction(id)
+        .then(load)
+        .catch(() =>
+          setPopup({
+            show: true,
+            message: "Failed to cancel transaction.",
+          })
+        );
+    });
   }
 
   function onRefund() {
-    if (!window.confirm("Refund this transaction?")) return;
-    refundTransaction(id)
-      .then(function () {
-        load();
-      })
-      .catch(function () {
-        alert("Failed to refund transaction.");
-      });
+    openConfirm("Refund this transaction?", () => {
+      refundTransaction(id)
+        .then(load)
+        .catch(() =>
+          setPopup({
+            show: true,
+            message: "Failed to refund transaction.",
+          })
+        );
+    });
   }
 
   if (state.loading)
@@ -97,7 +118,7 @@ export default function TransactionDetail() {
       </div>
     );
 
-  var t = state.data;
+  const t = state.data;
 
   return (
     <div className={styles.page}>
@@ -169,6 +190,23 @@ export default function TransactionDetail() {
           </div>
         </div>
       </div>
+
+      {/* Popup */}
+      <ConfirmationPopup
+        isOpen={popup.show}
+        message={popup.message}
+        title="Confirmation"
+        confirmText="OK"
+        cancelText="Cancel"
+        onConfirm={popup.action}
+        onClose={() =>
+          setPopup({
+            show: false,
+            message: "",
+            action: null,
+          })
+        }
+      />
     </div>
   );
 }

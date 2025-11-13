@@ -16,6 +16,10 @@ public class SpeakingFeedbackService : ISpeakingFeedbackService
 
     public SpeakingFeedback? GetBySpeakingAndUser(int speakingId, int userId)
         => _repo.GetBySpeakingAndUser(speakingId, userId);
+    public SpeakingFeedback GetBySpeakingAttemptAndUser(int speakingAttemptId, int userId)
+    {
+        return _repo.GetBySpeakingAttemptAndUser(speakingAttemptId, userId);
+    }
 
     public void Add(SpeakingFeedback feedback)
     {
