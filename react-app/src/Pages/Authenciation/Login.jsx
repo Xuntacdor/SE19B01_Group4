@@ -10,7 +10,7 @@ import { login, register, forgotPassword } from "../../Services/AuthApi";
 import { useNavigate } from "react-router-dom";
 import { 
   User, 
-  Lock, 
+  Lock,
   Mail, 
   AlertCircle, 
   CheckCircle, 
@@ -336,6 +336,15 @@ const Login = () => {
 
     const passwordRequirements = checkPasswordRequirements(form.password);
 
+    useEffect(() => {
+      const allPasswordRequirementsMet = passwordRequirements.minLength;
+    
+      if (allPasswordRequirementsMet && showPasswordGuide) {
+        const timer = setTimeout(() => setShowPasswordGuide(false), 500);
+        return () => clearTimeout(timer);
+      }
+    }, [passwordRequirements, showPasswordGuide]);
+
     const handlePasswordFocus = () => {
       if (mode === "register") {
         setShowPasswordGuide(true);
@@ -388,6 +397,18 @@ const Login = () => {
     };
 
     const emailRequirements = checkEmailRequirements(form.email);
+
+    useEffect(() => {
+      const allEmailRequirementsMet =
+        emailRequirements.hasAtSymbol &&
+        emailRequirements.hasDomain &&
+        emailRequirements.hasValidFormat;
+    
+      if (allEmailRequirementsMet && showEmailGuide) {
+        const timer = setTimeout(() => setShowEmailGuide(false), 500); // close after short delay
+        return () => clearTimeout(timer);
+      }
+    }, [emailRequirements, showEmailGuide]);
 
     // Update popup position when it's shown
     useEffect(() => {
