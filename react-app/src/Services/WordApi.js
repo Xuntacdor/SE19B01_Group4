@@ -40,3 +40,4 @@ export function remove(id) {
 export function lookup(term) {
   return API.get(`/${encodeURIComponent(term)}/lookup`);
 }
+export const lookupAI = (payload) => API.post("/lookup-ai", payload);
