@@ -202,8 +202,7 @@ const ResetPassword = () => {
                   <CheckCircle size={18} />
                 </div>
                 <div className="success-text">
-                  {message}
-                  <p style={{ marginTop: '4px', fontSize: '11px', opacity: 0.8 }}>Redirecting to login page...</p>
+                  <div>{message}</div>
                 </div>
               </div>
             )}
