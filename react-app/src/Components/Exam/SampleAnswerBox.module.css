@@ -1,0 +1,46 @@
+.sampleBox {
+  position: relative;
+  background-color: #fdf4ff; /* tím nhạt */
+  border: 1px solid #f5d0fe;
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: #1e293b;
+  font-size: 1rem;
+  line-height: 1.6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-top: 10px;
+  transition: transform 0.2s ease;
+}
+
+.sampleBox:hover {
+  transform: translateY(-2px);
+}
+
+.playBtn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #ecfeff;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0ea5e9;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  padding: 0%;
+}
+
+.playBtn:hover {
+  background: #cffafe;
+}
+
+.answerText {
+  margin: 0;
+  padding-left: 42px;
+  color: #374151;
+  white-space: pre-line;
+}

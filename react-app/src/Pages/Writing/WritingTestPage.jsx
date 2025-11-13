@@ -5,7 +5,7 @@ import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as WritingApi from "../../Services/WritingApi";
 import LoadingComponent from "../../Components/Exam/LoadingComponent";
 import styles from "./WritingTestPage.module.css";
-
+import FloatDictionrary from "../../Components/Dictionary/FloatingDictionaryChat";
 export default function WritingTest() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -197,8 +197,7 @@ export default function WritingTest() {
           </div>
         </div>
       </div>
-
-      {/* ✅ Overlay spinner shown while submitting */}
+       <FloatDictionrary />     
       {submitting && <LoadingComponent text="Submitting your essay..." />}
     </AppLayout>
   );

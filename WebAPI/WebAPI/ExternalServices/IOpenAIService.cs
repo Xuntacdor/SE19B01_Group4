@@ -6,5 +6,7 @@ namespace WebAPI.ExternalServices
     {
         JsonDocument GradeWriting(string question, string answer, string? imageUrl = null);
         JsonDocument GradeSpeaking(string question, string transcript);
+        JsonDocument LookupWordAI(string query);
+        JsonDocument GetSpeakingSuggestion(string question);
     }
 }

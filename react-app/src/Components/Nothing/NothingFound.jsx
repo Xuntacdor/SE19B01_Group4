@@ -1,9 +1,9 @@
 import React from "react";
 import styles from "./NothingFound.module.css";
 import { useNavigate } from "react-router-dom";
-
+import defaultImage  from "../../assets/sad_cloud.png";
 export default function NothingFound({
-  imageSrc = "../assets/images/nothing-found.png",
+  imageSrc = defaultImage,
   title = "Nothing here yet",
   message = "There is no data to display.",
   actionLabel,
