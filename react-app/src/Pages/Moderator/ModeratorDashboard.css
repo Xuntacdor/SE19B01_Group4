@@ -866,8 +866,8 @@
   background: #c82333;
 }
 
-/* Modal */
-.modal-overlay {
+/* Modal - Scoped under moderator-dashboard */
+.moderator-dashboard .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -882,11 +882,11 @@
   overflow: hidden;
 }
 
-.modal-content {
+.moderator-dashboard .modal-content {
   background: white;
   border-radius: 16px;
-  max-width: 1600px;
-  width: 95%;
+  max-width: 1400px;
+  width: 70%;
   max-height: 90vh;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -906,47 +906,47 @@
   }
 }
 
-.modal-header {
+.moderator-dashboard .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 28px 48px;
   border-bottom: 2px solid #f0f0f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: white;
+  color: #333;
   flex-shrink: 0;
 }
 
-.modal-header h2 {
+.moderator-dashboard .modal-header h2 {
   margin: 0;
   font-size: 26px;
   font-weight: 600;
-  color: white;
+  color: #333;
   line-height: 1.4;
   max-width: calc(100% - 60px);
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
 
-.close-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+.moderator-dashboard .close-btn {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
   cursor: pointer;
   padding: 10px;
   border-radius: 8px;
-  color: white;
+  color: #333;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+.moderator-dashboard .close-btn:hover {
+  background: #e9ecef;
   transform: scale(1.1);
 }
 
-.modal-body {
+.moderator-dashboard .modal-body {
   padding: 40px 48px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -955,23 +955,153 @@
   min-height: 0;
 }
 
-.modal-body::-webkit-scrollbar {
+.moderator-dashboard .modal-body::-webkit-scrollbar {
   width: 8px;
 }
 
-.modal-body::-webkit-scrollbar-track {
+.moderator-dashboard .modal-body::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
 
-.modal-body::-webkit-scrollbar-thumb {
+.moderator-dashboard .modal-body::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
 }
 
-.modal-body::-webkit-scrollbar-thumb:hover {
+.moderator-dashboard .modal-body::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
 
+/* Post detail styles inside modal - scoped under moderator-dashboard .modal-content */
+.moderator-dashboard .modal-content .post-title-detail {
+  margin-top: 0;
+  margin-bottom: 24px;
+  padding: 32px 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.moderator-dashboard .modal-content .post-title-detail h3 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #212529;
+  margin: 0;
+  line-height: 1.4;
+  max-width: 100%;
+}
+
+.moderator-dashboard .modal-content .post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  padding: 24px 32px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.moderator-dashboard .modal-content .post-author,
+.moderator-dashboard .modal-content .post-time,
+.moderator-dashboard .modal-content .post-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 15px;
+  font-weight: 500;
+  width: auto;
+  min-width: auto;
+  justify-content: flex-start;
+}
+
+.moderator-dashboard .modal-content .post-content-full {
+  margin-top: 20px;
+  padding: 40px 48px;
+  background: white;
+  border-radius: 12px;
+  line-height: 1.8;
+  color: #495057;
+  font-size: 17px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  max-width: 100%;
+}
+
+.moderator-dashboard .modal-content .post-content-full p {
+  margin-bottom: 16px;
+}
+
+.moderator-dashboard .modal-content .post-content-full img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: block;
+}
+
+.moderator-dashboard .modal-content .post-content-full code {
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+.moderator-dashboard .modal-content .post-tags-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: 24px 32px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.moderator-dashboard .modal-content .post-tag-detail {
+  padding: 8px 16px;
+  background: white;
+  color: #333;
+  border: 1px solid #e9ecef;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.2s ease;
+}
+
+.moderator-dashboard .modal-content .post-tag-detail:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.moderator-dashboard .modal-content .report-info {
+  margin-top: 24px;
+  padding: 28px 36px;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+  border-radius: 12px;
+  border-left: 4px solid #dc3545;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.moderator-dashboard .modal-content .report-info h4 {
+  margin: 0 0 16px 0;
+  color: #721c24;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.moderator-dashboard .modal-content .report-info p {
+  margin: 0;
+  color: #721c24;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* Keep global post styles for use outside modal */
 .post-title-detail {
   margin-top: 0;
   margin-bottom: 24px;
@@ -1063,8 +1193,9 @@
 
 .post-tag-detail {
   padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: white;
+  color: #333;
+  border: 1px solid #e9ecef;
   border-radius: 24px;
   font-size: 14px;
   font-weight: 600;
@@ -1073,7 +1204,7 @@
 
 .post-tag-detail:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .report-info {
@@ -1099,7 +1230,7 @@
   line-height: 1.7;
 }
 
-.modal-footer {
+.moderator-dashboard .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 16px;
@@ -1171,11 +1302,12 @@
 }
 
 .users-table th {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: white;
+  color: #333;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border-bottom: 2px solid #e9ecef;
 }
 
 .btn-action {
@@ -1271,8 +1403,10 @@
     font-size: 14px;
   }
   
-  .modal-content {
+  .moderator-dashboard .modal-content {
     margin: 10px;
+    max-width: 1400px;
+    width: 70%;
     max-height: 90vh;
   }
   
@@ -1388,8 +1522,8 @@
   border: 1px solid #f5c6cb;
 }
 
-/* Modal Styles */
-.modal-overlay {
+/* Modal Styles for Tag Management - Scoped under moderator-dashboard */
+.moderator-dashboard .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -1404,19 +1538,19 @@
   padding: 20px;
 }
 
-.modal-content {
+.moderator-dashboard .modal-content {
   background: white;
   border-radius: 8px;
   padding: 24px;
-  width: 90%;
-  max-width: 1600px;
+  width: 70%;
+  max-width: 1400px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.modal-header {
+.moderator-dashboard .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1424,12 +1558,12 @@
   flex-shrink: 0;
 }
 
-.modal-header h2 {
+.moderator-dashboard .modal-header h2 {
   margin: 0;
   color: #333;
 }
 
-.close-btn {
+.moderator-dashboard .close-btn {
   background: none;
   border: none;
   font-size: 24px;
@@ -1443,7 +1577,7 @@
   justify-content: center;
 }
 
-.close-btn:hover {
+.moderator-dashboard .close-btn:hover {
   color: #333;
 }
 
@@ -1481,7 +1615,7 @@
   margin-top: 20px;
 }
 
-.modal-content form {
+.moderator-dashboard .modal-content form {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
@@ -1490,21 +1624,21 @@
   padding-right: 8px;
 }
 
-.modal-content form::-webkit-scrollbar {
+.moderator-dashboard .modal-content form::-webkit-scrollbar {
   width: 8px;
 }
 
-.modal-content form::-webkit-scrollbar-track {
+.moderator-dashboard .modal-content form::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
-.modal-content form::-webkit-scrollbar-thumb {
+.moderator-dashboard .modal-content form::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
 }
 
-.modal-content form::-webkit-scrollbar-thumb:hover {
+.moderator-dashboard .modal-content form::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
 
@@ -1539,52 +1673,53 @@
   }
 
   /* Modal responsive */
-  .modal-content {
-    width: 98%;
+  .moderator-dashboard .modal-content {
+    width: 70%;
+    max-width: 1400px;
     max-height: 95vh;
   }
 
-  .modal-header {
+  .moderator-dashboard .modal-header {
     padding: 20px 24px;
   }
 
-  .modal-header h2 {
+  .moderator-dashboard .modal-header h2 {
     font-size: 20px;
   }
 
-  .modal-body {
+  .moderator-dashboard .modal-body {
     padding: 24px 20px;
     max-height: 70vh;
   }
 
-  .post-title-detail {
+  .moderator-dashboard .modal-content .post-title-detail {
     padding: 20px;
   }
 
-  .post-title-detail h3 {
+  .moderator-dashboard .modal-content .post-title-detail h3 {
     font-size: 22px;
   }
 
-  .post-meta {
+  .moderator-dashboard .modal-content .post-meta {
     padding: 16px 20px;
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .post-content-full {
+  .moderator-dashboard .modal-content .post-content-full {
     padding: 20px;
   }
 
-  .post-tags-detail {
+  .moderator-dashboard .modal-content .post-tags-detail {
     padding: 16px 20px;
   }
 
-  .modal-footer {
+  .moderator-dashboard .modal-footer {
     padding: 20px 24px;
     flex-direction: column;
   }
 
-  .modal-footer button {
+  .moderator-dashboard .modal-footer button {
     width: 100%;
   }
 }

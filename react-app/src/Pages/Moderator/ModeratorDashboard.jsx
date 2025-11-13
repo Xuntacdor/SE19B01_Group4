@@ -96,6 +96,8 @@ export default function ModeratorDashboard() {
   const [rejectedPosts, setRejectedPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [showPostDetail, setShowPostDetail] = useState(false);
+  const [selectedComment, setSelectedComment] = useState(null);
+  const [showCommentDetail, setShowCommentDetail] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectionPopup, setShowRejectionPopup] = useState(false);
   const [postToReject, setPostToReject] = useState(null);
@@ -436,9 +438,9 @@ export default function ModeratorDashboard() {
   };
 
   const handleViewComment = (comment) => {
-    // For now, we'll just show an alert with comment details
-    // In a real implementation, you might want to show a modal with comment details
-    alert(`Comment: ${comment.content}\nAuthor: ${comment.author}\nPost: ${comment.postTitle}\nReport Reason: ${comment.reportReason}`);
+    // Hiển thị modal với thông tin comment
+    setSelectedComment(comment);
+    setShowCommentDetail(true);
   };
 
   const handleApproveReport = async (reportId) => {
@@ -1400,6 +1402,96 @@ export default function ModeratorDashboard() {
                   Close
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comment Detail Modal */}
+      {showCommentDetail && selectedComment && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Reported Comment</h2>
+              <button 
+                className="close-btn"
+                onClick={() => setShowCommentDetail(false)}
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="post-meta">
+                <div className="post-author">
+                  <User size={16} />
+                  <span>Author: {selectedComment.author || 'Unknown'}</span>
+                </div>
+                <div className="post-time">
+                  <Clock size={16} />
+                  <span>Date: {formatTimeVietnam(selectedComment.createdAt)}</span>
+                </div>
+              </div>
+              
+              <div className="post-title-detail">
+                <h3>Comment on: {selectedComment.postTitle}</h3>
+              </div>
+
+              <div className="post-content-full" style={{ 
+                lineHeight: '1.6',
+                fontSize: '16px',
+                color: '#333',
+                padding: '20px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '8px',
+                marginTop: '20px',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word'
+              }}>
+                {selectedComment.content}
+              </div>
+
+              {selectedComment.reportReason && (
+                <div className="report-info" style={{ 
+                  marginTop: '20px',
+                  padding: '15px',
+                  backgroundColor: '#fff3cd',
+                  border: '1px solid #ffc107',
+                  borderRadius: '8px'
+                }}>
+                  <h4>Report Reason:</h4>
+                  <p>{selectedComment.reportReason}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn btn-success"
+                onClick={() => {
+                  handleApproveReport(selectedComment.reportId);
+                  setShowCommentDetail(false);
+                }}
+              >
+                <Check size={16} />
+                Approve & Delete
+              </button>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => {
+                  handleDismissReport(selectedComment.reportId);
+                  setShowCommentDetail(false);
+                }}
+              >
+                <X size={16} />
+                Dismiss
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={() => setShowCommentDetail(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
