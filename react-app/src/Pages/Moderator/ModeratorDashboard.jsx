@@ -1336,10 +1336,6 @@ export default function ModeratorDashboard() {
                   </div>
                 )}
               </div>
-              
-              <div className="post-title-detail">
-                <h3>{selectedPost.title}</h3>
-              </div>
 
               {selectedPost.tags && selectedPost.tags.length > 0 && (
                 <div className="post-tags-detail">
