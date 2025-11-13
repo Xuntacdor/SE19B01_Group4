@@ -42,6 +42,8 @@ import NotificationPopup from "../../Components/Forum/NotificationPopup";
 import RejectionReasonPopup from "../../Components/Common/RejectionReasonPopup";
 import CommentSection from "../../Components/Forum/CommentSection";
 import { marked } from "marked";
+import AppLayout from "../../Components/Layout/AppLayout";
+import ModeratorNavbar from "../../Components/Moderator/ModeratorNavbar";
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
@@ -96,15 +98,18 @@ export default function ModeratorDashboard() {
   const [rejectedPosts, setRejectedPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [showPostDetail, setShowPostDetail] = useState(false);
+  const [selectedComment, setSelectedComment] = useState(null);
+  const [showCommentDetail, setShowCommentDetail] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectionPopup, setShowRejectionPopup] = useState(false);
   const [postToReject, setPostToReject] = useState(null);
   
   // New state for forum posts
   const [allPosts, setAllPosts] = useState([]);
+  const [originalPosts, setOriginalPosts] = useState([]); // Store all posts for filtering
   const [postsLoading, setPostsLoading] = useState(false);
-  const [postsFilter, setPostsFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTag, setSelectedTag] = useState("all");
   
   // Tag management states
   const [tags, setTags] = useState([]);
@@ -116,7 +121,6 @@ export default function ModeratorDashboard() {
   
   // User states
   const [user, setUser] = useState(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   
   // Notification state
   const [notification, setNotification] = useState({
@@ -168,8 +172,9 @@ export default function ModeratorDashboard() {
   useEffect(() => {
     if (currentView === "overview") {
       loadAllPosts();
+      loadTagsForFilter();
     }
-  }, [currentView, postsFilter]);
+  }, [currentView]);
 
   // Load tags when tags view is selected
   useEffect(() => {
@@ -177,6 +182,13 @@ export default function ModeratorDashboard() {
       loadTags();
     }
   }, [currentView]);
+
+  // Filter posts when search query or selected tag changes
+  useEffect(() => {
+    if (currentView === "overview") {
+      filterPosts();
+    }
+  }, [searchQuery, selectedTag]);
 
   const loadDashboardData = async () => {
     try {
@@ -304,13 +316,65 @@ export default function ModeratorDashboard() {
   const loadAllPosts = async () => {
     try {
       setPostsLoading(true);
-      const response = await getPostsByFilter(postsFilter, 1, 50);
-      setAllPosts(response.data || []);
+      // Load all posts (filter = "all")
+      const response = await getPostsByFilter("all", 1, 50);
+      const posts = response.data || [];
+      setOriginalPosts(posts);
+      // Apply current filters after loading
+      applyFilters(posts);
     } catch (error) {
       console.error("Error loading posts:", error);
+      setOriginalPosts([]);
       setAllPosts([]);
     } finally {
       setPostsLoading(false);
+    }
+  };
+
+  const loadTagsForFilter = async () => {
+    try {
+      const response = await getAllTags();
+      setTags(response || []);
+    } catch (error) {
+      console.error('Error loading tags for filter:', error);
+      setTags([]);
+    }
+  };
+
+  const applyFilters = (postsToFilter) => {
+    const sourcePosts = postsToFilter || originalPosts;
+    
+    if (!sourcePosts || sourcePosts.length === 0) {
+      setAllPosts([]);
+      return;
+    }
+
+    let filtered = [...sourcePosts];
+
+    // Filter by search query (title)
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(post => 
+        post.title && post.title.toLowerCase().includes(query)
+      );
+    }
+
+    // Filter by selected tag
+    if (selectedTag && selectedTag !== "all") {
+      const tagId = parseInt(selectedTag);
+      filtered = filtered.filter(post => 
+        post.tags && post.tags.length > 0 && post.tags.some(tag => 
+          tag.tagId === tagId || tag.tagName === selectedTag
+        )
+      );
+    }
+
+    setAllPosts(filtered);
+  };
+
+  const filterPosts = () => {
+    if (originalPosts.length > 0) {
+      applyFilters();
     }
   };
 
@@ -375,9 +439,9 @@ export default function ModeratorDashboard() {
   };
 
   const handleViewComment = (comment) => {
-    // For now, we'll just show an alert with comment details
-    // In a real implementation, you might want to show a modal with comment details
-    alert(`Comment: ${comment.content}\nAuthor: ${comment.author}\nPost: ${comment.postTitle}\nReport Reason: ${comment.reportReason}`);
+    // Hiển thị modal với thông tin comment
+    setSelectedComment(comment);
+    setShowCommentDetail(true);
   };
 
   const handleApproveReport = async (reportId) => {
@@ -582,7 +646,7 @@ export default function ModeratorDashboard() {
             <Search size={20} />
             <input
               type="text"
-              placeholder="Search posts..."
+              placeholder="Search posts by title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -591,15 +655,15 @@ export default function ModeratorDashboard() {
           <div className="filter-select">
             <Filter size={16} />
             <select 
-              value={postsFilter} 
-              onChange={(e) => setPostsFilter(e.target.value)}
+              value={selectedTag} 
+              onChange={(e) => setSelectedTag(e.target.value)}
             >
-              <option value="all">All Posts</option>
-              <option value="new">New</option>
-              <option value="top">Top</option>
-              <option value="hot">Hot</option>
-              <option value="pending">Pending</option>
-              <option value="reported">Reported</option>
+              <option value="all">All Tags</option>
+              {tags.map(tag => (
+                <option key={tag.tagId} value={tag.tagId}>
+                  #{tag.tagName}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -1163,84 +1227,20 @@ export default function ModeratorDashboard() {
   );
 
   return (
-    <div className="moderator-dashboard">
-      {/* Header Bar */}
-      <header className="moderator-header">
-        <div className="header-left">
-          <h1>Moderator Dashboard</h1>
-        </div>
-        <div className="header-right">
-          <div className="user-menu">
-            <button 
-              className="user-button"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-            >
-              <User size={20} />
-              <span>{user?.username || 'Moderator'}</span>
-            </button>
-            {showUserMenu && (
-              <div className="user-dropdown">
-                <button 
-                  className="dropdown-item"
-                  onClick={() => navigate('/moderator/profile')}
-                >
-                  <User size={16} />
-                  Profile
-                </button>
-                <button 
-                  className="dropdown-item"
-                  onClick={handleLogout}
-                >
-                  <LogOut size={16} />
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="moderator-content-wrapper">
-        <div className="sidebar-container">
-          <aside className="moderator-sidebar-custom">
-            <div className="sidebar-header">
-              <div className="logo">
-                <User size={28} color="#007bff" />
-                <span className="logo-text">Moderator</span>
-              </div>
-            </div>
-
-            <nav className="sidebar-nav">
-              {menuItems.map((item, index) => (
-                <button
-                  key={index}
-                  className={`nav-item ${currentView === item.view ? "active" : ""}`}
-                  onClick={() => setCurrentView(item.view)}
-                >
-                  <span className="nav-icon">{item.icon}</span>
-                  <span className="nav-label">{item.label}</span>
-                </button>
-              ))}
-            </nav>
-
-            <div className="sidebar-footer">
-              <div className="user-info">
-                <User size={20} />
-                <span>Moderator Panel</span>
-              </div>
-            </div>
-          </aside>
-        </div>
-        
-        <main className="moderator-main">
+    <>
+      <AppLayout 
+        title="Moderator Dashboard" 
+        sidebar={<ModeratorNavbar currentView={currentView} onViewChange={setCurrentView} />}
+      >
+        <div className="moderator-main">
           {currentView === "overview" && renderOverview()}
           {currentView === "statistics" && renderStatistics()}
           {currentView === "tags" && renderTags()}
           {currentView === "pending" && renderPendingPosts()}
           {currentView === "reported" && renderReportedComments()}
           {currentView === "rejected" && renderRejectedPosts()}
-        </main>
-      </div>
+        </div>
+      </AppLayout>
 
       {/* Post Detail Modal */}
       {showPostDetail && selectedPost && (
@@ -1256,7 +1256,7 @@ export default function ModeratorDashboard() {
               </button>
             </div>
             
-            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            <div className="modal-body">
               <div className="post-meta">
                 <div className="post-author">
                   <User size={16} />
@@ -1272,10 +1272,6 @@ export default function ModeratorDashboard() {
                     <span>{selectedPost.viewCount} views</span>
                   </div>
                 )}
-              </div>
-              
-              <div className="post-title-detail">
-                <h3>{selectedPost.title}</h3>
               </div>
 
               {selectedPost.tags && selectedPost.tags.length > 0 && (
@@ -1344,6 +1340,96 @@ export default function ModeratorDashboard() {
         </div>
       )}
 
+      {/* Comment Detail Modal */}
+      {showCommentDetail && selectedComment && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Reported Comment</h2>
+              <button 
+                className="close-btn"
+                onClick={() => setShowCommentDetail(false)}
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="post-meta">
+                <div className="post-author">
+                  <User size={16} />
+                  <span>Author: {selectedComment.author || 'Unknown'}</span>
+                </div>
+                <div className="post-time">
+                  <Clock size={16} />
+                  <span>Date: {formatTimeVietnam(selectedComment.createdAt)}</span>
+                </div>
+              </div>
+              
+              <div className="post-title-detail">
+                <h3>Comment on: {selectedComment.postTitle}</h3>
+              </div>
+
+              <div className="post-content-full" style={{ 
+                lineHeight: '1.6',
+                fontSize: '16px',
+                color: '#333',
+                padding: '20px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '8px',
+                marginTop: '20px',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word'
+              }}>
+                {selectedComment.content}
+              </div>
+
+              {selectedComment.reportReason && (
+                <div className="report-info" style={{ 
+                  marginTop: '20px',
+                  padding: '15px',
+                  backgroundColor: '#fff3cd',
+                  border: '1px solid #ffc107',
+                  borderRadius: '8px'
+                }}>
+                  <h4>Report Reason:</h4>
+                  <p>{selectedComment.reportReason}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn btn-success"
+                onClick={() => {
+                  handleApproveReport(selectedComment.reportId);
+                  setShowCommentDetail(false);
+                }}
+              >
+                <Check size={16} />
+                Approve & Delete
+              </button>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => {
+                  handleDismissReport(selectedComment.reportId);
+                  setShowCommentDetail(false);
+                }}
+              >
+                <X size={16} />
+                Dismiss
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={() => setShowCommentDetail(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <NotificationPopup
         isOpen={notification.isOpen}
         onClose={closeNotification}
@@ -1361,6 +1447,6 @@ export default function ModeratorDashboard() {
         onConfirm={handleRejectPost}
         title="Reject Post"
       />
-    </div>
+    </>
   );
 }
