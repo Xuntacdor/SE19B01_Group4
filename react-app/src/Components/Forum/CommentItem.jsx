@@ -278,19 +278,19 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
                 <textarea
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  className="edit-textarea"
-                  rows={3}
+                  className="forum-comment-edit-textarea"
+                  rows={4}
                 />
                 <div className="edit-actions">
                   <button 
-                    className="btn-save" 
+                    className="forum-comment-btn-save" 
                     onClick={handleSaveEdit}
                     disabled={submitting}
                   >
                     Save
                   </button>
                   <button 
-                    className="btn-cancel" 
+                    className="forum-comment-btn-cancel" 
                     onClick={handleCancelEdit}
                     disabled={submitting}
                   >
@@ -340,7 +340,7 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
           {user && comment.user && (
             <div className="comment-menu">
               <button
-                className="comment-action-btn menu-btn"
+                className="comment-action-btn forum-comment-menu-btn"
                 onClick={handleMenuClick}
               >
                 <MoreHorizontal size={16} />
@@ -351,7 +351,7 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
                   {/* Edit button - chỉ hiện cho owner của comment */}
                   {user.userId === comment.user.userId && (
                     <button
-                      className="menu-item"
+                      className="forum-comment-menu-item"
                       onClick={() => {
                         handleEditComment();
                         setShowMenu(false);
@@ -366,7 +366,7 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
                   {/* Delete button - hiện cho owner của comment HOẶC chủ bài viết */}
                   {(user.userId === comment.user.userId || (postOwnerId && user.userId === postOwnerId)) && (
                     <button
-                      className="menu-item delete-item"
+                      className="forum-comment-menu-item delete-item"
                       onClick={() => {
                         handleDeleteComment();
                         setShowMenu(false);
@@ -381,7 +381,7 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
                   {/* Report button - hiện cho tất cả users trừ owner của comment */}
                   {user.userId !== comment.user.userId && (
                     <button
-                      className="menu-item report-item"
+                      className="forum-comment-menu-item report-item"
                       onClick={handleReportComment}
                       disabled={submitting}
                     >
@@ -402,20 +402,20 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             placeholder="Type your reply..."
-            rows={3}
+            rows={4}
             required
           />
           <div className="reply-actions">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="forum-comment-btn forum-comment-btn-secondary"
               onClick={() => setShowReplyForm(false)}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn btn-primary"
+              className="forum-comment-btn forum-comment-btn-primary"
               disabled={submitting || !replyText.trim()}
             >
               {submitting ? "Replying..." : "Reply"}
@@ -441,33 +441,33 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
 
       {/* Report Comment Modal */}
       {showReportModal && (
-        <div className="modal-overlay" onClick={handleCancelReport}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="forum-comment-modal-overlay" onClick={handleCancelReport}>
+          <div className="forum-comment-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="forum-comment-modal-header">
               <h3>Report Comment</h3>
-              <button className="modal-close" onClick={handleCancelReport}>×</button>
+              <button className="forum-comment-modal-close" onClick={handleCancelReport}>×</button>
             </div>
-            <div className="modal-body">
+            <div className="forum-comment-modal-body">
               <p>Please provide a reason for reporting this comment:</p>
               <textarea
                 value={reportReason}
                 onChange={(e) => setReportReason(e.target.value)}
                 placeholder="Enter your reason here..."
                 rows={4}
-                className="report-textarea"
+                className="forum-comment-report-textarea"
                 autoFocus
               />
             </div>
-            <div className="modal-actions">
+            <div className="forum-comment-modal-actions">
               <button
-                className="btn btn-secondary"
+                className="forum-comment-btn forum-comment-btn-secondary"
                 onClick={handleCancelReport}
                 disabled={submitting}
               >
                 Cancel
               </button>
               <button
-                className="btn btn-primary"
+                className="forum-comment-btn forum-comment-btn-primary"
                 onClick={handleSubmitReport}
                 disabled={submitting || !reportReason.trim()}
               >

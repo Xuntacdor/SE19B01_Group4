@@ -12,5 +12,7 @@ namespace WebAPI.Services
         SpeakingDTO? Update(int id, SpeakingDTO dto);
         bool Delete(int id);
         JsonDocument GradeSpeaking(SpeakingGradeRequestDTO dto, int userId);
+        JsonDocument GetSpeakingSuggestionById(int speakingId);
+
     }
 }
