@@ -38,17 +38,29 @@ function ErrorPopup({ error, isOpen, onClose, position }) {
 }
 
 /* ====================== Highlighted Text Component ====================== */
-function TextWithErrors({ text, errors, onErrorClick, errorType = "grammarVocab", replacedTexts = {}, writingId }) {
+function TextWithErrors({
+  text,
+  errors,
+  onErrorClick,
+  errorType = "grammarVocab",
+  replacedTexts = {},
+  writingId,
+}) {
   if (!errors || errors.length === 0)
     return <div className={styles.essayText}>{text}</div>;
 
   let processedText = text || "";
-  
+
   // Apply text replacements first
   if (replacedTexts[writingId]) {
-    Object.entries(replacedTexts[writingId]).forEach(([original, replacement]) => {
-      processedText = processedText.replace(new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), replacement);
-    });
+    Object.entries(replacedTexts[writingId]).forEach(
+      ([original, replacement]) => {
+        processedText = processedText.replace(
+          new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"),
+          replacement
+        );
+      }
+    );
   }
 
   const parts = [];
@@ -56,7 +68,9 @@ function TextWithErrors({ text, errors, onErrorClick, errorType = "grammarVocab"
 
   errors.forEach((error, index) => {
     const errTxt = error.incorrect;
-    const pos = processedText.toLowerCase().indexOf(errTxt.toLowerCase(), lastIndex);
+    const pos = processedText
+      .toLowerCase()
+      .indexOf(errTxt.toLowerCase(), lastIndex);
     if (pos !== -1) {
       if (pos > lastIndex) {
         parts.push({
@@ -112,23 +126,26 @@ export default function WritingResultPage() {
   const navigate = useNavigate();
 
   const [selectedError, setSelectedError] = useState(null);
-  const [errorPopupPosition, setErrorPopupPosition] = useState({ top: 0, left: 0 });
+  const [errorPopupPosition, setErrorPopupPosition] = useState({
+    top: 0,
+    left: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [feedbackData, setFeedbackData] = useState(null);
   const [replacedTexts, setReplacedTexts] = useState({});
   const [activeTaskIndex, setActiveTaskIndex] = useState(0);
 
-  if (!state) {
-    return (
-      <div className={styles.center}>
-        <h2>No result data found</h2>
-        <button onClick={() => navigate("/")} className={styles.backBtn}>
-          ← Back
-        </button>
-      </div>
-    );
-  }
+  // if (!state) {
+  //   return (
+  //     <div className={styles.center}>
+  //       <h2>No result data found</h2>
+  //       <button onClick={() => navigate("/")} className={styles.backBtn}>
+  //         ← Back
+  //       </button>
+  //     </div>
+  //   );
+  // }
 
   const { examId, userId, exam, mode, originalAnswers, isWaiting } = state;
 
@@ -157,10 +174,9 @@ export default function WritingResultPage() {
       interval = setInterval(fetchFeedback, 2500);
       fetchFeedback();
     } else {
-      setIsLoading(false);
-      setFeedbackData({
-        feedbacks: state.feedbacks,
-        averageOverall: state.averageBand,
+      WritingApi.getFeedback(examId, userId).then((res) => {
+        setFeedbackData(res);
+        setIsLoading(false);
       });
     }
 
@@ -177,12 +193,12 @@ export default function WritingResultPage() {
   };
 
   const handleReplaceText = (originalText, improvedText, writingId) => {
-    setReplacedTexts(prev => ({
+    setReplacedTexts((prev) => ({
       ...prev,
       [writingId]: {
         ...prev[writingId],
-        [originalText]: improvedText
-      }
+        [originalText]: improvedText,
+      },
     }));
   };
 
@@ -209,7 +225,10 @@ export default function WritingResultPage() {
     );
   }
 
-  const { feedbacks, averageOverall } = feedbackData || { feedbacks: [], averageOverall: 0 };
+  const { feedbacks, averageOverall } = feedbackData || {
+    feedbacks: [],
+    averageOverall: 0,
+  };
   const filteredFeedbacks = feedbacks.filter(
     (f) =>
       !originalAnswers ||
@@ -232,7 +251,9 @@ export default function WritingResultPage() {
             {filteredFeedbacks.map((_, idx) => (
               <button
                 key={idx}
-                className={`${styles.taskBtn} ${idx === activeTaskIndex ? styles.taskBtnActive : ''}`}
+                className={`${styles.taskBtn} ${
+                  idx === activeTaskIndex ? styles.taskBtnActive : ""
+                }`}
                 onClick={() => setActiveTaskIndex(idx)}
               >
                 {`Task ${idx + 1}`}
@@ -310,7 +331,8 @@ export default function WritingResultPage() {
 
                   {overallFeedbackParsed.overview && (
                     <div className={styles.overviewBox}>
-                      <strong>Overview:</strong> {overallFeedbackParsed.overview}
+                      <strong>Overview:</strong>{" "}
+                      {overallFeedbackParsed.overview}
                     </div>
                   )}
 
@@ -325,14 +347,22 @@ export default function WritingResultPage() {
                             <div className={styles.refinementRow}>
                               <div className={styles.refinementOld}>
                                 <strong>Old:</strong>{" "}
-                                <span className={styles.oldWord}>{r.original}</span>
+                                <span className={styles.oldWord}>
+                                  {r.original}
+                                </span>
                               </div>
                               <div className={styles.refinementArrow}>→</div>
                               <div className={styles.refinementNew}>
                                 <strong>New:</strong>{" "}
-                                <span 
+                                <span
                                   className={styles.newWord}
-                                  onClick={() => handleReplaceText(r.original, r.improved, f.writingId)}
+                                  onClick={() =>
+                                    handleReplaceText(
+                                      r.original,
+                                      r.improved,
+                                      f.writingId
+                                    )
+                                  }
                                   title="Click to replace in essay"
                                 >
                                   {r.improved}
