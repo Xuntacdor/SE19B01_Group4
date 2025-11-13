@@ -291,5 +291,56 @@ Transcript:
                 return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
             }
         }
+        public JsonDocument LookupWordAI(string query)
+        {
+            try
+            {
+                var chatClient = _client.GetChatClient(_chatModel);
+                string prompt = $@"
+You are a bilingual English–Vietnamese dictionary assistant.
+
+Detect the input language automatically and RETURN STRICT JSON ONLY with EXACT keys below:
+
+{{
+  ""term"": ""original user input"",
+  ""detected_language"": ""English"" | ""Vietnamese"",
+  ""englishTranslation"": ""natural English translation of the term (if input is Vietnamese). If input is English, repeat the original term or leave an empty string."",
+  ""vietnameseTranslation"": ""tự nhiên, súc tích tiếng Việt (nếu input là English). Nếu input là Vietnamese thì để chuỗi rỗng."",
+  ""example"": ""one natural English sentence using the term (or its translation)""
+}}
+
+Keep it concise. Do not include extra commentary or markdown.
+
+Input: {query}
+";
+
+                var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage("You return only valid JSON with the exact keys requested."),
+            new UserChatMessage(prompt)
+        };
+
+                var result = chatClient.CompleteChat(messages, new ChatCompletionOptions
+                {
+                    Temperature = 0.3f,
+                    MaxOutputTokenCount = 800
+                });
+
+                string raw = result.Value.Content[0].Text ?? "{}";
+                int first = raw.IndexOf('{');
+                int last = raw.LastIndexOf('}');
+                string jsonText = (first >= 0 && last > first) ? raw.Substring(first, last - first + 1) : "{}";
+                jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
+
+                return JsonDocument.Parse(jsonText);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[OpenAIService] LookupWordAI failed.");
+                var msg = ex.Message.Replace("\"", "\\\"");
+                return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
+            }
+        }
+
     }
 }

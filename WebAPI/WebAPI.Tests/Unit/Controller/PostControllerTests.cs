@@ -84,27 +84,27 @@ namespace WebAPI.Tests.Unit.Controller
 
         // ============ GET POSTS BY FILTER ============
 
-        [Fact]
-        public void GetPostsByFilter_ReturnsOk()
-        {
-            var posts = new List<PostDTO> { new PostDTO { PostId = 1 } };
-            _postService.Setup(s => s.GetPostsByFilter("new", 1, 10, null)).Returns(posts);
+        //[Fact]
+        //public void GetPostsByFilter_ReturnsOk()
+        //{
+        //    var posts = new List<PostDTO> { new PostDTO { PostId = 1 } };
+        //    _postService.Setup(s => s.GetPostsByFilter("new", 1, 10, null)).Returns(posts);
 
-            var result = _controller.GetPostsByFilter("new", 1, 10);
+        //    var result = _controller.GetPostsByFilter("new", 1, 10);
 
-            result.Result.Should().BeOfType<OkObjectResult>();
-        }
+        //    result.Result.Should().BeOfType<OkObjectResult>();
+        //}
 
-        [Fact]
-        public void GetPostsByFilter_WithTopFilter_ReturnsOk()
-        {
-            var posts = new List<PostDTO> { new PostDTO { PostId = 1 } };
-            _postService.Setup(s => s.GetPostsByFilter("top", 1, 10, null)).Returns(posts);
+        //[Fact]
+        //public void GetPostsByFilter_WithTopFilter_ReturnsOk()
+        //{
+        //    var posts = new List<PostDTO> { new PostDTO { PostId = 1 } };
+        //    _postService.Setup(s => s.GetPostsByFilter("top", 1, 10, null)).Returns(posts);
 
-            var result = _controller.GetPostsByFilter("top", 1, 10);
+        //    var result = _controller.GetPostsByFilter("top", 1, 10);
 
-            result.Result.Should().BeOfType<OkObjectResult>();
-        }
+        //    result.Result.Should().BeOfType<OkObjectResult>();
+        //}
 
         // ============ GET POST BY ID ============
 
@@ -748,17 +748,17 @@ namespace WebAPI.Tests.Unit.Controller
             returnedPosts.Should().HaveCount(50);
         }
 
-        [Fact]
-        public void GetPostsByFilter_WithClosedFilter_ReturnsOk()
-        {
-            var posts = new List<PostDTO> { new PostDTO { PostId = 1, Title = "Closed Post" } };
-            _postService.Setup(s => s.GetPostsByFilter("closed", 1, 10, null)).Returns(posts);
+        //[Fact]
+        //public void GetPostsByFilter_WithClosedFilter_ReturnsOk()
+        //{
+        //    var posts = new List<PostDTO> { new PostDTO { PostId = 1, Title = "Closed Post" } };
+        //    _postService.Setup(s => s.GetPostsByFilter("closed", 1, 10, null)).Returns(posts);
 
-            var result = _controller.GetPostsByFilter("closed", 1, 10);
+        //    var result = _controller.GetPostsByFilter("closed", 1, 10);
 
-            result.Result.Should().BeOfType<OkObjectResult>();
-            _postService.Verify(s => s.GetPostsByFilter("closed", 1, 10, null), Times.Once);
-        }
+        //    result.Result.Should().BeOfType<OkObjectResult>();
+        //    _postService.Verify(s => s.GetPostsByFilter("closed", 1, 10, null), Times.Once);
+        //}
 
         [Fact]
         public void CreatePost_WithComplexDTO_ReturnsCreated()

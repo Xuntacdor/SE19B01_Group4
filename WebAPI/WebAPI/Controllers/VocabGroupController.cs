@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using WebAPI.DTOs;
+using WebAPI.ExternalServices;
 using WebAPI.Models;
 using WebAPI.Services;
-using WebAPI.DTOs;
+using static WebAPI.Controllers.WordsController;
 
 namespace WebAPI.Controllers
 {
@@ -170,6 +172,47 @@ namespace WebAPI.Controllers
             _groupService.Update(group);
 
             return Ok(new { message = $"Word '{word.Term}' added to group '{group.Groupname}'" });
+        }
+        [HttpPost("{groupId}/add-ai-word")]
+        public IActionResult AddAiWordToGroup(int groupId, [FromBody] AiLookupRequest req,
+                                      [FromServices] IOpenAIService aiService,
+                                      [FromServices] IWordService wordService)
+        {
+            if (string.IsNullOrWhiteSpace(req.Word))
+                return BadRequest("Word is required.");
+
+            var aiResult = aiService.LookupWordAI(req.Word);
+            var json = aiResult.RootElement;
+            string term = json.GetProperty("term").GetString() ?? req.Word;
+            string meaning = json.GetProperty("vietnamese_meaning").GetString() ?? "";
+            string example = json.TryGetProperty("example", out var exObj) && exObj.TryGetProperty("sentence", out var s) ? s.GetString() ?? "" : "";
+            string audio = "";
+
+            var existing = wordService.GetByName(term);
+            if (existing == null)
+            {
+                var newWord = new Word { Term = term, Meaning = meaning, Example = example, Audio = audio };
+                wordService.Add(newWord);
+                existing = newWord;
+            }
+
+            var group = _groupService.GetById(groupId);
+            if (group == null)
+                return NotFound(new { message = "Group not found" });
+
+            if (group.Words.Any(w => w.WordId == existing.WordId))
+                return BadRequest(new { message = "Word already in this group" });
+
+            group.Words.Add(existing);
+            _groupService.Update(group);
+
+            return Ok(new
+            {
+                message = $"Word '{term}' added to group '{group.Groupname}'",
+                WordId = existing.WordId,
+                Meaning = meaning,
+                Example = example
+            });
         }
 
     }
