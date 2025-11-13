@@ -9,6 +9,8 @@
   left: 0;
   top: 0;
   font-size: clamp(14px, 1vw, 16px);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .sidebarHeader {
@@ -27,7 +29,7 @@
 }
 
 .logoText {
-  font-size: 44px;
+  font-size: 24px;
   font-weight: 600;
   color: #333;
 }
@@ -35,6 +37,10 @@
 .sidebarNav {
   flex: 1;
   padding: 20px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .navItem {
@@ -43,6 +49,7 @@
   gap: 12px;
   padding: 12px 20px;
   width: 100%;
+  max-width: 100%;
   border: none;
   background: none;
   cursor: pointer;
@@ -51,6 +58,11 @@
   font-size: clamp(14px, 1vw, 16px);
   text-align: left;
   font-family: inherit;
+  text-decoration: none;
+  box-sizing: border-box;
+  position: relative;
+  margin: 0;
+  overflow: hidden;
 }
 
 .navItem:hover {
@@ -61,7 +73,18 @@
 .navItem.active {
   background-color: #e3f2fd;
   color: #1976d2;
-  border-right: 3px solid #1976d2;
+  position: relative;
+}
+
+.navItem.active::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #1976d2;
+  z-index: 1;
 }
 
 .icon {
@@ -83,7 +106,7 @@
 }
 
 .footerText {
-  font-size: 25px;
+  font-size: 20px;
   color: #6c757d;
   margin: 0;
 }
@@ -112,7 +135,7 @@
   }
 
   .logoText {
-    font-size: 32px;
+    font-size: 20px;
   }
 
   .sidebarNav {
@@ -140,6 +163,10 @@
 
   .cloudIcon {
     font-size: clamp(16px, 1.2vw, 18px);
+  }
+
+  .moneySymbols {
+    font-size: clamp(10px, 0.9vw, 12px);
   }
 }
 

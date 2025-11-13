@@ -1,11 +1,17 @@
 /* Moderator Dashboard - Using AppLayout */
-.moderator-main {
+/* Scope moderator-main to avoid margin-left override */
+.app-main .moderator-main,
+.app-shell .app-main .moderator-main {
   flex: 1;
-  padding: 30px;
+  padding: 20px 30px;
   overflow-y: auto;
   background: #f8fafc;
   min-height: 100vh;
   box-sizing: border-box;
+  margin-left: 0 !important;
+  margin-right: 0;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .page-title {
@@ -1173,8 +1179,9 @@
     font-size: 13px;
   }
 
-  .moderator-main {
-    margin-left: 0;
+  .app-main .moderator-main,
+  .app-shell .app-main .moderator-main {
+    margin-left: 0 !important;
     padding: 16px;
   }
   

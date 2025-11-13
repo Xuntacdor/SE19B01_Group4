@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, GraduationCap } from "lucide-react";
+import { GraduationCap, Cloud, Wallet } from "lucide-react";
 import styles from "./ModeratorNavbar.module.css";
 import {
   LayoutDashboard,
@@ -73,8 +73,11 @@ export default function ModeratorNavbar({ currentView, onViewChange }) {
       </nav>
 
       <div className={styles.sidebarFooter}>
-        <Shield size={30} color="#6c757d" className={styles.cloudIcon} />
-        <p className={styles.footerText}>Moderator Panel</p>
+        <Cloud size={30} color="#6c757d" className={styles.cloudIcon} />
+        <Wallet size={28} color="#28a745" className={styles.moneySymbols} />
+        <p className={styles.footerText}>
+          Give your money awesome space in cloud
+        </p>
       </div>
     </aside>
   );
