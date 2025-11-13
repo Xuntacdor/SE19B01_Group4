@@ -42,6 +42,8 @@ import NotificationPopup from "../../Components/Forum/NotificationPopup";
 import RejectionReasonPopup from "../../Components/Common/RejectionReasonPopup";
 import CommentSection from "../../Components/Forum/CommentSection";
 import { marked } from "marked";
+import AppLayout from "../../Components/Layout/AppLayout";
+import ModeratorNavbar from "../../Components/Moderator/ModeratorNavbar";
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
@@ -119,7 +121,6 @@ export default function ModeratorDashboard() {
   
   // User states
   const [user, setUser] = useState(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   
   // Notification state
   const [notification, setNotification] = useState({
@@ -1226,84 +1227,20 @@ export default function ModeratorDashboard() {
   );
 
   return (
-    <div className="moderator-dashboard">
-      {/* Header Bar */}
-      <header className="moderator-header">
-        <div className="header-left">
-          <h1>Moderator Dashboard</h1>
-        </div>
-        <div className="header-right">
-          <div className="user-menu">
-            <button 
-              className="user-button"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-            >
-              <User size={20} />
-              <span>{user?.username || 'Moderator'}</span>
-            </button>
-            {showUserMenu && (
-              <div className="user-dropdown">
-                <button 
-                  className="dropdown-item"
-                  onClick={() => navigate('/moderator/profile')}
-                >
-                  <User size={16} />
-                  Profile
-                </button>
-                <button 
-                  className="dropdown-item"
-                  onClick={handleLogout}
-                >
-                  <LogOut size={16} />
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="moderator-content-wrapper">
-        <div className="sidebar-container">
-          <aside className="moderator-sidebar-custom">
-            <div className="sidebar-header">
-              <div className="logo">
-                <User size={28} color="#007bff" />
-                <span className="logo-text">Moderator</span>
-              </div>
-            </div>
-
-            <nav className="sidebar-nav">
-              {menuItems.map((item, index) => (
-                <button
-                  key={index}
-                  className={`nav-item ${currentView === item.view ? "active" : ""}`}
-                  onClick={() => setCurrentView(item.view)}
-                >
-                  <span className="nav-icon">{item.icon}</span>
-                  <span className="nav-label">{item.label}</span>
-                </button>
-              ))}
-            </nav>
-
-            <div className="sidebar-footer">
-              <div className="user-info">
-                <User size={20} />
-                <span>Moderator Panel</span>
-              </div>
-            </div>
-          </aside>
-        </div>
-        
-        <main className="moderator-main">
+    <>
+      <AppLayout 
+        title="Moderator Dashboard" 
+        sidebar={<ModeratorNavbar currentView={currentView} onViewChange={setCurrentView} />}
+      >
+        <div className="moderator-main">
           {currentView === "overview" && renderOverview()}
           {currentView === "statistics" && renderStatistics()}
           {currentView === "tags" && renderTags()}
           {currentView === "pending" && renderPendingPosts()}
           {currentView === "reported" && renderReportedComments()}
           {currentView === "rejected" && renderRejectedPosts()}
-        </main>
-      </div>
+        </div>
+      </AppLayout>
 
       {/* Post Detail Modal */}
       {showPostDetail && selectedPost && (
@@ -1510,6 +1447,6 @@ export default function ModeratorDashboard() {
         onConfirm={handleRejectPost}
         title="Reject Post"
       />
-    </div>
+    </>
   );
 }
