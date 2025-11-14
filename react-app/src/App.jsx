@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Authorization from "./Hook/Authorization.jsx";
 import Login from "./Pages/Authenciation/Login.jsx";
 import ForgotPassword from "./Pages/Authenciation/ForgotPassword.jsx";
 import VerifyOtp from "./Pages/Authenciation/VerifyOtp.jsx";
@@ -38,6 +39,7 @@ import ReadingResultPage from "./Pages/Reading/ReadingResultPage.jsx";
 import ListeningResultPage from "./Pages/Listening/ListeningResultPage.jsx";
 import VipPlans from "./Pages/Transactions/VipPlans.jsx";
 import PaymentSuccess from "./Pages/Transactions/PaymentSuccess.jsx";
+import SpeakingResultPage from "./Pages/Speaking/SpeakingResultPage.jsx";
 
 function App() {
   return (
@@ -70,26 +72,31 @@ function App() {
         <Route path="/writing/test" element={<WritingTestPage />} />
         <Route path="/writing/result" element={<WritingResultPage />} />
         <Route path="/speaking/test" element={<SpeakingTestPage />} />
+        <Route path="/speaking/result" element={<SpeakingResultPage />} />
 
         <Route path="/reading/result" element={<ReadingResultPage />} />
         <Route path="/listening/result" element={<ListeningResultPage />} />
 
         {/* ========== ADMIN AREA ========== */}
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/users" element={<UserManagement />} />
-        <Route path="/admin/exam" element={<ExamManagement />} />
-        <Route path="/admin/exam/add-reading" element={<AddReading />} />
-        <Route path="/admin/exam/add-listening" element={<AddListening />} />
-        <Route path="/admin/exam/add-writing" element={<AddWriting />} />
-        <Route path="/admin/exam/add-speaking" element={<AddSpeaking />} />
-        <Route path="/admin/transactions" element={<TransactionList />} />
-        <Route path="/admin/transactions/:id" element={<TransactionDetail />} />
-        <Route path="/admin/vip-plans" element={<AdminVipPlans />} />
+        <Route path="/admin" element={<Authorization allow={["admin"]} />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="exam" element={<ExamManagement />} />
+          <Route path="exam/add-reading" element={<AddReading />} />
+          <Route path="exam/add-listening" element={<AddListening />} />
+          <Route path="exam/add-writing" element={<AddWriting />} />
+          <Route path="exam/add-speaking" element={<AddSpeaking />} />
+          <Route path="transactions" element={<TransactionList />} />
+          <Route path="transactions/:id" element={<TransactionDetail />} />
+          <Route path="vip-plans" element={<AdminVipPlans />} />
+        </Route>
 
         {/* ========== MODERATOR AREA ========== */}
-        <Route path="/moderator/dashboard" element={<ModeratorDashboard />} />
-        <Route path="/moderator/profile" element={<ModeratorProfile />} />
-        <Route path="/moderator/tags" element={<TagManagement />} />
+        <Route path="/moderator" element={<Authorization allow={["admin", "moderator"]} />}>
+          <Route path="dashboard" element={<ModeratorDashboard />} />
+          <Route path="profile" element={<ModeratorProfile />} />
+          <Route path="tags" element={<TagManagement />} />
+        </Route>
 
         {/* ========== STRIPE VIP AREA ========== */}
         <Route path="/vipplans" element={<VipPlans />} />

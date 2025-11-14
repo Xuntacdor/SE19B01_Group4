@@ -1,25 +1,71 @@
+// ListeningResultPage.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as ListeningApi from "../../Services/ListeningApi";
 import * as ExamApi from "../../Services/ExamApi";
+import { marked } from "marked";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 import styles from "./ListeningResultPage.module.css";
-import { Headphones } from "lucide-react";
 
-// Wrap [H*id]...[/H] regions in the TRANSCRIPT with inert anchors (no highlight by default)
-function wrapTranscriptAnchors(raw) {
+// ---------- Markdown config for the TRANSCRIPT on the RESULT page ----------
+marked.setOptions({
+  gfm: true,
+  breaks: true, // single newlines -> <br>
+  mangle: false,
+  headerIds: false,
+});
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Render the listening transcript like the reading passage:
+ * - full Markdown support
+ * - [H*id]...[/H] regions become .passageTarget anchors with data-hid
+ * - inside [H] is also parsed as Markdown
+ */
+function transcriptWithAnchorsToHtml(raw) {
   if (!raw) return "";
-  return String(raw).replace(
-    /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
-    (_, rawId, inner) => {
-      const hid = (rawId || "").trim();
-      const body = inner.replace(/\r?\n/g, "<br/>");
-      const data = hid ? ` data-hid="${hid.replace(/"/g, "&quot;")}"` : "";
-      // no highlight class by default; we only add it when explanation opens
-      return `<span class="passageTarget"${data}>${body}</span>`;
+
+  const re = /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g;
+  let out = "";
+  let last = 0;
+  let m;
+
+  const hasBlock = (html) =>
+    /<(p|ul|ol|li|div|h[1-6]|table|thead|tbody|tr|th|td|blockquote|pre)/i.test(
+      html
+    );
+
+  while ((m = re.exec(raw))) {
+    const before = raw.slice(last, m.index);
+    if (before) out += marked.parse(before);
+
+    const hid = (m[1] || "").trim();
+    const inner = m[2] || "";
+    const innerHtml = marked.parse(inner);
+    const data = hid ? ` data-hid="${escapeHtml(hid)}"` : "";
+
+    if (hasBlock(innerHtml)) {
+      // block wrapper
+      out += `<div class="passageTarget passageTarget--block"${data}>${innerHtml}</div>`;
+    } else {
+      // inline wrapper
+      out += `<span class="passageTarget passageTarget--inline"${data}>${innerHtml}</span>`;
     }
-  );
+
+    last = re.lastIndex;
+  }
+
+  const tail = raw.slice(last);
+  if (tail) out += marked.parse(tail);
+  return out;
 }
 
 export default function ListeningResultPage() {
@@ -31,10 +77,51 @@ export default function ListeningResultPage() {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
-  // Keep highlight state in sync with <details.explainBlock> on the RIGHT panel:
-  // - When opened: add highlight to the matching transcript span and scroll into view.
-  // - When closed: remove highlight unless another open block with the same id exists.
+  // ===== Highlight sync: same behavior as ReadingResultPage =====
   useEffect(() => {
+    const HIGHLIGHT_BG = "rgba(255, 243, 205, 1)";
+    const HIGHLIGHT_OUTLINE = "2px solid #ffd166";
+
+    const escFn =
+      typeof window !== "undefined" && window.CSS && CSS.escape
+        ? CSS.escape
+        : (s) => String(s).replace(/"/g, '\\"');
+
+    function applyHighlightInline(targets, on) {
+      targets.forEach((t) => {
+        if (on) {
+          if (!t.dataset.prevStyle) {
+            t.dataset.prevStyle = t.getAttribute("style") || "";
+          }
+          t.style.background = HIGHLIGHT_BG;
+          t.style.outline = HIGHLIGHT_OUTLINE;
+          t.style.borderRadius = "4px";
+          t.classList.add("pulseOnce");
+        } else {
+          const prev = t.dataset.prevStyle || "";
+          t.setAttribute("style", prev);
+          delete t.dataset.prevStyle;
+          t.classList.remove("pulseOnce");
+        }
+
+        // Make block children transparent so parent tint is visible
+        t.querySelectorAll(
+          ":scope > p, :scope > li, :scope > div, :scope > blockquote, :scope > pre, :scope > table"
+        ).forEach((child) => {
+          if (on) {
+            if (!child.dataset.prevBg) {
+              child.dataset.prevBg = child.style.background || "";
+            }
+            child.style.background = "transparent";
+          } else {
+            const prevBg = child.dataset.prevBg || "";
+            child.style.background = prevBg;
+            delete child.dataset.prevBg;
+          }
+        });
+      });
+    }
+
     function handleToggle(e) {
       const details =
         e.target instanceof HTMLElement &&
@@ -54,22 +141,30 @@ export default function ListeningResultPage() {
       const leftPanel = container.querySelector(`.${styles.leftPanel}`);
       if (!leftPanel) return;
 
-      const target = leftPanel.querySelector(
-        `.passageTarget[data-hid="${CSS.escape(hid)}"]`
-      );
-      if (!target) return;
+      const selector = `.passageTarget[data-hid="${escFn(hid)}"]`;
+      const targets = Array.from(leftPanel.querySelectorAll(selector));
+
+      if (targets.length === 0) {
+        console.warn(
+          "[Listening Highlight] No passageTarget for id:",
+          hid,
+          "selector:",
+          selector
+        );
+        return;
+      }
 
       if (details.open) {
-        target.classList.add("passageHighlight");
-        target.classList.add("pulseOnce");
-        setTimeout(() => target.classList.remove("pulseOnce"), 1200);
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        targets.forEach((t) => t.classList.add("passageHighlight"));
+        applyHighlightInline(targets, true);
+        targets[0].scrollIntoView({ behavior: "smooth", block: "center" });
       } else {
         const anyOtherOpen = container.querySelectorAll(
-          `details.explainBlock[open][data-hid="${CSS.escape(hid)}"]`
+          `details.explainBlock[open][data-hid="${escFn(hid)}"]`
         ).length;
         if (!anyOtherOpen) {
-          target.classList.remove("passageHighlight", "pulseOnce");
+          targets.forEach((t) => t.classList.remove("passageHighlight"));
+          applyHighlightInline(targets, false);
         }
       }
     }
@@ -82,7 +177,10 @@ export default function ListeningResultPage() {
     return (
       <div className={styles.center}>
         <h2>No result data found</h2>
-        <button onClick={() => navigate("/listening")} className={styles.backBtn}>
+        <button
+          onClick={() => navigate("/listening")}
+          className={styles.backBtn}
+        >
           ← Back
         </button>
       </div>
@@ -103,7 +201,10 @@ export default function ListeningResultPage() {
           clearInterval(timer);
         }
       } catch (err) {
-        console.error("❌ Failed to fetch attempt:", err);
+        console.error("❌ Failed to fetch attempt detail:", err);
+        if (!isWaiting) {
+          setLoading(false);
+        }
       }
     };
 
@@ -118,31 +219,40 @@ export default function ListeningResultPage() {
     return () => clearInterval(timer);
   }, [attemptId, isWaiting]);
 
-  // ===== Fetch Listening Parts =====
+  // ===== Fetch Listening contents =====
   useEffect(() => {
     if (!attempt?.examId) return;
-    (async () => {
+    const fetchListenings = async () => {
       try {
         const res = await ListeningApi.getByExam(attempt.examId);
         setListenings(res || []);
       } catch (err) {
-        console.error("Failed to load listening parts:", err);
+        console.error("❌ Failed to fetch listening questions:", err);
       }
-    })();
-  }, [attempt]);
+    };
+
+    fetchListenings();
+  }, [attempt?.examId]);
 
   if (loading) {
     return (
       <div className={styles.center}>
-        <div className={styles.loadingSpinner}></div>
-        <p className={styles.loadingText}>
-          Evaluating your listening attempt... Please wait.
-        </p>
-        <div className={styles.progressBar}>
-          <div
-            className={styles.progressFill}
-            style={{ width: `${progress}%` }}
-          ></div>
+        <div className={styles.loadingCard}>
+          <div className={styles.loadingIcon} />
+          <h2>Processing your Listening result...</h2>
+          {isWaiting ? (
+            <>
+              <p>Please wait a moment while we finalize your score.</p>
+              <div className={styles.progressBar}>
+                <div
+                  className={styles.progressFill}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <p>Loading your result...</p>
+          )}
         </div>
       </div>
     );
@@ -151,8 +261,11 @@ export default function ListeningResultPage() {
   if (!attempt) {
     return (
       <div className={styles.center}>
-        <h3>No attempt found.</h3>
-        <button onClick={() => navigate("/listening")} className={styles.backBtn}>
+        <h2>Could not load listening attempt.</h2>
+        <button
+          onClick={() => navigate("/listening")}
+          className={styles.backBtn}
+        >
           ← Back
         </button>
       </div>
@@ -168,71 +281,72 @@ export default function ListeningResultPage() {
     }
   })();
 
-  // Map answers by skill
   const answerMap = new Map();
   parsedAnswers.forEach((g) => {
-    if (g.SkillId && Array.isArray(g.Answers)) {
-      answerMap.set(g.SkillId, g.Answers);
-    }
+    if (g.SkillId && g.Answers) answerMap.set(g.SkillId, g.Answers);
   });
 
-  const attemptedSkillIds = parsedAnswers.map((g) => g.SkillId);
+  const attemptedSkillIds = [...answerMap.keys()];
+
+  // ===== Totals =====
+  let totalQuestions = 0;
+  let correctCount = 0;
+
+  const normalize = (val) => {
+    if (Array.isArray(val)) return val.map((x) => x.trim().toLowerCase());
+    if (typeof val === "string") return [val.trim().toLowerCase()];
+    return [];
+  };
+
+  // Only listenings that were actually attempted
   const relevantListenings = listenings.filter((l) =>
     attemptedSkillIds.includes(l.listeningId)
   );
 
-  // ===== Score calculation =====
-  let totalSubQuestions = 0;
-  let correctCount = 0;
-
-  relevantListenings.forEach((l) => {
-    const userAnswers = answerMap.get(l.listeningId) || [];
-    let correctAnswers = [];
+  const listeningsWithCorrect = relevantListenings.map((l) => {
+    let correctAnswers = {};
     try {
-      if (l.correctAnswer?.trim().startsWith("[")) {
-        correctAnswers = JSON.parse(l.correctAnswer);
-      } else {
-        correctAnswers = l.correctAnswer
-          ? l.correctAnswer.split(/[,;]+/).map((x) => x.trim())
-          : [];
-      }
+      correctAnswers = JSON.parse(l.correctAnswer || "{}");
     } catch {
-      correctAnswers = [];
+      correctAnswers = {};
     }
 
-    totalSubQuestions += correctAnswers.length;
+    const userAnswers = answerMap.get(l.listeningId) || {};
+    const correctKeys = Object.keys(correctAnswers);
 
-    correctAnswers.forEach((ans, i) => {
-      const userAns = userAnswers[i] || "_";
-      if (String(userAns).trim().toLowerCase() === String(ans).trim().toLowerCase()) {
-        correctCount++;
-      }
+    correctKeys.forEach((key) => {
+      const userVal = normalize(userAnswers[key] || []);
+      const correctVal = normalize(correctAnswers[key] || []);
+      totalQuestions += correctVal.length;
+      correctVal.forEach((opt) => {
+        if (userVal.includes(opt.toLowerCase())) correctCount++;
+      });
     });
+
+    return { ...l, correctAnswers, userAnswers };
   });
 
   const accuracy =
-    totalSubQuestions > 0 ? (correctCount / totalSubQuestions) * 100 : 0;
+    totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
 
-  // ===== Render =====
+  const overallBand =
+    typeof attempt.totalScore === "number"
+      ? attempt.totalScore.toFixed(1)
+      : "-";
+
+  // ===== UI (mirror ReadingResultPage) =====
   return (
     <div className={styles.pageLayout}>
       <GeneralSidebar />
       <div className={styles.mainContent}>
-        {/* ===== Header ===== */}
         <div className={styles.header}>
-          <h2>
-            <Headphones size={22} style={{ marginRight: 8 }} />
-            Listening Result — {examName || attempt.examName}
-          </h2>
+          <h2>Listening Result — {examName || attempt.examName}</h2>
         </div>
 
-        {/* ===== Band Summary ===== */}
         <div className={styles.bandScoreBox}>
           <div className={styles.bandOverall}>
             <h4>IELTS Band</h4>
-            <div className={styles.bandMain}>
-              {attempt.totalScore?.toFixed(1) || "-"}
-            </div>
+            <div className={styles.bandMain}>{overallBand}</div>
           </div>
           <div className={styles.bandGrid}>
             <div>
@@ -241,7 +355,7 @@ export default function ListeningResultPage() {
             </div>
             <div>
               <b>Total</b>
-              <p>{totalSubQuestions}</p>
+              <p>{totalQuestions}</p>
             </div>
             <div>
               <b>Accuracy</b>
@@ -250,40 +364,30 @@ export default function ListeningResultPage() {
           </div>
         </div>
 
-        {/* ===== Listening Parts ===== */}
-        {relevantListenings.map((l, i) => {
-          const userAnswers = answerMap.get(l.listeningId) || [];
-          let correctAnswers = [];
-          try {
-            correctAnswers = JSON.parse(l.correctAnswer || "[]");
-          } catch {
-            correctAnswers = [];
-          }
+        {listeningsWithCorrect.map((l, i) => {
+          const userAnswers = l.userAnswers || {};
+          const correctAnswers = l.correctAnswers || {};
 
           return (
             <div key={i} className={styles.resultContainer}>
               <div className={styles.leftPanel}>
-                <h3>Part {l.displayOrder || i + 1}</h3>
+                <h3>Section {l.displayOrder || i + 1}</h3>
 
-                {l.audioUrl ? (
+                {l.listeningContent && (
                   <audio controls className={styles.audioPlayer}>
-                    <source src={l.audioUrl} type="audio/mpeg" />
+                    <source src={l.listeningContent} type="audio/mpeg" />
                     Your browser does not support the audio element.
                   </audio>
-                ) : (
-                  <p className={styles.noAudio}>No audio available</p>
                 )}
 
-                {l.listeningTranscript && (
-                  <div className={styles.transcriptBox}>
-                    <h4>Transcript</h4>
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: wrapTranscriptAnchors(l.listeningTranscript),
-                      }}
-                    />
-                  </div>
-                )}
+                <div
+                  className={styles.passageContent}
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      l.transcript &&
+                      transcriptWithAnchorsToHtml(l.transcript),
+                  }}
+                />
               </div>
 
               <div className={styles.rightPanel}>
@@ -291,8 +395,12 @@ export default function ListeningResultPage() {
                 <ExamMarkdownRenderer
                   markdown={l.listeningQuestion}
                   showAnswers={true}
-                  userAnswers={[{ SkillId: l.listeningId, Answers: userAnswers }]}
-                  correctAnswers={[{ SkillId: l.listeningId, Answers: correctAnswers }]}
+                  userAnswers={[
+                    { SkillId: l.listeningId, Answers: userAnswers },
+                  ]}
+                  correctAnswers={[
+                    { SkillId: l.listeningId, Answers: correctAnswers },
+                  ]}
                   skillId={l.listeningId}
                 />
               </div>
@@ -301,7 +409,10 @@ export default function ListeningResultPage() {
         })}
 
         <div className={styles.footer}>
-          <button className={styles.backBtn} onClick={() => navigate("/listening")}>
+          <button
+            className={styles.backBtn}
+            onClick={() => navigate("/listening")}
+          >
             ← Back to Listening List
           </button>
         </div>

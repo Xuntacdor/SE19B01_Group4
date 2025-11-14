@@ -3,7 +3,13 @@ import { getExamAttemptsByUser } from "../Services/ExamApi";
 import * as SpeakingApi from "../Services/SpeakingApi";
 import * as WritingApi from "../Services/WritingApi";
 
-export default function useExamAttempts(userId) {
+/**
+ * Custom Hook: useExamAttempts
+ *
+ * - Nếu chỉ truyền userId  → Dashboard mode (tính IELTS stats)
+ * - Nếu truyền userId + examId → chỉ lấy attempts của bài đó (ví dụ SpeakingResultPage)
+ */
+export default function useExamAttempts(userId, examId = null) {
   const [attempts, setAttempts] = useState([]);
   const [stats, setStats] = useState({
     Reading: 0,
@@ -13,114 +19,132 @@ export default function useExamAttempts(userId) {
     Overall: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  // ====== Fetch attempts ======
+  // ============================================================
+  // 📌 Fetch tất cả attempts theo user
+  //     - Nếu examId != null → chỉ filter đúng bài cần xem result
+  // ============================================================
   useEffect(() => {
     if (!userId) return;
-    let isMounted = true;
-    setLoading(true);
-    setError(null);
+    let isActive = true;
 
-    getExamAttemptsByUser(userId)
-      .then(async (data) => {
+    const loadAttempts = async () => {
+      try {
+        setLoading(true);
+
+        let data = await getExamAttemptsByUser(userId);
+
+        // ❗ API đôi khi trả string → parse
         if (typeof data === "string") {
           try {
             data = JSON.parse(data);
           } catch {
-            console.error("❌ Failed to parse ExamAttempt JSON");
+            console.warn("⚠️ Invalid JSON from ExamAttempt API");
             data = [];
           }
         }
 
-        console.log("📘 Attempts from API:", data);
+        // ❗ Nếu đang ở trang result: chỉ lấy đúng exam
+        if (examId) {
+          data = data.filter((x) => x.examId === examId);
+        }
 
-        // ✅ Enrich with feedback score for Speaking/Writing
+        // ============================================================
+        // 📌 Enrich từng exam với finalScore chuẩn
+        //      - Reading/Listening lấy từ totalScore/score
+        //      - Writing lấy từ AI feedback
+        //      - Speaking lấy từ AI feedback (finalOverall hoặc average)
+        // ============================================================
         const enriched = await Promise.all(
-          data.map(async (a) => {
+          data.map(async (item) => {
             let score =
-              a.totalScore ??
-              a.score ??
-              a.averageOverall ??
-              a.feedback?.overall ??
+              item.totalScore ??
+              item.score ??
+              item.averageOverall ??
+              item.feedback?.overall ??
               0;
 
             try {
-              if (a.examType === "Speaking") {
-                const res = await SpeakingApi.getFeedbackBySpeakingId(
-                  a.speakingId || a.attemptId || a.examId,
-                  userId
-                );
-                if (res?.feedback?.overall)
-                  score = parseFloat(res.feedback.overall);
-              } else if (a.examType === "Writing") {
-                const res = await WritingApi.getFeedback(
-                  a.examId || a.attemptId,
-                  userId
-                );
-                if (res?.averageOverall) score = parseFloat(res.averageOverall);
-                else if (res?.feedbacks?.[0]?.overall)
-                  score = parseFloat(res.feedbacks[0].overall);
+              if (item.examType === "Speaking") {
+                const res = await SpeakingApi.getFeedback(item.examId, userId);
+
+                score =
+                  res.finalOverall ??
+                  res.averageOverall ??
+                  (res.feedbacks?.length
+                    ? res.feedbacks.reduce(
+                        (sum, f) => sum + (f.overall ?? 0),
+                        0
+                      ) / res.feedbacks.length
+                    : 0);
               }
-            } catch (err) {
-              console.warn(
-                `⚠️ Failed to fetch feedback for ${a.examType}`,
-                err.message || err
-              );
+
+              if (item.examType === "Writing") {
+                const res = await WritingApi.getFeedback(item.examId, userId);
+
+                score = res.averageOverall ?? res.feedbacks?.[0]?.overall ?? 0;
+              }
+            } catch (e) {
+              console.warn(`⚠️ Cannot fetch feedback for ${item.examType}`, e);
             }
 
-            return { ...a, finalScore: score };
+            return {
+              ...item,
+              finalScore: score,
+            };
           })
         );
 
-        if (isMounted) setAttempts(enriched);
-      })
-      .catch((err) => isMounted && setError(err))
-      .finally(() => isMounted && setLoading(false));
-
-    return () => {
-      isMounted = false;
+        if (isActive) {
+          setAttempts(enriched);
+        }
+      } catch (err) {
+        console.error("❌ Load attempts failed:", err);
+      } finally {
+        if (isActive) setLoading(false);
+      }
     };
-  }, [userId]);
 
-  // ====== Compute IELTS band stats ======
+    loadAttempts();
+    return () => (isActive = false);
+  }, [userId, examId]);
+
+  // ============================================================
+  // 📌 Dashboard Mode → tính IELTS stats
+  //      - Nếu examId != null -> SKIP (vì đây là trang result)
+  // ============================================================
   useEffect(() => {
-    if (!attempts || attempts.length === 0) return;
+    if (examId) return; // ⛔ Skip khi tính điểm cho trang result
+    if (attempts.length === 0) return;
 
-    const grouped = { Reading: [], Listening: [], Writing: [], Speaking: [] };
+    const grouped = {
+      Reading: [],
+      Listening: [],
+      Writing: [],
+      Speaking: [],
+    };
+
     attempts.forEach((a) => {
-      const score = a.finalScore ?? 0;
-      if (grouped[a.examType]) grouped[a.examType].push(score);
+      if (grouped[a.examType]) grouped[a.examType].push(a.finalScore ?? 0);
     });
 
     const avg = (arr) =>
-      arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+      arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
 
-    // ✅ Official IELTS rounding rule
     const roundIELTS = (score) => {
-      const floor = Math.floor(score);
-      const decimal = score - floor;
-      if (decimal < 0.25) return floor;
-      if (decimal < 0.75) return floor + 0.5;
-      return floor + 1;
+      const base = Math.floor(score);
+      const decimal = score - base;
+      if (decimal < 0.25) return base;
+      if (decimal < 0.75) return base + 0.5;
+      return base + 1;
     };
 
-    // Apply rounding for each skill before computing overall
     const reading = roundIELTS(avg(grouped.Reading));
     const listening = roundIELTS(avg(grouped.Listening));
     const writing = roundIELTS(avg(grouped.Writing));
     const speaking = roundIELTS(avg(grouped.Speaking));
 
-    const overallRaw = (reading + listening + writing + speaking) / 4;
-    const overall = roundIELTS(overallRaw);
-
-    console.log("🎯 Computed IELTS Stats:", {
-      Reading: reading,
-      Listening: listening,
-      Writing: writing,
-      Speaking: speaking,
-      Overall: overall,
-    });
+    const overall = roundIELTS((reading + listening + writing + speaking) / 4);
 
     setStats({
       Reading: reading,
@@ -129,7 +153,11 @@ export default function useExamAttempts(userId) {
       Speaking: speaking,
       Overall: overall,
     });
-  }, [attempts]);
+  }, [attempts, examId]);
 
-  return { attempts, stats, loading, error };
+  return {
+    attempts,
+    stats,
+    loading,
+  };
 }

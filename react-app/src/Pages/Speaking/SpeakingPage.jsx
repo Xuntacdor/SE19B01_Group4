@@ -11,6 +11,8 @@ import { Mic } from "lucide-react";
 import styles from "./SpeakingPage.module.css";
 import SearchBar from "../../Components/Common/SearchBar";
 
+import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
+
 export default function SpeakingPage() {
   const navigate = useNavigate();
 
@@ -21,6 +23,20 @@ export default function SpeakingPage() {
   const [activeExam, setActiveExam] = useState(null);
   const [examTasks, setExamTasks] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Popup state
+  const [popup, setPopup] = useState({
+    show: false,
+    message: "",
+  });
+
+  // Helper: show popup instead of alert
+  function showError(message) {
+    setPopup({
+      show: true,
+      message,
+    });
+  }
 
   // ====== Fetch all exams ======
   useEffect(() => {
@@ -49,7 +65,6 @@ export default function SpeakingPage() {
       setFilteredExams(exams);
       return;
     }
-
     const lower = query.toLowerCase();
     const result = exams.filter(
       (exam) =>
@@ -74,7 +89,7 @@ export default function SpeakingPage() {
       })
       .catch((err) => {
         console.error(err);
-        alert("Failed to load speaking tasks for this exam.");
+        showError("Failed to load speaking tasks for this exam.");
       })
       .finally(() => setLoadingDetail(false));
   };
@@ -105,7 +120,6 @@ export default function SpeakingPage() {
     });
   };
 
-  // ====== Render ======
   return (
     <AppLayout title="Speaking" sidebar={<GeneralSidebar />}>
       <div className={styles.container}>
@@ -116,7 +130,6 @@ export default function SpeakingPage() {
           <div className={styles.examsSection}>
             <h3 className={styles.sectionTitle}>Speaking Tests</h3>
 
-            {/* ✅ Search bar integration */}
             <div style={{ marginBottom: "20px" }}>
               <SearchBar onSearch={handleSearch} />
             </div>
@@ -159,6 +172,17 @@ export default function SpeakingPage() {
           skillType="Speaking"
         />
       )}
+
+      <ConfirmationPopup
+        isOpen={popup.show}
+        title="Error"
+        type="danger"
+        message={popup.message}
+        confirmText="Close"
+        cancelText=""
+        onConfirm={() => setPopup({ show: false, message: "" })}
+        onClose={() => setPopup({ show: false, message: "" })}
+      />
     </AppLayout>
   );
 }

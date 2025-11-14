@@ -19,25 +19,56 @@ namespace WebAPI.Services
             return _listeningRepo.GetByExamId(examId);
         }
 
+        // ===================== helper: content + transcript =====================
+        /// <summary>
+        /// Split stored content into "content" (first line) and "transcript" (rest).
+        /// Old data (no newline) => transcript = "" and content = original value.
+        /// </summary>
+        private static (string Content, string Transcript) SplitContentAndTranscript(string? raw)
+        {
+            if (string.IsNullOrEmpty(raw))
+                return (string.Empty, string.Empty);
+
+            var normalized = raw.Replace("\r\n", "\n");
+            var parts = normalized.Split('\n', 2, StringSplitOptions.None);
+
+            var content = parts[0];
+            var transcript = parts.Length > 1 ? parts[1] : string.Empty;
+            return (content, transcript);
+        }
+
+        /// <summary>
+        /// Merge "content" and "transcript" into one string for the model.
+        /// If transcript is null/empty, returns just content (old behavior).
+        /// </summary>
+        private static string MergeContentAndTranscript(string? content, string? transcript)
+        {
+            content ??= string.Empty;
+            if (string.IsNullOrWhiteSpace(transcript))
+                return content;
+
+            return content + "\n" + transcript;
+        }
+
         // ===================== IELTS BAND TABLES =====================
         private static readonly (int Min, int Max, decimal Band)[] ScaleListeningAndReadingAcademic = new[]
         {
-    (39, 40, 9.0m),
-    (37, 38, 8.5m),
-    (35, 36, 8.0m),
-    (33, 34, 7.5m),
-    (30, 32, 7.0m),
-    (27, 29, 6.5m),
-    (23, 26, 6.0m),
-    (20, 22, 5.5m),
-    (16, 19, 5.0m),
-    (13, 15, 4.5m),
-    (10, 12, 4.0m),
-    ( 7,  9, 3.5m),
-    ( 5,  6, 3.0m),
-    ( 3,  4, 2.5m),
-    ( 0,  2, 2.0m),
-};
+            (39, 40, 9.0m),
+            (37, 38, 8.5m),
+            (35, 36, 8.0m),
+            (33, 34, 7.5m),
+            (30, 32, 7.0m),
+            (27, 29, 6.5m),
+            (23, 26, 6.0m),
+            (20, 22, 5.5m),
+            (16, 19, 5.0m),
+            (13, 15, 4.5m),
+            (10, 12, 4.0m),
+            ( 7,  9, 3.5m),
+            ( 5,  6, 3.0m),
+            ( 3,  4, 2.5m),
+            ( 0,  2, 2.0m),
+        };
 
         private static decimal BandFrom(int correct, (int Min, int Max, decimal Band)[] scale)
         {
@@ -96,21 +127,25 @@ namespace WebAPI.Services
             return BandFrom(correctMarks, ScaleListeningAndReadingAcademic);
         }
 
-
         public IEnumerable<ListeningDto> GetAll()
         {
             var listenings = _listeningRepo.GetAll();
-            return listenings.Select(r => new ListeningDto
+            return listenings.Select(r =>
             {
-                ListeningId = r.ListeningId,
-                ExamId = r.ExamId,
-                ListeningContent = r.ListeningContent,
-                ListeningQuestion = r.ListeningQuestion,
-                ListeningType = r.ListeningType,
-                DisplayOrder = r.DisplayOrder,
-                CorrectAnswer = r.CorrectAnswer,
-                QuestionHtml = r.QuestionHtml,
-                CreatedAt = r.CreatedAt
+                var (content, transcript) = SplitContentAndTranscript(r.ListeningContent);
+                return new ListeningDto
+                {
+                    ListeningId = r.ListeningId,
+                    ExamId = r.ExamId,
+                    ListeningContent = content,
+                    Transcript = transcript,
+                    ListeningQuestion = r.ListeningQuestion,
+                    ListeningType = r.ListeningType,
+                    DisplayOrder = r.DisplayOrder,
+                    CorrectAnswer = r.CorrectAnswer,
+                    QuestionHtml = r.QuestionHtml,
+                    CreatedAt = r.CreatedAt
+                };
             });
         }
 
@@ -119,11 +154,14 @@ namespace WebAPI.Services
             var listening = _listeningRepo.GetById(id);
             if (listening == null) return null;
 
+            var (content, transcript) = SplitContentAndTranscript(listening.ListeningContent);
+
             return new ListeningDto
             {
                 ListeningId = listening.ListeningId,
                 ExamId = listening.ExamId,
-                ListeningContent = listening.ListeningContent,
+                ListeningContent = content,
+                Transcript = transcript,
                 ListeningQuestion = listening.ListeningQuestion,
                 ListeningType = listening.ListeningType,
                 DisplayOrder = listening.DisplayOrder,
@@ -135,10 +173,12 @@ namespace WebAPI.Services
 
         public ListeningDto? Add(CreateListeningDto dto)
         {
+            var mergedContent = MergeContentAndTranscript(dto.ListeningContent, dto.Transcript);
+
             var listening = new Listening
             {
                 ExamId = dto.ExamId,
-                ListeningContent = dto.ListeningContent,
+                ListeningContent = mergedContent,
                 ListeningQuestion = dto.ListeningQuestion,
                 ListeningType = dto.ListeningType ?? "Markdown",
                 DisplayOrder = dto.DisplayOrder,
@@ -150,11 +190,14 @@ namespace WebAPI.Services
             _listeningRepo.Add(listening);
             _listeningRepo.SaveChanges();
 
+            var (content, transcript) = SplitContentAndTranscript(listening.ListeningContent);
+
             return new ListeningDto
             {
                 ListeningId = listening.ListeningId,
                 ExamId = listening.ExamId,
-                ListeningContent = listening.ListeningContent,
+                ListeningContent = content,
+                Transcript = transcript,
                 ListeningQuestion = listening.ListeningQuestion,
                 ListeningType = listening.ListeningType,
                 DisplayOrder = listening.DisplayOrder,
@@ -169,8 +212,17 @@ namespace WebAPI.Services
             var listening = _listeningRepo.GetById(id);
             if (listening == null) return false;
 
-            if (dto.ListeningContent != null)
-                listening.ListeningContent = dto.ListeningContent;
+            // Handle content + transcript together for backward compatibility
+            if (dto.ListeningContent != null || dto.Transcript != null)
+            {
+                var existing = SplitContentAndTranscript(listening.ListeningContent);
+
+                var newContent = dto.ListeningContent ?? existing.Content;
+                var newTranscript = dto.Transcript ?? existing.Transcript;
+
+                listening.ListeningContent = MergeContentAndTranscript(newContent, newTranscript);
+            }
+
             if (dto.ListeningQuestion != null)
                 listening.ListeningQuestion = dto.ListeningQuestion;
             if (dto.ListeningType != null)

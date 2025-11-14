@@ -216,32 +216,42 @@ IELTS Speaking Question:
             try
             {
                 var chatClient = _client.GetChatClient(_chatModel);
+
                 string prompt = $@"
 You are an **IELTS Speaking examiner**.
 Evaluate the candidate's speaking based on the transcript below.
-Use IELTS Speaking band descriptors (Fluency & Coherence, Lexical Resource, Grammar Accuracy, Pronunciation).
-Return **strict JSON only**, no markdown or commentary.
+Use ONLY the four official IELTS Speaking criteria:
+
+1. Fluency & Coherence  
+2. Lexical Resource  
+3. Grammatical Range & Accuracy  
+4. Pronunciation
+
+ IMPORTANT:
+- Do NOT generate an overall score.
+- Do NOT generate a separate 'coherence' score (IELTS combines it with fluency).
+- Scores must be integers or half bands (e.g., 5, 5.5, 6, 6.5, 7).
+
+Return **STRICT JSON ONLY**, following this schema exactly:
 
 {{
   ""band_estimate"": {{
     ""pronunciation"": 0–9,
     ""fluency"": 0–9,
     ""lexical_resource"": 0–9,
-    ""grammar_accuracy"": 0–9,
-    ""coherence"": 0–9,
-    ""overall"": 0–9
+    ""grammar_accuracy"": 0–9
   }},
   ""ai_analysis"": {{
-    ""overview"": ""3–5 sentences summarizing performance."",
-    ""strengths"": [""clear pronunciation"", ""good coherence""],
-    ""weaknesses"": [""occasional pauses"", ""limited vocabulary""],
-    ""advice"": ""Provide 1–2 specific tips to improve overall speaking score."",
+    ""overview"": ""3–5 sentence summary of performance."",
+    ""strengths"": [""list strengths""],
+    ""weaknesses"": [""list weaknesses""],
+    ""advice"": ""1–2 sentences of actionable improvement tips."",
     ""vocabulary_suggestions"": [
-        {{
-            ""original_word"": ""The word or phrase used by the candidate"",
-            ""suggested_alternative"": ""A better, more precise, or less common alternative"",
-            ""explanation"": ""Explain why the alternative is better.""
-        }}
+      {{
+        ""original_word"": ""example word or phrase used by the candidate"",
+        ""suggested_alternative"": ""better alternative"",
+        ""explanation"": ""why it is better""
+      }}
     ]
   }}
 }}
@@ -254,10 +264,10 @@ Transcript:
 ";
 
                 var messages = new List<ChatMessage>
-                {
-                    new SystemChatMessage("You are a certified IELTS Speaking examiner. Always return valid JSON following the schema."),
-                    new UserChatMessage(prompt)
-                };
+        {
+            new SystemChatMessage("You are a certified IELTS Speaking examiner. Always return strictly valid JSON following the schema."),
+            new UserChatMessage(prompt)
+        };
 
                 var result = chatClient.CompleteChat(messages, new ChatCompletionOptions
                 {
@@ -266,6 +276,8 @@ Transcript:
                 });
 
                 string raw = result.Value.Content[0].Text ?? "{}";
+
+                // Extract clean JSON
                 int first = raw.IndexOf('{');
                 int last = raw.LastIndexOf('}');
                 string jsonText = (first >= 0 && last > first)
@@ -275,7 +287,7 @@ Transcript:
                 jsonText = Regex.Replace(jsonText, @"\r\n|\r|\n", " ");
                 jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
 
-                _logger.LogInformation("[OpenAIService] Speaking JSON feedback generated successfully");
+                _logger.LogInformation("[OpenAIService] IELTS Speaking JSON feedback generated successfully");
 
                 return JsonDocument.Parse(jsonText);
             }
@@ -291,6 +303,7 @@ Transcript:
                 return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
             }
         }
+
         public JsonDocument LookupWordAI(string query)
         {
             try

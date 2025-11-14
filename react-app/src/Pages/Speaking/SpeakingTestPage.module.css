@@ -171,7 +171,7 @@ h3 {
 
 /* ---------- Audio ---------- */
 .audioPlayer {
-  margin-top: 16px;
+  /* margin-top: 16px; */
   background: #f8fafc;
   border-radius: 10px;
   padding: 10px 14px;
@@ -264,7 +264,7 @@ h3 {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
 }
 
 .feedbackText {
@@ -328,7 +328,7 @@ h3 {
 
 /* ---------- User Answer ---------- */
 .userAnswerSection {
-  margin-top: 1.5rem;
+  margin-top: 0;
   padding: 1rem;
   background: #f9fafb;
   border-radius: 8px;
@@ -517,4 +517,185 @@ h3 {
 
 .botMsg :global(.vocabContainer) {
   margin-top: 8px;
+}
+.resultBox {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 1.2rem;
+  margin-top: 1rem;
+
+  max-height: 270px; /* tùy chỉnh theo layout của bạn */
+  overflow-y: auto; /* bật cuộn dọc */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+/* ============================
+   🌟 AI FEEDBACK SECTION
+   ============================ */
+
+.aiSection {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Title */
+.aiSection h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Overview paragraph */
+.aiOverview {
+  background: #f8fafc;
+  border-left: 4px solid #3b82f6;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  color: #334155;
+  line-height: 1.55;
+}
+
+/* Section subtitles */
+.aiSubTitle {
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* UL lists */
+.aiList {
+  margin: 0;
+  padding-left: 20px;
+  margin-bottom: 12px;
+}
+
+.aiList li {
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+/* Advice box */
+.aiAdviceBox {
+  background: #fff7ed;
+  border-left: 4px solid #f97316;
+  padding: 12px 14px;
+  border-radius: 8px;
+  color: #7c2d12;
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+/* Vocabulary suggestion */
+.vocabSuggestBox {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 10px;
+}
+
+.vocabSuggestBox h4 {
+  margin-bottom: 10px;
+  font-size: 1.15rem;
+  color: #166534;
+}
+
+.vocabItem {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #d1fae5;
+  border-radius: 10px;
+}
+
+.vocabItem strong {
+  color: #065f46;
+}
+
+.vocabExplain {
+  margin-top: 4px;
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+/* ---------- Result Header ---------- */
+.resultHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* đẩy nút sang phải */
+  margin-bottom: 16px;
+}
+
+.resultLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Retake button in header */
+.retakeBtn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retakeBtn:hover {
+  background: #1d4ed8;
+  transform: scale(1.03);
+}
+
+.retakeBtn:active {
+  transform: scale(0.97);
+}
+/* ============================
+   📌 Sticky Header Result Box
+   ============================ */
+
+.resultBox {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 0; /* bỏ padding để chia header/body rõ ràng */
+  display: flex;
+  flex-direction: column;
+  height: 350px; /* bạn chỉnh tùy UI */
+  overflow: hidden; /* ngăn cuộn toàn box */
+}
+
+/* Header cố định */
+.resultHeader {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0; /* không bị co khi body cuộn */
+  background: white;
+  z-index: 2;
+}
+
+/* Body cuộn riêng */
+.resultBody {
+  padding: 0 20px 20px 20px;
+  flex: 1;
+  overflow-y: auto; /* chỉ phần này cuộn */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
 }

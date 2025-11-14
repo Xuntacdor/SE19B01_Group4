@@ -108,15 +108,15 @@ namespace WebAPI.Services
         private JsonDocument GradeSingle(int examId, int userId, SpeakingAnswerDTO ans)
         {
             var question = _speakingRepo.GetById(ans.SpeakingId)?.SpeakingQuestion ?? "Unknown question";
-            var tempAttemptId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-            // Convert audio to transcript
+            // Transcribe audio → transcript
+            var tempAttemptId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var transcript = _speechToTextService.TranscribeAndSave(tempAttemptId, ans.AudioUrl ?? "");
 
-            // Grade with AI
+            // Call AI → only pronunciation, fluency, lexical_resource, grammar_accuracy
             var result = _openAI.GradeSpeaking(question, transcript);
 
-            // Save feedback using repository
+            // Save to database (SaveFeedback tự tính IELTS overall)
             _feedbackRepo.SaveFeedback(examId, ans.SpeakingId, result, userId, ans.AudioUrl, transcript);
 
             return result;
@@ -126,21 +126,23 @@ namespace WebAPI.Services
         {
             var feedbacks = new List<object>();
             var speakingMap = _speakingRepo.GetByExamId(examId)
-                                    .ToDictionary(s => s.SpeakingId, s => s.SpeakingQuestion);
+                                          .ToDictionary(s => s.SpeakingId, s => s.SpeakingQuestion);
+
             foreach (var ans in answers)
             {
                 var question = speakingMap.TryGetValue(ans.SpeakingId, out var q) ? q : "Unknown question";
-                var tempAttemptId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-                // Convert audio to transcript
+                // Transcribe
+                var tempAttemptId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 var transcript = _speechToTextService.TranscribeAndSave(tempAttemptId, ans.AudioUrl ?? "");
 
-                // Grade each question
+                // Grade with AI
                 var result = _openAI.GradeSpeaking(question, transcript);
 
-                // Save feedback via repository
+                // Save to DB
                 _feedbackRepo.SaveFeedback(examId, ans.SpeakingId, result, userId, ans.AudioUrl, transcript);
 
+                // Return minimal clean JSON to FE
                 feedbacks.Add(new
                 {
                     speakingId = ans.SpeakingId,
@@ -159,6 +161,7 @@ namespace WebAPI.Services
 
             return JsonDocument.Parse(JsonSerializer.Serialize(response));
         }
+
 
         // ===========================
         // == DTO MAPPING ==

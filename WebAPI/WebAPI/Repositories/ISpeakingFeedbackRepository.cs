@@ -10,6 +10,7 @@ namespace WebAPI.Repositories
         SpeakingFeedback? GetById(int id);
         List<SpeakingFeedback> GetByExamAndUser(int examId, int userId);
         SpeakingFeedback? GetBySpeakingAndUser(int speakingId, int userId);
+        SpeakingFeedback GetBySpeakingAttemptAndUser(int speakingAttemptId, int userId);
 
         void Add(SpeakingFeedback entity);
         void Update(SpeakingFeedback entity);

@@ -2,6 +2,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import AppLayout from "../../Components/Layout/AppLayout";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import styles from "./DashboardUser.module.css";
+import { useNavigate } from "react-router-dom";
+import NothingFound from "../../Components/Nothing/NothingFound";
+import * as AuthApi from "../../Services/AuthApi";
+import { getSubmittedDays } from "../../Services/ExamApi";
+import useExamAttempts from "../../Hook/UseExamAttempts";
+import { isDaySubmitted } from "../../utils/date";
+import * as SpeakingApi from "../../Services/SpeakingApi";
+import * as WritingApi from "../../Services/WritingApi";
 import {
   Book,
   Headphones,
@@ -11,15 +19,6 @@ import {
   Pen,
   Mic,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import NothingFound from "../../Components/Nothing/NothingFound";
-
-import * as AuthApi from "../../Services/AuthApi";
-import { getSubmittedDays } from "../../Services/ExamApi";
-import useExamAttempts from "../../Hook/UseExamAttempts";
-import { isDaySubmitted } from "../../utils/date";
-import * as SpeakingApi from "../../Services/SpeakingApi";
-import * as WritingApi from "../../Services/WritingApi";
 
 /* ================================
    Configs for stats display
@@ -95,6 +94,7 @@ export default function DashboardUser() {
   const itemsPerPage = 5;
 
   const totalPages = Math.ceil(historyData.length / itemsPerPage);
+
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage;
@@ -130,37 +130,23 @@ export default function DashboardUser() {
 
           try {
             if (a.examType === "Speaking") {
-              // === Giống cách SpeakingTest lấy overall ===
               try {
-                const res = await SpeakingApi.getFeedbackBySpeakingId(
-                  a.speakingId || a.attemptId || a.examId,
-                  userId
-                );
+                const res = await SpeakingApi.getFeedback(a.examId, userId);
 
-                if (res?.feedback?.overall != null)
-                  score = Number(res.feedback.overall).toFixed(1);
-                else if (res?.overall != null)
-                  score = Number(res.overall).toFixed(1);
-                else throw new Error("No speaking feedback found");
-              } catch {
-                // Fallback: lấy theo examId
-                const altRes = await SpeakingApi.getFeedback(
-                  a.examId || a.attemptId,
-                  userId
-                );
+                // Lấy overall đúng cho full exam
+                const overall =
+                  res.finalOverall ??
+                  res.averageOverall ??
+                  (res.feedbacks?.length
+                    ? res.feedbacks.reduce(
+                        (sum, f) => sum + (f.overall ?? 0),
+                        0
+                      ) / res.feedbacks.length
+                    : null);
 
-                if (altRes?.feedbacks?.length) {
-                  const match = altRes.feedbacks.find(
-                    (f) => String(f.speakingId) === String(a.speakingId)
-                  );
-                  const pick =
-                    match || altRes.feedbacks[altRes.feedbacks.length - 1];
-                  if (pick?.overall != null)
-                    score = Number(pick.overall).toFixed(1);
-                  else if (altRes.averageOverall != null)
-                    score = Number(altRes.averageOverall).toFixed(1);
-                } else if (altRes?.averageOverall != null)
-                  score = Number(altRes.averageOverall).toFixed(1);
+                score = overall != null ? Number(overall).toFixed(1) : "-";
+              } catch (err) {
+                console.warn("Failed to load speaking score", err);
               }
             } else if (a.examType === "Writing") {
               const feedbackRes = await WritingApi.getFeedback(
@@ -176,31 +162,36 @@ export default function DashboardUser() {
               score = a.totalScore?.toFixed(1) ?? a.score?.toFixed(1) ?? "-";
             }
           } catch (err) {
-            console.warn(`⚠️ Failed to get feedback for ${a.examType}`, err);
+            console.warn(` Failed to get feedback for ${a.examType}`, err);
           }
 
-          return [
-            a.submittedAt ? (
+          return {
+            statusIcon: a.submittedAt ? (
               <CheckCircle size={18} color="#28a745" />
             ) : (
               <XCircle size={18} color="#dc3545" />
             ),
-            a.examName,
-            a.examType,
-            a.submittedAt
+            examName: a.examName,
+            examType: a.examType,
+            date: a.submittedAt
               ? new Date(a.submittedAt).toLocaleDateString("en-GB")
               : "In progress",
             score,
-          ];
+            attemptId: a.attemptId,
+            examId: a.examId,
+          };
         })
       );
 
-      setHistoryData(rows);
+      // mới nhất lên trên
+      setHistoryData(rows.reverse());
       setLoadingScores(false);
     };
 
     fetchScores();
   }, [attempts, userId]);
+
+  const hasHistory = historyData.length > 0;
 
   return (
     <AppLayout title="Summary of your hard work" sidebar={<GeneralSidebar />}>
@@ -300,6 +291,14 @@ export default function DashboardUser() {
 
           {loadingScores ? (
             <div className={styles.stateText}>Fetching AI feedback...</div>
+          ) : !hasHistory ? (
+            <NothingFound
+              imageSrc="/src/assets/sad_cloud.png"
+              title="No practice history"
+              message="You have not done any exercises yet! Choose the appropriate form and practice now!"
+              actionLabel="Do your homework now!"
+              to="/reading"
+            />
           ) : (
             <div className={styles.historyTable}>
               <div className={`${styles.historyRow} ${styles.historyHeader}`}>
@@ -310,25 +309,87 @@ export default function DashboardUser() {
                 <div>Score</div>
               </div>
 
-              {paginatedData.length > 0 ? (
-                paginatedData.map((r, i) => (
-                  <div className={styles.historyRow} key={i}>
-                    <div>{r[0]}</div>
-                    <div>{r[1]}</div>
-                    <div>{r[2]}</div>
-                    <div>{r[3]}</div>
-                    <div>{r[4]}</div>
-                  </div>
-                ))
-              ) : (
-                <NothingFound
-                  imageSrc="/src/assets/sad_cloud.png"
-                  title="No practice history"
-                  message="You have not done any exercises yet! Choose the appropriate form and practice now!"
-                  actionLabel="Do your homework now!"
-                  to="/reading"
-                />
-              )}
+              {/* Luôn render 5 hàng: dữ liệu + hàng trống */}
+              {(() => {
+                const rowsToRender = [...paginatedData];
+                const emptyCount = itemsPerPage - rowsToRender.length;
+
+                for (let i = 0; i < emptyCount; i++) {
+                  rowsToRender.push({ empty: true, _emptyId: `empty-${i}` });
+                }
+
+                return rowsToRender.map((r, i) => {
+                  if (r.empty) {
+                    // Hàng trống chỉ để giữ layout
+                    return (
+                      <div
+                        className={styles.historyRow}
+                        key={r._emptyId ?? `empty-${i}`}
+                      >
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className={styles.historyRow} key={r.attemptId ?? i}>
+                      <div>{r.statusIcon}</div>
+
+                      <div
+                        className={styles.examLink}
+                        onClick={() => {
+                          if (r.examType === "Reading") {
+                            navigate("/reading/result", {
+                              state: {
+                                attemptId: r.attemptId,
+                                examName: r.examName,
+                              },
+                            });
+                          } else if (r.examType === "Listening") {
+                            navigate("/listening/result", {
+                              state: {
+                                attemptId: r.attemptId,
+                                examName: r.examName,
+                              },
+                            });
+                          } else if (r.examType === "Writing") {
+                            navigate("/writing/result", {
+                              state: {
+                                examId: r.examId,
+                                userId,
+                                exam: { examName: r.examName },
+                                mode: "full",
+                              },
+                            });
+                          } else if (r.examType === "Speaking") {
+                            const examId =
+                              r.examId ??
+                              r.speaking?.examId ??
+                              r.speakingExamId;
+
+                            navigate("/speaking/result", {
+                              state: {
+                                examId,
+                                examName: r.examName,
+                              },
+                            });
+                          }
+                        }}
+                      >
+                        {r.examName}
+                      </div>
+
+                      <div>{r.examType}</div>
+                      <div>{r.date}</div>
+                      <div>{r.score}</div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
 

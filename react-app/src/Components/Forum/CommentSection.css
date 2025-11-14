@@ -573,10 +573,14 @@
   border: 1px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 99999;
+  z-index: 99999 !important;
   min-width: 120px;
   overflow: visible;
   margin-top: 4px;
+  display: flex !important;
+  flex-direction: column !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .comment-menu-dropdown .forum-comment-menu-item {
@@ -599,12 +603,37 @@
 }
 
 .comment-menu-dropdown .forum-comment-menu-item.delete-item {
-  color: #dc3545;
+  color: #dc3545 !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .comment-menu-dropdown .forum-comment-menu-item.delete-item:hover {
-  background: #f8d7da;
-  color: #721c24;
+  background: #f8d7da !important;
+  color: #721c24 !important;
+}
+
+/* Đảm bảo moderator delete button luôn hiển thị - với specificity cao nhất */
+.comment-menu-dropdown .forum-comment-menu-item.moderator-delete-btn,
+.comment-menu-dropdown .forum-comment-menu-item.delete-item.moderator-delete-btn,
+div.comment-menu-dropdown button.forum-comment-menu-item.moderator-delete-btn,
+div.comment-menu-dropdown button.forum-comment-menu-item.delete-item.moderator-delete-btn {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: #dc3545 !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.comment-menu-dropdown .forum-comment-menu-item.moderator-delete-btn:hover,
+.comment-menu-dropdown .forum-comment-menu-item.delete-item.moderator-delete-btn:hover,
+div.comment-menu-dropdown button.forum-comment-menu-item.moderator-delete-btn:hover,
+div.comment-menu-dropdown button.forum-comment-menu-item.delete-item.moderator-delete-btn:hover {
+  background: #f8d7da !important;
+  color: #721c24 !important;
 }
 
 .comment-menu-dropdown .forum-comment-menu-item.report-item {
@@ -614,6 +643,22 @@
 .comment-menu-dropdown .forum-comment-menu-item.report-item:hover {
   background: #fff3cd;
   color: #856404;
+}
+
+/* Delete button cho moderator - hiển thị trực tiếp trong actions */
+.comment-actions .comment-action-btn.delete-btn {
+  color: #dc3545;
+  transition: all 0.2s ease;
+}
+
+.comment-actions .comment-action-btn.delete-btn:hover {
+  color: #c82333;
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.comment-actions .comment-action-btn.delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Report Modal Styles - scoped for comment section */

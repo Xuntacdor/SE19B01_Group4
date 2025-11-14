@@ -58,9 +58,20 @@ namespace WebAPI.Repositories
                     f.SpeakingAttempt.ExamAttempt != null &&
                     f.SpeakingAttempt.SpeakingId == speakingId &&
                     f.SpeakingAttempt.ExamAttempt.UserId == userId)
-                .OrderByDescending(f => f.CreatedAt) // ✅ lấy feedback mới nhất
+                .OrderByDescending(f => f.CreatedAt)
                 .FirstOrDefault();
         }
+        public SpeakingFeedback GetBySpeakingAttemptAndUser(int speakingAttemptId, int userId)
+        {
+            return _context.SpeakingFeedbacks
+                .Include(f => f.SpeakingAttempt)
+                .ThenInclude(a => a.ExamAttempt)
+                .FirstOrDefault(f =>
+                    f.SpeakingAttemptId == speakingAttemptId &&
+                    f.SpeakingAttempt.ExamAttempt.UserId == userId
+                );
+        }
+
 
 
         public void Add(SpeakingFeedback entity)
@@ -82,49 +93,76 @@ namespace WebAPI.Repositories
         {
             _context.SaveChanges();
         }
+        decimal CalculateIeltsSpeakingBand(decimal pr, decimal fl, decimal lr, decimal gr)
+        {
+            var avg = (pr + fl + lr + gr) / 4;
 
-        // ✅ Fixed version with FK-safe save
+           
+            var rounded = Math.Round(avg * 2, MidpointRounding.AwayFromZero) / 2;
+            return rounded;
+        }
+
+
+
         public void SaveFeedback(int examId, int speakingId, JsonDocument feedback, int userId, string? audioUrl, string? transcript)
         {
             // 1️⃣ Get or create SpeakingAttempt (ensures FK is valid)
             var attempt = _speakingRepo.GetOrCreateAttempt(examId, speakingId, userId, audioUrl, transcript);
 
+            // 2️⃣ Extract AI band values
             var band = feedback.RootElement.GetProperty("band_estimate");
 
-            // 2️⃣ Try find existing feedback for this attempt
+            var pr = band.GetProperty("pronunciation").GetDecimal();
+            var fl = band.GetProperty("fluency").GetDecimal();
+            var lr = band.GetProperty("lexical_resource").GetDecimal();
+            var gr = band.GetProperty("grammar_accuracy").GetDecimal();
+
+            // IELTS: Coherence = Fluency
+            var coherence = fl;
+
+            // 3️⃣ Compute IELTS-standard overall
+            var overall = CalculateIeltsSpeakingBand(pr, fl, lr, gr);
+
+            // 4️⃣ Check if feedback exists
             var existing = _context.SpeakingFeedbacks
                 .FirstOrDefault(f => f.SpeakingAttemptId == attempt.SpeakingAttemptId);
 
             if (existing != null)
             {
-                existing.Pronunciation = band.GetProperty("pronunciation").GetDecimal();
-                existing.Fluency = band.GetProperty("fluency").GetDecimal();
-                existing.LexicalResource = band.GetProperty("lexical_resource").GetDecimal();
-                existing.GrammarAccuracy = band.GetProperty("grammar_accuracy").GetDecimal();
-                existing.Coherence = band.GetProperty("coherence").GetDecimal();
-                existing.Overall = band.GetProperty("overall").GetDecimal();
+                // === UPDATE ===
+                existing.Pronunciation = pr;
+                existing.Fluency = fl;
+                existing.LexicalResource = lr;
+                existing.GrammarAccuracy = gr;
+                existing.Coherence = coherence;
+                existing.Overall = overall;
+
                 existing.AiAnalysisJson = feedback.RootElement.GetRawText();
                 existing.CreatedAt = DateTime.UtcNow;
+
                 _context.SpeakingFeedbacks.Update(existing);
             }
             else
             {
+                // === INSERT ===
                 var entity = new SpeakingFeedback
                 {
-                    SpeakingAttemptId = attempt.SpeakingAttemptId, 
-                    Pronunciation = band.GetProperty("pronunciation").GetDecimal(),
-                    Fluency = band.GetProperty("fluency").GetDecimal(),
-                    LexicalResource = band.GetProperty("lexical_resource").GetDecimal(),
-                    GrammarAccuracy = band.GetProperty("grammar_accuracy").GetDecimal(),
-                    Coherence = band.GetProperty("coherence").GetDecimal(),
-                    Overall = band.GetProperty("overall").GetDecimal(),
+                    SpeakingAttemptId = attempt.SpeakingAttemptId,
+                    Pronunciation = pr,
+                    Fluency = fl,
+                    LexicalResource = lr,
+                    GrammarAccuracy = gr,
+                    Coherence = coherence,
+                    Overall = overall,
                     AiAnalysisJson = feedback.RootElement.GetRawText(),
                     CreatedAt = DateTime.UtcNow
                 };
+
                 _context.SpeakingFeedbacks.Add(entity);
             }
 
             _context.SaveChanges();
         }
+
     }
 }
