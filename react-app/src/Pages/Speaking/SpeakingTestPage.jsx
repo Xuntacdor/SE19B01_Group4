@@ -538,7 +538,7 @@ export default function SpeakingTest() {
         <GeneralSidebar />
       </div>
 
-      <main style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
+      <main style={{ flex: 1, padding: "20px" }}>
         <div className={styles.container}>
           <div className={styles.header}>
             <div className={styles.titleSection}>
