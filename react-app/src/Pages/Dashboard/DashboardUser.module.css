@@ -1,15 +1,16 @@
 /* ================================
    DASHBOARD LAYOUT
 ================================ */
-
 :root {
   --font-main: "Dongle", sans-serif;
   --font-color: #333;
+
   --color-green: #28a745;
   --color-orange: #fd7e14;
   --color-blue: #007bff;
   --color-purple: #6f42c1;
   --color-red: #dc3545;
+
   --color-gray: #f1f3f5;
 }
 
@@ -22,10 +23,10 @@
     "history goals";
   gap: 8px;
   align-items: start;
+
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
-  box-sizing: border-box;
 }
 
 .dashboardContent::-webkit-scrollbar {
@@ -99,13 +100,9 @@
   font-weight: 500;
 }
 
-.calendarDay {
-  border-radius: 6px;
-  transition: 0.2s;
-}
-
 .calendarDay:hover {
   background: #f1f3f5;
+  border-radius: 6px;
 }
 
 .submitted {
@@ -188,34 +185,59 @@
   grid-area: history;
 }
 
+.historyTable {
+  width: 100%;
+  margin-top: 10px;
+
+  /* ❗ Quan trọng: Không để flex grow kéo giãn row */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.historyHeader {
+  display: grid;
+  grid-template-columns: 80px 1fr 120px 120px 80px;
+  padding: 12px 10px;
+  background: #f7f7f7;
+  border-bottom: 2px solid #ddd;
+  font-weight: 600;
+}
+
 .historyRow {
   display: grid;
-  grid-template-columns: 80px 2fr 120px 120px 80px;
-  padding: 10px 8px;
-  border-bottom: 1px solid #f1f3f5;
+  grid-template-columns: 80px 1fr 120px 120px 80px;
   align-items: center;
-  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid #eee;
+
+  /* 🚀 FIX QUAN TRỌNG: ngăn hàng bị giãn */
+  min-height: 48px;
+  height: 48px;
 }
 
 .historyRow:last-child {
   border-bottom: none;
 }
 
-.historyTable {
-  min-height: 280px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
 .historyRow > div:first-child {
   display: flex;
   justify-content: center;
-  align-items: center;
 }
 
 .historyRow > div:last-child {
   text-align: center;
+}
+
+.examLink {
+  color: #007bff;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.examLink:hover {
+  text-decoration: underline;
+  color: #0a58ca;
 }
 
 /* Pagination */
@@ -223,13 +245,13 @@
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 0px;
+  margin-top: 5px;
 }
 
 .pageButton {
   padding: 6px 12px;
   border: 1px solid #ccc;
-  background-color: #fff;
+  background: #fff;
   color: #333;
   border-radius: 6px;
   cursor: pointer;
@@ -245,7 +267,7 @@
 }
 
 /* ================================
-   BANNER SECTION (VIP Upgrade)
+   VIP Banner
 ================================ */
 .bannerCard {
   display: flex;
@@ -257,7 +279,7 @@
   padding: 26px 32px;
   min-height: 250px;
   box-shadow: 0 4px 16px rgba(0, 153, 255, 0.25);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: 0.2s ease;
 }
 
 .bannerCard:hover {
@@ -273,7 +295,6 @@
 
 .bannerText p {
   font-size: 15px;
-  color: #f9f9f9;
   opacity: 0.95;
   max-width: 480px;
   line-height: 1.5;
@@ -289,21 +310,9 @@
   font-size: 16px;
   cursor: pointer;
   transition: 0.25s;
-  box-shadow: 0 2px 6px rgba(255, 255, 255, 0.2);
 }
 
 .bannerButton:hover {
   background: #f1f1f1;
   color: #0056b3;
-  box-shadow: 0 3px 10px rgba(255, 255, 255, 0.25);
-}
-.examLink {
-  color: #0d6efd;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.examLink:hover {
-  text-decoration: underline;
-  color: #0a58ca;
 }
