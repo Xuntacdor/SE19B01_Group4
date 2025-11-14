@@ -94,6 +94,7 @@ export default function DashboardUser() {
   const itemsPerPage = 5;
 
   const totalPages = Math.ceil(historyData.length / itemsPerPage);
+
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage;
@@ -182,12 +183,15 @@ export default function DashboardUser() {
         })
       );
 
-      setHistoryData(rows);
+      // mới nhất lên trên
+      setHistoryData(rows.reverse());
       setLoadingScores(false);
     };
 
     fetchScores();
   }, [attempts, userId]);
+
+  const hasHistory = historyData.length > 0;
 
   return (
     <AppLayout title="Summary of your hard work" sidebar={<GeneralSidebar />}>
@@ -287,6 +291,14 @@ export default function DashboardUser() {
 
           {loadingScores ? (
             <div className={styles.stateText}>Fetching AI feedback...</div>
+          ) : !hasHistory ? (
+            <NothingFound
+              imageSrc="/src/assets/sad_cloud.png"
+              title="No practice history"
+              message="You have not done any exercises yet! Choose the appropriate form and practice now!"
+              actionLabel="Do your homework now!"
+              to="/reading"
+            />
           ) : (
             <div className={styles.historyTable}>
               <div className={`${styles.historyRow} ${styles.historyHeader}`}>
@@ -297,67 +309,87 @@ export default function DashboardUser() {
                 <div>Score</div>
               </div>
 
-              {paginatedData.length > 0 ? (
-                paginatedData.map((r, i) => (
-                  <div className={styles.historyRow} key={i}>
-                    <div>{r.statusIcon}</div>
+              {/* Luôn render 5 hàng: dữ liệu + hàng trống */}
+              {(() => {
+                const rowsToRender = [...paginatedData];
+                const emptyCount = itemsPerPage - rowsToRender.length;
 
-                    <div
-                      className={styles.examLink}
-                      onClick={() => {
-                        if (r.examType === "Reading") {
-                          navigate("/reading/result", {
-                            state: {
-                              attemptId: r.attemptId,
-                              examName: r.examName,
-                            },
-                          });
-                        } else if (r.examType === "Listening") {
-                          navigate("/listening/result", {
-                            state: {
-                              attemptId: r.attemptId,
-                              examName: r.examName,
-                            },
-                          });
-                        } else if (r.examType === "Writing") {
-                          navigate("/writing/result", {
-                            state: {
-                              examId: r.examId,
-                              userId,
-                              exam: { examName: r.examName },
-                              mode: "full",
-                            },
-                          });
-                        } else if (r.examType === "Speaking") {
-                          const examId =
-                            r.examId ?? r.speaking?.examId ?? r.speakingExamId;
+                for (let i = 0; i < emptyCount; i++) {
+                  rowsToRender.push({ empty: true, _emptyId: `empty-${i}` });
+                }
 
-                          navigate("/speaking/result", {
-                            state: {
-                              examId,
-                              examName: r.examName,
-                            },
-                          });
-                        }
-                      }}
-                    >
-                      {r.examName}
+                return rowsToRender.map((r, i) => {
+                  if (r.empty) {
+                    // Hàng trống chỉ để giữ layout
+                    return (
+                      <div
+                        className={styles.historyRow}
+                        key={r._emptyId ?? `empty-${i}`}
+                      >
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className={styles.historyRow} key={r.attemptId ?? i}>
+                      <div>{r.statusIcon}</div>
+
+                      <div
+                        className={styles.examLink}
+                        onClick={() => {
+                          if (r.examType === "Reading") {
+                            navigate("/reading/result", {
+                              state: {
+                                attemptId: r.attemptId,
+                                examName: r.examName,
+                              },
+                            });
+                          } else if (r.examType === "Listening") {
+                            navigate("/listening/result", {
+                              state: {
+                                attemptId: r.attemptId,
+                                examName: r.examName,
+                              },
+                            });
+                          } else if (r.examType === "Writing") {
+                            navigate("/writing/result", {
+                              state: {
+                                examId: r.examId,
+                                userId,
+                                exam: { examName: r.examName },
+                                mode: "full",
+                              },
+                            });
+                          } else if (r.examType === "Speaking") {
+                            const examId =
+                              r.examId ??
+                              r.speaking?.examId ??
+                              r.speakingExamId;
+
+                            navigate("/speaking/result", {
+                              state: {
+                                examId,
+                                examName: r.examName,
+                              },
+                            });
+                          }
+                        }}
+                      >
+                        {r.examName}
+                      </div>
+
+                      <div>{r.examType}</div>
+                      <div>{r.date}</div>
+                      <div>{r.score}</div>
                     </div>
-
-                    <div>{r.examType}</div>
-                    <div>{r.date}</div>
-                    <div>{r.score}</div>
-                  </div>
-                ))
-              ) : (
-                <NothingFound
-                  imageSrc="/src/assets/sad_cloud.png"
-                  title="No practice history"
-                  message="You have not done any exercises yet! Choose the appropriate form and practice now!"
-                  actionLabel="Do your homework now!"
-                  to="/reading"
-                />
-              )}
+                  );
+                });
+              })()}
             </div>
           )}
 
