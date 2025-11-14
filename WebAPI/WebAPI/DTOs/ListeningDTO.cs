@@ -4,7 +4,13 @@
     public class CreateListeningDto
     {
         public int ExamId { get; set; }
+
+        // "Content" part – typically your audio URL or main content
         public string ListeningContent { get; set; } = string.Empty;
+
+        // NEW: Transcript part – will be stored together with ListeningContent in the model
+        public string? Transcript { get; set; }
+
         public string ListeningQuestion { get; set; } = string.Empty;
         public string? ListeningType { get; set; }
         public int DisplayOrder { get; set; }
@@ -16,6 +22,10 @@
     public class UpdateListeningDto
     {
         public string? ListeningContent { get; set; }
+
+        // NEW: Transcript can be updated independently
+        public string? Transcript { get; set; }
+
         public string? ListeningQuestion { get; set; }
         public string? ListeningType { get; set; }
         public int? DisplayOrder { get; set; }
@@ -28,7 +38,13 @@
     {
         public int ListeningId { get; set; }
         public int ExamId { get; set; }
+
+        // Only the "content" part (first line in DB)
         public string ListeningContent { get; set; } = string.Empty;
+
+        // NEW: Transcript (everything after the first newline in DB)
+        public string Transcript { get; set; } = string.Empty;
+
         public string ListeningQuestion { get; set; } = string.Empty;
         public string? ListeningType { get; set; }
         public int DisplayOrder { get; set; }
@@ -37,4 +53,3 @@
         public string? QuestionHtml { get; set; }
     }
 }
-

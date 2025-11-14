@@ -26,6 +26,7 @@ export default function AddListening() {
   const skill = location.state?.skill;
 
   const [listeningContent, setListeningContent] = useState("");
+  const [transcript, setTranscript] = useState("");          // 🔹 NEW
   const [listeningQuestion, setListeningQuestion] = useState("");
   const [status, setStatus] = useState({ icon: null, message: "" });
   const [showAnswers, setShowAnswers] = useState(true);
@@ -35,6 +36,7 @@ export default function AddListening() {
     if (skill) {
       setListeningContent(skill.listeningContent || "");
       setListeningQuestion(skill.listeningQuestion || "");
+      setTranscript(skill.transcript || "");                // 🔹 Prefill when editing
     }
   }, [skill]);
 
@@ -43,7 +45,6 @@ export default function AddListening() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // ▼▼ Add this validation block here ▼▼
     const okTypes = new Set([
       "audio/mpeg",
       "audio/mp3",
@@ -65,17 +66,17 @@ export default function AddListening() {
         icon: <XCircle color="red" size={16} />,
         message: "Unsupported audio type. Use MP3, WAV, or OGG.",
       });
-      e.target.value = ""; // reset the file input
+      e.target.value = "";
       return;
     }
-    // ▲▲ End of validation block ▲▲
 
     setUploading(true);
     setStatus({ icon: <Upload size={16} />, message: "Uploading audio..." });
 
     try {
       const res = await UploadApi.uploadAudio(file);
-      const audioUrl = res?.url || res?.path || (typeof res === "string" ? res : null);
+      const audioUrl =
+        res?.url || res?.path || (typeof res === "string" ? res : null);
       if (!audioUrl) throw new Error("No audio URL returned");
 
       setListeningContent(audioUrl);
@@ -102,15 +103,18 @@ export default function AddListening() {
 
     try {
       // 1️⃣ First render without listeningId (uses "X_q#" keys)
-      const { html, answers } = renderMarkdownToHtmlAndAnswers(listeningQuestion);
+      const { html, answers } = renderMarkdownToHtmlAndAnswers(
+        listeningQuestion
+      );
 
       const payload = {
         examId: exam.examId,
         listeningContent,
+        transcript,                           // 🔹 send transcript to backend
         listeningQuestion,
         listeningType: "Markdown",
         displayOrder: skill?.displayOrder || 1,
-        correctAnswer: JSON.stringify(answers), // temporary (X_q#)
+        correctAnswer: JSON.stringify(answers),
         questionHtml: html,
       };
 
@@ -139,9 +143,9 @@ export default function AddListening() {
           renderMarkdownToHtmlAndAnswers(listeningQuestion, newId);
 
         await listeningService.update(newId, {
-          ...payload,
+          ...payload,                          // 🔹 still includes transcript
           questionHtml: fixedHtml,
-          correctAnswer: JSON.stringify(fixedAnswers), // ✅ fixed IDs (e.g. "6_q1")
+          correctAnswer: JSON.stringify(fixedAnswers),
         });
       }
 
@@ -176,6 +180,7 @@ export default function AddListening() {
 
       <div className={styles.grid}>
         <form onSubmit={handleSubmit} className={styles.form}>
+          {/* ===== Audio upload ===== */}
           <div className={styles.group}>
             <label>Upload Audio File</label>
 
@@ -203,6 +208,18 @@ export default function AddListening() {
             )}
           </div>
 
+          {/* ===== Transcript (like reading content) ===== */}
+          <div className={styles.group}>
+            <label>Transcript / Script</label>
+            <textarea
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              rows={6}
+              placeholder="Paste or type the listening transcript here..."
+            />
+          </div>
+
+          {/* ===== Question markdown ===== */}
           <div className={styles.group}>
             <label>Question (Markdown)</label>
             <textarea

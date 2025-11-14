@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using WebAPI.DTOs;
@@ -49,6 +50,8 @@ namespace WebAPI.Controllers
             return Ok(result);
         }
 
+
+        [Authorize(Roles = "admin")]
         [HttpPost]
         public ActionResult<ReadingDto> Add([FromBody] CreateReadingDto dto)
         {
@@ -60,6 +63,8 @@ namespace WebAPI.Controllers
             return CreatedAtAction(nameof(GetById), new { id = created.ReadingId }, created);
         }
 
+
+        [Authorize(Roles = "admin")]
         [HttpPut("{id:int}")]
         public IActionResult Update(int id, [FromBody] UpdateReadingDto dto)
         {
@@ -68,6 +73,8 @@ namespace WebAPI.Controllers
         }
 
         // ✅ DELETE reading
+
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id:int}")]
         public IActionResult Delete(int id)
             => _readingService.Delete(id) ? NoContent() : NotFound("Reading not found.");
