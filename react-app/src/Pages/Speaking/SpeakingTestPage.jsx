@@ -533,158 +533,164 @@ export default function SpeakingTest() {
   };
 
   return (
-    <AppLayout title="Speaking Test" sidebar={<GeneralSidebar />}>
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <div className={styles.titleSection}>
-            <Mic className={styles.titleIcon} />
-            <h2>
-              {currentTask?.speakingType} — {currentExam?.examName}
-            </h2>
-          </div>
-          <MicroCheck />
-          <div className={styles.timer}>
-            <Clock size={20} /> {speakLeft > 0 ? `${speakLeft}s` : "00:00"}
-          </div>
-        </div>
-
-        {showPrepPopup && (
-          <div className={styles.prepPopup}>
-            <div className={styles.prepPopupBox}>
-              <AlertCircle size={24} />
-              <span>Get Ready...</span>
-            </div>
-          </div>
-        )}
-
-        <div className={styles.mainContent}>
-          <div className={styles.questionPanel}>
-            <div className={styles.questionHeader}>
-              <h3>Question</h3>
-            </div>
-            <AudioTextBox
-              //label="Question"
-              text={currentTask?.speakingQuestion}
-            />
-
-            <div className={styles.dynamicSection}>
-              {renderDynamicSection()}
-            </div>
-
-            {(currentMode === "full" || currentMode === "part") &&
-              renderNavigationBar()}
-          </div>
-
-          <aside className={styles.chatPanel}>
-            <h4>Speaking Assistant</h4>
-
-            <div className={styles.chatBox}>
-              {chatMessages.length === 0 ? (
-                <p className={styles.chatPlaceholder}>
-                  Hello! I can help you practice your speaking. Choose one of
-                  the options below to get started.
-                </p>
-              ) : (
-                chatMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`${styles.chatMessage} ${
-                      msg.role === "user" ? styles.userMsg : styles.botMsg
-                    }`}
-                  >
-                    {msg.text && <div>{msg.text}</div>}
-                    {msg.component && msg.component}
-                  </div>
-                ))
-              )}
-
-              {chatLoading && (
-                <p className={styles.chatTyping}>AI is typing....</p>
-              )}
-              <div ref={chatEndRef}></div>
-            </div>
-
-            <div className={styles.chatActions}>
-              <button
-                className={styles.chatBtn}
-                onClick={async () => {
-                  if (!currentId) return;
-                  setChatLoading(true);
-                  setChatMessages((prev) => [
-                    ...prev,
-                    { role: "user", text: "Show me a sample answer" },
-                  ]);
-                  try {
-                    const res = await getSpeakingSuggestion(currentId);
-                    setChatMessages((prev) => [
-                      ...prev,
-                      {
-                        role: "bot",
-                        component: (
-                          <SampleAnswerBox
-                            text={
-                              res.sample_answer ||
-                              "Không tìm thấy câu mẫu cho câu hỏi này."
-                            }
-                          />
-                        ),
-                      },
-                    ]);
-                  } catch (err) {
-                    setChatMessages((prev) => [
-                      ...prev,
-                      {
-                        role: "bot",
-                        text: " Error fetching sample answer. Please try again.",
-                      },
-                    ]);
-                  } finally {
-                    setChatLoading(false);
-                  }
-                }}
-              >
-                Sample Answer
-              </button>
-
-              <button
-                className={styles.chatBtn}
-                onClick={async () => {
-                  if (!currentId) return;
-                  setChatLoading(true);
-                  setChatMessages((prev) => [
-                    ...prev,
-                    { role: "user", text: "Show me topic vocabulary" },
-                  ]);
-                  try {
-                    const res = await getSpeakingSuggestion(currentId);
-                    const vocab = res.vocabulary_by_level;
-                    setChatMessages((prev) => [
-                      ...prev,
-                      {
-                        role: "bot",
-                        component: <VocabularySuggestion vocab={vocab} />,
-                      },
-                    ]);
-                  } catch {
-                    setChatMessages((prev) => [
-                      ...prev,
-                      {
-                        role: "bot",
-                        text: " Lỗi khi lấy từ vựng, thử lại sau nhé.",
-                      },
-                    ]);
-                  } finally {
-                    setChatLoading(false);
-                  }
-                }}
-              >
-                Topic Vocabulary
-              </button>
-            </div>
-          </aside>
-        </div>
+    <div style={{ display: "flex", height: "100vh" }}>
+      <div style={{ width: "250px" }}>
+        <GeneralSidebar />
       </div>
-      <FloatingDictionaryChat />
-    </AppLayout>
+
+      <main style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
+        <div className={styles.container}>
+          <div className={styles.header}>
+            <div className={styles.titleSection}>
+              <Mic className={styles.titleIcon} />
+              <h2>
+                {currentTask?.speakingType} — {currentExam?.examName}
+              </h2>
+            </div>
+            <MicroCheck />
+            <div className={styles.timer}>
+              <Clock size={20} /> {speakLeft > 0 ? `${speakLeft}s` : "00:00"}
+            </div>
+          </div>
+
+          {showPrepPopup && (
+            <div className={styles.prepPopup}>
+              <div className={styles.prepPopupBox}>
+                <AlertCircle size={24} />
+                <span>Get Ready...</span>
+              </div>
+            </div>
+          )}
+
+          <div className={styles.mainContent}>
+            <div className={styles.questionPanel}>
+              <div className={styles.questionHeader}>
+                <h3>Question</h3>
+              </div>
+              <AudioTextBox
+                //label="Question"
+                text={currentTask?.speakingQuestion}
+              />
+
+              <div className={styles.dynamicSection}>
+                {renderDynamicSection()}
+              </div>
+
+              {(currentMode === "full" || currentMode === "part") &&
+                renderNavigationBar()}
+            </div>
+
+            <aside className={styles.chatPanel}>
+              <h4>Speaking Assistant</h4>
+
+              <div className={styles.chatBox}>
+                {chatMessages.length === 0 ? (
+                  <p className={styles.chatPlaceholder}>
+                    Hello! I can help you practice your speaking. Choose one of
+                    the options below to get started.
+                  </p>
+                ) : (
+                  chatMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`${styles.chatMessage} ${
+                        msg.role === "user" ? styles.userMsg : styles.botMsg
+                      }`}
+                    >
+                      {msg.text && <div>{msg.text}</div>}
+                      {msg.component && msg.component}
+                    </div>
+                  ))
+                )}
+
+                {chatLoading && (
+                  <p className={styles.chatTyping}>AI is typing....</p>
+                )}
+                <div ref={chatEndRef}></div>
+              </div>
+
+              <div className={styles.chatActions}>
+                <button
+                  className={styles.chatBtn}
+                  onClick={async () => {
+                    if (!currentId) return;
+                    setChatLoading(true);
+                    setChatMessages((prev) => [
+                      ...prev,
+                      { role: "user", text: "Show me a sample answer" },
+                    ]);
+                    try {
+                      const res = await getSpeakingSuggestion(currentId);
+                      setChatMessages((prev) => [
+                        ...prev,
+                        {
+                          role: "bot",
+                          component: (
+                            <SampleAnswerBox
+                              text={
+                                res.sample_answer ||
+                                "Không tìm thấy câu mẫu cho câu hỏi này."
+                              }
+                            />
+                          ),
+                        },
+                      ]);
+                    } catch (err) {
+                      setChatMessages((prev) => [
+                        ...prev,
+                        {
+                          role: "bot",
+                          text: " Error fetching sample answer. Please try again.",
+                        },
+                      ]);
+                    } finally {
+                      setChatLoading(false);
+                    }
+                  }}
+                >
+                  Sample Answer
+                </button>
+
+                <button
+                  className={styles.chatBtn}
+                  onClick={async () => {
+                    if (!currentId) return;
+                    setChatLoading(true);
+                    setChatMessages((prev) => [
+                      ...prev,
+                      { role: "user", text: "Show me topic vocabulary" },
+                    ]);
+                    try {
+                      const res = await getSpeakingSuggestion(currentId);
+                      const vocab = res.vocabulary_by_level;
+                      setChatMessages((prev) => [
+                        ...prev,
+                        {
+                          role: "bot",
+                          component: <VocabularySuggestion vocab={vocab} />,
+                        },
+                      ]);
+                    } catch {
+                      setChatMessages((prev) => [
+                        ...prev,
+                        {
+                          role: "bot",
+                          text: " Lỗi khi lấy từ vựng, thử lại sau nhé.",
+                        },
+                      ]);
+                    } finally {
+                      setChatLoading(false);
+                    }
+                  }}
+                >
+                  Topic Vocabulary
+                </button>
+              </div>
+            </aside>
+          </div>
+        </div>
+        <FloatingDictionaryChat />
+      </main>
+    </div>
   );
 }

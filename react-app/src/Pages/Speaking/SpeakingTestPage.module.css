@@ -379,11 +379,11 @@ h3 {
 }
 /* ---------- Dynamic Section ---------- */
 .dynamicSection {
-  min-height: 220px; /* ✅ giữ không nhảy khi loading / result / record */
+  min-height: 220px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  margin-top: auto;
+  margin-top: 0;
 }
 .navBar {
   margin-top: 20px;
@@ -455,7 +455,7 @@ h3 {
   padding: 12px;
   margin-bottom: 12px;
   border: 1px solid #e5e7eb;
-  max-height: 360px;
+  max-height: 500px;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f8fafc;
 }
@@ -525,7 +525,7 @@ h3 {
   padding: 1.2rem;
   margin-top: 1rem;
 
-  max-height: 270px; /* tùy chỉnh theo layout của bạn */
+  max-height: 450px; /* tùy chỉnh theo layout của bạn */
   overflow-y: auto; /* bật cuộn dọc */
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;

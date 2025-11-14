@@ -324,3 +324,23 @@
   background: #ffecec !important; /* đỏ nhạt */
   border-color: #ffb3b3 !important;
 }
+/* === MATCH SPEAKING TEST PAGE AUDIO PLAYER === */
+.audioPlayer {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2563eb;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+
+.audioPlayer audio {
+  width: 100%;
+  outline: none;
+  border-radius: 6px;
+}
