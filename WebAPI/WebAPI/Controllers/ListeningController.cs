@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using WebAPI.DTOs;
 using WebAPI.Services;
@@ -32,6 +33,7 @@ namespace WebAPI.Controllers
             return (content, transcript);
         }
 
+       
         [HttpGet]
         public ActionResult<IEnumerable<ListeningDto>> GetAll()
             => Ok(_listeningService.GetAll());
@@ -71,6 +73,8 @@ namespace WebAPI.Controllers
         }
 
         // ✅ CREATE new Listening
+
+        [Authorize(Roles = "admin")]
         [HttpPost]
         public ActionResult<ListeningDto> Add([FromBody] CreateListeningDto dto)
         {
@@ -83,6 +87,8 @@ namespace WebAPI.Controllers
         }
 
         // ✅ UPDATE existing Listening
+
+        [Authorize(Roles = "admin")]
         [HttpPut("{id:int}")]
         public IActionResult Update(int id, [FromBody] UpdateListeningDto dto)
         {
@@ -91,6 +97,8 @@ namespace WebAPI.Controllers
         }
 
         // ✅ DELETE Listening
+
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id:int}")]
         public IActionResult Delete(int id)
             => _listeningService.Delete(id) ? NoContent() : NotFound("Listening not found.");
