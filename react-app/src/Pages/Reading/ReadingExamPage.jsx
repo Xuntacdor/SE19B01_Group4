@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { marked } from "marked";
 import { submitReadingAttempt } from "../../Services/ReadingApi";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
-import { Clock } from "lucide-react";
+import { Highlighter, Trash2, Pencil } from "lucide-react";
 import styles from "./ReadingExamPage.module.css";
 
 // ---------- Markdown config for the PASSAGE ----------
@@ -36,6 +36,12 @@ export default function ReadingExamPage() {
   const [timeLeft, setTimeLeft] = useState(duration ? duration * 60 : 0);
   const [answers, setAnswers] = useState({});
   const formRef = useRef(null);
+  const [highlightMode, setHighlightMode] = useState(false);
+  const [highlights, setHighlights] = useState([]);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [pendingSelection, setPendingSelection] = useState(null);
+  const passageContentRef = useRef(null);
+
 
   // Countdown
   useEffect(() => {
@@ -154,6 +160,211 @@ export default function ReadingExamPage() {
     return numMarkers ? numMarkers.length : 0;
   };
 
+  // Highlight functionality
+  const toggleHighlightMode = () => {
+    setHighlightMode((prev) => !prev);
+    setContextMenu(null);
+  };
+
+  const handleTextSelection = (e) => {
+    if (!highlightMode) return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const selectedText = selection.toString().trim();
+
+    if (!selectedText) return;
+
+    // Check if selection is within the passage content
+    const passageElement = passageContentRef.current;
+    if (!passageElement || !passageElement.contains(range.commonAncestorContainer)) {
+      return;
+    }
+
+    // Check if selection is already inside a highlight
+    let node = range.commonAncestorContainer;
+    let highlightElement = null;
+    
+    // Check if the selection is inside a highlighted element
+    if (node.nodeType === Node.TEXT_NODE) {
+      node = node.parentElement;
+    }
+    
+    while (node && node !== passageElement) {
+      if (node.nodeType === Node.ELEMENT_NODE && 
+          node.getAttribute && 
+          node.getAttribute("data-highlight-id")) {
+        highlightElement = node;
+        break;
+      }
+      node = node.parentElement || node.parentNode;
+    }
+
+    // If already highlighted, show clear option
+    if (highlightElement) {
+      const highlightId = highlightElement.getAttribute("data-highlight-id");
+      setContextMenu({
+        x: e.clientX || (e.touches && e.touches[0]?.clientX) || 0,
+        y: e.clientY || (e.touches && e.touches[0]?.clientY) || 0,
+        highlightId: highlightId,
+        type: "existing",
+      });
+      return;
+    }
+
+    // Store the selection for highlighting later
+    setPendingSelection({ text: selectedText });
+    
+    // Show context menu with Highlight option
+    setContextMenu({
+      x: e.clientX || (e.touches && e.touches[0]?.clientX) || 0,
+      y: e.clientY || (e.touches && e.touches[0]?.clientY) || 0,
+      type: "new",
+    });
+
+    // Don't clear selection yet - keep it visible
+  };
+
+  const applyHighlight = () => {
+    if (!pendingSelection) return;
+
+    const selectedText = pendingSelection.text;
+    
+    // Create a unique ID for this highlight
+    const highlightId = `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Store highlight data
+    const highlightData = {
+      id: highlightId,
+      text: selectedText,
+    };
+
+    setHighlights((prev) => {
+      // Check if this exact text is already highlighted
+      const exists = prev.some((h) => h.text === selectedText);
+      if (exists) return prev;
+      return [...prev, highlightData];
+    });
+
+    // Clear selection and pending selection
+    const selection = window.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+    }
+    setPendingSelection(null);
+    setContextMenu(null);
+  };
+
+  const clearHighlight = (highlightId) => {
+    setHighlights((prev) => prev.filter((h) => h.id !== highlightId));
+    setContextMenu(null);
+  };
+
+  // Apply highlights to the passage content - only highlight first occurrence of each text
+  const applyHighlightsToHtml = (html, highlightsList) => {
+    if (!highlightsList || highlightsList.length === 0) return html;
+
+    let processedHtml = html;
+    
+    // Process each highlight - only highlight the first unhighlighted occurrence
+    highlightsList.forEach((highlight) => {
+      const textToHighlight = highlight.text.trim();
+      
+      // Create a flexible regex that handles whitespace variations
+      // Escape special regex characters
+      const escapedText = textToHighlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      // Replace all whitespace (spaces, newlines, tabs) with flexible whitespace matcher
+      const flexiblePattern = escapedText.replace(/\s+/g, '\\s+');
+      
+      // Try to find the text with flexible whitespace matching
+      const regex = new RegExp(flexiblePattern, "gi");
+      let match;
+      let found = false;
+      
+      while ((match = regex.exec(processedHtml)) !== null && !found) {
+        const matchIndex = match.index;
+        const beforeMatch = processedHtml.substring(0, matchIndex);
+        
+        // Check if we're inside an HTML tag
+        const lastOpenTag = beforeMatch.lastIndexOf('<');
+        const lastCloseTag = beforeMatch.lastIndexOf('>');
+        if (lastOpenTag > lastCloseTag) {
+          continue; // Skip if inside a tag
+        }
+        
+        // Check if we're already inside a highlight span
+        const lastHighlightOpen = beforeMatch.lastIndexOf(`<span class="${styles.highlightedText}"`);
+        const lastHighlightClose = beforeMatch.lastIndexOf('</span>');
+        if (lastHighlightOpen > lastHighlightClose) {
+          continue; // Skip if already highlighted
+        }
+        
+        // Found a valid position - apply highlight
+        const before = processedHtml.substring(0, matchIndex);
+        const after = processedHtml.substring(matchIndex + match[0].length);
+        processedHtml = before +
+          `<span class="${styles.highlightedText}" data-highlight-id="${highlight.id}">${match[0]}</span>` +
+          after;
+        found = true;
+        break; // Only highlight first occurrence
+      }
+    });
+
+    return processedHtml;
+  };
+
+  // Handle mouse up for text selection
+  useEffect(() => {
+    const handleMouseUp = (e) => {
+      if (highlightMode) {
+        // Small delay to ensure selection is captured
+        setTimeout(() => {
+          handleTextSelection(e);
+        }, 10);
+      }
+    };
+
+    if (highlightMode) {
+      document.addEventListener("mouseup", handleMouseUp);
+      return () => document.removeEventListener("mouseup", handleMouseUp);
+    }
+  }, [highlightMode, highlights]);
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (contextMenu) {
+        // Don't close if clicking on the context menu itself
+        if (e.target.closest(`.${styles.contextMenu}`)) {
+          return;
+        }
+        // Close the context menu and clear pending selection if it was a new selection
+        if (contextMenu.type === "new") {
+          const selection = window.getSelection();
+          if (selection) {
+            selection.removeAllRanges();
+          }
+          setPendingSelection(null);
+        }
+        setContextMenu(null);
+      }
+    };
+
+    if (contextMenu) {
+      // Use a small delay to avoid closing immediately when opening
+      const timeoutId = setTimeout(() => {
+        document.addEventListener("click", handleClickOutside);
+      }, 100);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener("click", handleClickOutside);
+      };
+    }
+  }, [contextMenu]);
+
   if (!exam)
     return (
       <div className={styles.fullscreenCenter}>
@@ -195,10 +406,7 @@ export default function ReadingExamPage() {
           ← Back
         </button>
         <h2 className={styles.examTitle}>{exam.examName}</h2>
-        <div className={styles.timer}>
-          <Clock size={20} />
-          {formatTime(timeLeft)}
-        </div>
+        <div className={styles.timer}>⏰ {formatTime(timeLeft)}</div>
       </div>
 
       <div className={styles.mainContent}>
@@ -212,10 +420,32 @@ export default function ReadingExamPage() {
             </div>
           )}
           <div
-            className={styles.passageContent}
+            ref={passageContentRef}
+            className={`${styles.passageContent} ${
+              highlightMode ? styles.highlightMode : ""
+            }`}
+            onClick={(e) => {
+              // Check if clicked element or its parent has the highlight data attribute
+              const target = e.target;
+              const highlightElement = target.closest(`[data-highlight-id]`);
+              if (highlightElement) {
+                e.preventDefault();
+                e.stopPropagation();
+                const highlightId = highlightElement.getAttribute("data-highlight-id");
+                if (highlightId) {
+                  setContextMenu({
+                    x: e.clientX,
+                    y: e.clientY,
+                    highlightId: highlightId,
+                    type: "existing",
+                  });
+                }
+              }
+            }}
             dangerouslySetInnerHTML={{
-              __html: passageMarkdownToHtml(
-                currentTaskData?.readingContent || ""
+              __html: applyHighlightsToHtml(
+                passageMarkdownToHtml(currentTaskData?.readingContent || ""),
+                highlights
               ),
             }}
           />
@@ -260,58 +490,72 @@ export default function ReadingExamPage() {
           {(tasks || []).map((task, taskIndex) => {
             const count = getQuestionCount(task.readingQuestion);
             return (
-              <div key={task.readingId} className={styles.navSection}>
+              <div 
+                key={task.readingId} 
+                className={styles.navSection}
+                onClick={() => {
+                  setCurrentTask(taskIndex);
+                  document
+                    .querySelector(`.${styles.examWrapper}`)
+                    ?.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                role="button"
+              >
                 <div
                   className={`${styles.navSectionTitle} ${
                     currentTask === taskIndex
                       ? styles.navSectionTitleActive
                       : ""
                   }`}
-                  onClick={() => {
-                    setCurrentTask(taskIndex);
-                    document
-                      .querySelector(`.${styles.examWrapper}`)
-                      ?.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  role="button"
                 >
                   Part {taskIndex + 1}
                 </div>
-                <div className={styles.navQuestions}>
-                  {Array.from({ length: count }, (_, qIndex) => {
-                    const qNum = qIndex + 1;
-                    const answered = isAnswered(task.readingId, qNum);
-                    const isCurrentPart = currentTask === taskIndex;
-                    return (
-                      <button
-                        type="button"
-                        key={`${taskIndex}-${qIndex}`}
-                        className={[
-                          styles.navButton,
-                          answered
-                            ? styles.completedNavButton
-                            : styles.unansweredNavButton,
-                          isCurrentPart && qIndex === 0
-                            ? styles.activeNavButton
-                            : "",
-                        ].join(" ")}
-                        title={answered ? "Answered" : "Unanswered"}
-                        onClick={() => {
-                          setCurrentTask(taskIndex);
-                          document
-                            .querySelector(`.${styles.examWrapper}`)
-                            ?.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                      >
-                        {qNum}
-                      </button>
-                    );
-                  })}
-                </div>
+                {currentTask === taskIndex && (
+                  <div className={styles.navQuestions}>
+                    {Array.from({ length: count }, (_, qIndex) => {
+                      const qNum = qIndex + 1;
+                      const answered = isAnswered(task.readingId, qNum);
+                      return (
+                        <button
+                          type="button"
+                          key={`${taskIndex}-${qIndex}`}
+                          className={[
+                            styles.navButton,
+                            answered
+                              ? styles.completedNavButton
+                              : styles.unansweredNavButton,
+                            qIndex === 0 ? styles.activeNavButton : "",
+                          ].join(" ")}
+                          title={answered ? "Answered" : "Unanswered"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentTask(taskIndex);
+                            document
+                              .querySelector(`.${styles.examWrapper}`)
+                              ?.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                        >
+                          {qNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
+
+        <button
+          className={`${styles.highlightButton} ${
+            highlightMode ? styles.highlightButtonActive : ""
+          }`}
+          onClick={toggleHighlightMode}
+          title={highlightMode ? "Disable Highlight Mode" : "Enable Highlight Mode"}
+        >
+          <Highlighter size={18} style={{ marginRight: "6px" }} />
+          {highlightMode ? "Highlighting" : "Highlight"}
+        </button>
 
         <button
           className={styles.completeButton}
@@ -321,6 +565,36 @@ export default function ReadingExamPage() {
           {isSubmitting ? "Submitting..." : "Complete"}
         </button>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className={styles.contextMenu}
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenu.type === "new" ? (
+            <button
+              className={styles.contextMenuItem}
+              onClick={applyHighlight}
+            >
+              <Pencil size={16} className={styles.contextMenuIcon} />
+              Highlight
+            </button>
+          ) : (
+            <button
+              className={styles.contextMenuItem}
+              onClick={() => clearHighlight(contextMenu.highlightId)}
+            >
+              <Trash2 size={16} className={styles.contextMenuIcon} />
+              Clear Highlight
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
