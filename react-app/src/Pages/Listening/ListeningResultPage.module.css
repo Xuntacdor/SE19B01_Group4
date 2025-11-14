@@ -503,3 +503,13 @@
   color: #1f2937;
   margin-bottom: 8px;
 }
+
+.transcriptContent {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.transcriptContent p {
+  margin-bottom: 0.5rem;
+}

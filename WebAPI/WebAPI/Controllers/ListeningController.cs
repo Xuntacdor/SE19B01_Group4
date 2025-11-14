@@ -18,6 +18,20 @@ namespace WebAPI.Controllers
             _examService = examService;
         }
 
+        // Local helper: same splitting rule as in ListeningService
+        private static (string Content, string Transcript) SplitContentAndTranscript(string? raw)
+        {
+            if (string.IsNullOrEmpty(raw))
+                return (string.Empty, string.Empty);
+
+            var normalized = raw.Replace("\r\n", "\n");
+            var parts = normalized.Split('\n', 2, StringSplitOptions.None);
+
+            var content = parts[0];
+            var transcript = parts.Length > 1 ? parts[1] : string.Empty;
+            return (content, transcript);
+        }
+
         [HttpGet]
         public ActionResult<IEnumerable<ListeningDto>> GetAll()
             => Ok(_listeningService.GetAll());
@@ -33,18 +47,26 @@ namespace WebAPI.Controllers
         public ActionResult<IEnumerable<ListeningDto>> GetByExam(int examId)
         {
             var Listenings = _listeningService.GetListeningsByExam(examId);
-            var result = Listenings.Select(r => new ListeningDto
+
+            var result = Listenings.Select(r =>
             {
-                ListeningId = r.ListeningId,
-                ExamId = r.ExamId,
-                ListeningContent = r.ListeningContent,
-                ListeningQuestion = r.ListeningQuestion,
-                ListeningType = r.ListeningType,
-                DisplayOrder = r.DisplayOrder,
-                CorrectAnswer = r.CorrectAnswer,
-                QuestionHtml = r.QuestionHtml,
-                CreatedAt = r.CreatedAt
+                var (content, transcript) = SplitContentAndTranscript(r.ListeningContent);
+
+                return new ListeningDto
+                {
+                    ListeningId = r.ListeningId,
+                    ExamId = r.ExamId,
+                    ListeningContent = content,
+                    Transcript = transcript,
+                    ListeningQuestion = r.ListeningQuestion,
+                    ListeningType = r.ListeningType,
+                    DisplayOrder = r.DisplayOrder,
+                    CorrectAnswer = r.CorrectAnswer,
+                    QuestionHtml = r.QuestionHtml,
+                    CreatedAt = r.CreatedAt
+                };
             });
+
             return Ok(result);
         }
 
