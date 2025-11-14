@@ -24,22 +24,23 @@ export default function FloatingDictionaryChat({ user: propUser }) {
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [showAddedHint, setShowAddedHint] = useState(false);
 
-  // ✅ Lấy user từ prop hoặc localStorage
+  // Load user
   const user = useMemo(() => {
     if (propUser) return propUser;
     try {
-      const stored = localStorage.getItem("user");
-      return stored ? JSON.parse(stored) : { userId: null };
+      return JSON.parse(localStorage.getItem("user")) || { userId: null };
     } catch {
       return { userId: null };
     }
   }, [propUser]);
+
   const userId = user?.userId;
 
-  // ✅ Load group của user
+  // Load user's vocab groups
   useEffect(() => {
     if (!userId) return;
     let active = true;
+
     (async () => {
       try {
         const res = await VocabGroupApi.getByUser(userId);
@@ -48,23 +49,26 @@ export default function FloatingDictionaryChat({ user: propUser }) {
         if (active) setGroups([]);
       }
     })();
+
     return () => {
       active = false;
     };
   }, [userId]);
 
-  // ✅ Gửi request lookup AI
+  // Lookup AI
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setError("");
     setResult(null);
+
     try {
       const res = await WordApi.lookupAI({
         word: query,
         context: "",
         userEssay: "",
       });
+
       setResult(res.data);
       setShowAddedHint(false);
     } catch (err) {
@@ -75,16 +79,31 @@ export default function FloatingDictionaryChat({ user: propUser }) {
     }
   };
 
-  // ✅ Add từ vào group
+  // Add to group (auto-create if wordId == 0)
   const handleAddToGroup = async () => {
     if (!selectedGroupId) {
       alert("Please select a group first.");
       return;
     }
+
     try {
-      const wordId = result.wordId || result.WordId || result.id;
-      if (!wordId) return;
+      let wordId = result.wordId || result.WordId || 0;
+
+      // Auto-create if word not in DB
+      if (!wordId || wordId === 0) {
+        const createRes = await WordApi.add({
+          term: result.term,
+          meaning: result.meaning || "",
+          audio: result.audio || null,
+          example: result.example || "",
+          groupIds: [],
+        });
+
+        wordId = createRes.data.wordId;
+      }
+
       await VocabGroupApi.addWordToGroup(selectedGroupId, wordId);
+
       setShowPopup(false);
       setShowAddedHint(true);
     } catch (err) {
@@ -93,29 +112,52 @@ export default function FloatingDictionaryChat({ user: propUser }) {
     }
   };
 
-  // ✅ Hiển thị kết quả dịch
+  // ======================
+  // Render result fixed
+  // ======================
   const renderResult = () => {
     if (!result) return null;
 
-    const detected = (result.detected_language || "").toLowerCase();
-    const isVN = detected === "vietnamese";
+    // Detect language robustly
+    const detected =
+      result.detected_language ||
+      result.detectedLanguage ||
+      result.language ||
+      result.lang ||
+      "";
 
-    const translation = isVN
-      ? result.englishTranslation || "-"
-      : result.vietnameseTranslation || "-";
+    const isVN = detected.toLowerCase().includes("vietnam");
 
-    const label = isVN
-      ? "🇬🇧 English Translation"
-      : "🇻🇳 Vietnamese Translation";
+    let translation = "-";
+    let label = "";
+
+    // Case 1: AI lookup response
+    if (result.englishTranslation || result.vietnameseTranslation) {
+      label = isVN ? "🇬🇧 English Translation" : "🇻🇳 Vietnamese Translation";
+
+      translation = isVN
+        ? result.englishTranslation || "-"
+        : result.vietnameseTranslation || "-";
+    }
+
+    // Case 2: WordDto from database (meaning field)
+    if (result.meaning && translation === "-") {
+      label = "Meaning";
+      translation = result.meaning;
+    }
 
     return (
       <div className={styles.result}>
         <p>
           <b>Từ:</b> {result.term}
         </p>
-        <p>
-          <b>{label}:</b> {translation}
-        </p>
+
+        {label && (
+          <p>
+            <b>{label}:</b> {translation}
+          </p>
+        )}
+
         {result.example && (
           <p>
             <b>Ví dụ (EN):</b> {result.example}
@@ -127,20 +169,15 @@ export default function FloatingDictionaryChat({ user: propUser }) {
         </button>
 
         {showAddedHint && (
-          <p
-            style={{
-              color: "green",
-              fontSize: "13px",
-              marginTop: "8px",
-              fontWeight: 500,
-            }}
-          >
+          <p style={{ color: "green", fontSize: "13px", marginTop: "8px" }}>
             ✓ Added to your group successfully.
           </p>
         )}
       </div>
     );
   };
+
+  // ======================
 
   return (
     <div className={styles.wrapper}>
@@ -198,7 +235,7 @@ export default function FloatingDictionaryChat({ user: propUser }) {
         </div>
       )}
 
-      {/* Popup chọn group */}
+      {/* Group popup */}
       {showPopup && (
         <Popup
           title="Select Vocabulary Group"

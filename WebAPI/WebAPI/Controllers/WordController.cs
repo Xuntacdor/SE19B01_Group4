@@ -100,7 +100,6 @@ namespace WebAPI.Controllers
         }
 
 
-
         [HttpPost("lookup-ai")]
         public IActionResult LookupAI([FromBody] AiLookupRequest request)
         {
@@ -109,39 +108,52 @@ namespace WebAPI.Controllers
 
             try
             {
+                // 1) Check DB trước
+                var existing = _wordService.GetByName(request.Word);
+                if (existing != null)
+                {
+                    // Trả về full DTO, cho phép add group ngay
+                    return Ok(ToDto(existing));
+                }
+
+                // 2) Gọi AI
                 var doc = _openAI.LookupWordAI(request.Word);
                 var root = doc.RootElement;
 
                 if (!root.TryGetProperty("term", out _))
                     return StatusCode(500, new { message = "Invalid response from AI." });
 
-                // Back-compat mapping nếu model cũ trả ...Meaning
                 string detected = root.TryGetProperty("detected_language", out var dl) ? dl.GetString() ?? "" : "";
                 string engTrans =
                     root.TryGetProperty("englishTranslation", out var et) ? et.GetString() ?? "" :
                     root.TryGetProperty("englishMeaning", out var em) ? em.GetString() ?? "" : "";
+
                 string vieTrans =
                     root.TryGetProperty("vietnameseTranslation", out var vt) ? vt.GetString() ?? "" :
                     root.TryGetProperty("vietnameseMeaning", out var vm) ? vm.GetString() ?? "" : "";
+
                 string term = root.GetProperty("term").GetString() ?? request.Word;
                 string example = root.TryGetProperty("example", out var ex) ? ex.GetString() ?? "" : "";
 
-                var payload = new
+                // 3) Trả về WordDto format — nhưng WordId = 0 vì chưa lưu DB
+                var dto = new WordDto
                 {
-                    term,
-                    detected_language = detected,
-                    englishTranslation = engTrans,
-                    vietnameseTranslation = vieTrans,
-                    example
+                    WordId = 0,
+                    Term = term,
+                    Meaning = $"{engTrans} | {vieTrans}",
+                    Example = example,
+                    Audio = null,
+                    GroupIds = new List<int>()
                 };
 
-                return Ok(payload);
+                return Ok(dto);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
             }
         }
+
 
 
         // Helper: convert entity → DTO

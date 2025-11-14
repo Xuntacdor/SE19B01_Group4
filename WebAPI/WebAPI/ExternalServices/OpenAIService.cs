@@ -299,19 +299,28 @@ Transcript:
                 string prompt = $@"
 You are a bilingual English–Vietnamese dictionary assistant.
 
-Detect the input language automatically and RETURN STRICT JSON ONLY with EXACT keys below:
+Your ONLY response must be a single JSON object with EXACTLY these keys:
 
 {{
   ""term"": ""original user input"",
   ""detected_language"": ""English"" | ""Vietnamese"",
-  ""englishTranslation"": ""natural English translation of the term (if input is Vietnamese). If input is English, repeat the original term or leave an empty string."",
-  ""vietnameseTranslation"": ""tự nhiên, súc tích tiếng Việt (nếu input là English). Nếu input là Vietnamese thì để chuỗi rỗng."",
-  ""example"": ""one natural English sentence using the term (or its translation)""
+  ""englishTranslation"": ""ALWAYS NON-EMPTY. 
+    If input is English: paraphrase or define meaning in natural English. 
+    If input is Vietnamese: translate to natural English."",
+  ""vietnameseTranslation"": ""ALWAYS NON-EMPTY.
+    If input is English: translate to natural Vietnamese.
+    If input is Vietnamese: paraphrase the meaning in natural Vietnamese."",
+  ""example"": ""one natural English sentence using the English meaning""
 }}
 
-Keep it concise. Do not include extra commentary or markdown.
+Strict rules:
+- ALL fields MUST have non-empty string values.
+- NEVER return empty strings.
+- NEVER return null.
+- NEVER add extra keys.
+- NO markdown, NO explanations — ONLY the JSON object.
 
-Input: {query}
+Input: ""{query}""
 ";
 
                 var messages = new List<ChatMessage>
