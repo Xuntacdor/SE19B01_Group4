@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Security.Claims;
+using System.Text.Json;
 using WebAPI.DTOs;
+using WebAPI.ExternalServices;
 using WebAPI.Services;
 
 namespace WebAPI.Controllers
@@ -12,12 +15,16 @@ namespace WebAPI.Controllers
         private readonly IPostService _postService;
         private readonly IUserService _userService;
         private readonly ICommentService _commentService;
+        private readonly IOpenAIService _openAIService;
+        private readonly ILogger<ModeratorController> _logger;
 
-        public ModeratorController(IPostService postService, IUserService userService, ICommentService commentService)
+        public ModeratorController(IPostService postService, IUserService userService, ICommentService commentService, IOpenAIService openAIService, ILogger<ModeratorController> logger)
         {
             _postService = postService;
             _userService = userService;
             _commentService = commentService;
+            _openAIService = openAIService;
+            _logger = logger;
         }
 
         private UserContextDTO? GetCurrentUser()
@@ -364,6 +371,68 @@ namespace WebAPI.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+        // POST /api/moderator/posts/{id}/analyze
+        [HttpPost("posts/{id}/analyze")]
+        public ActionResult<JsonElement> AnalyzePost(int id)
+        {
+            if (!IsModeratorOrAdmin())
+            {
+                return Unauthorized("Access denied. Moderator or Admin role required.");
+            }
+
+            try
+            {
+                var post = _postService.GetPostById(id);
+                if (post == null)
+                {
+                    return NotFound("Post not found");
+                }
+
+                var analysis = _openAIService.AnalyzeContent(post.Title ?? "", post.Content ?? "", "post");
+                
+                // Log for debugging
+                _logger.LogInformation("[ModeratorController] Analysis result: {Analysis}", analysis.RootElement.GetRawText());
+                
+                return Ok(analysis.RootElement);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ModeratorController] Error analyzing post {PostId}", id);
+                return BadRequest(new { error = ex.Message, details = ex.ToString() });
+            }
+        }
+
+        // POST /api/moderator/comments/{id}/analyze
+        [HttpPost("comments/{id}/analyze")]
+        public ActionResult<JsonElement> AnalyzeComment(int id)
+        {
+            if (!IsModeratorOrAdmin())
+            {
+                return Unauthorized("Access denied. Moderator or Admin role required.");
+            }
+
+            try
+            {
+                var comment = _commentService.GetCommentById(id, null);
+                if (comment == null)
+                {
+                    return NotFound("Comment not found");
+                }
+
+                var analysis = _openAIService.AnalyzeContent("", comment.Content ?? "", "comment");
+                
+                // Log for debugging
+                _logger.LogInformation("[ModeratorController] Analysis result: {Analysis}", analysis.RootElement.GetRawText());
+                
+                return Ok(analysis.RootElement);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ModeratorController] Error analyzing comment {CommentId}", id);
+                return BadRequest(new { error = ex.Message, details = ex.ToString() });
             }
         }
     }

@@ -27,7 +27,7 @@ namespace WebAPI.ExternalServices
         {
             _client = client;
             _logger = logger;
-            _chatModel = aiOptions.Value.ChatModel ?? "qwen2.5-7b-instruct-1m"; // default cho LM Studio
+            _chatModel = aiOptions.Value.ChatModel ?? "gpt-4o-mini"; // default cho Cloud OpenAI API
         }
 
 
@@ -361,6 +361,110 @@ Input: ""{query}""
                 _logger.LogError(ex, "[OpenAIService] LookupWordAI failed.");
                 var msg = ex.Message.Replace("\"", "\\\"");
                 return JsonDocument.Parse($@"{{ ""error"": ""{msg}"" }}");
+            }
+        }
+
+        // ========================================
+        // == 5. CONTENT MODERATION ANALYSIS ==
+        // ========================================
+        public JsonDocument AnalyzeContent(string title, string content, string contentType = "post")
+        {
+            try
+            {
+                var chatClient = _client.GetChatClient(_chatModel);
+                
+                string prompt = $@"You are a content moderation assistant for a forum platform.
+Analyze the following {(contentType == "post" ? "post" : "comment")} content and provide:
+
+1. **Meaningfulness Check**: Determine if the content has meaningful value (not spam, gibberish, or meaningless text)
+   - Check if the content conveys a clear message, idea, or information
+   - Check if it's relevant and contributes to discussion
+   - Check if it's spam, random characters, or meaningless content
+
+2. **Bilingual Summary**: Provide a summary in BOTH English and Vietnamese
+   - English summary: 2-3 sentences summarizing the main points
+   - Vietnamese summary: 2-3 sentences summarizing the main points in Vietnamese
+
+3. **Inappropriate Content Detection**: Identify any inappropriate words/phrases (profanity, hate speech, offensive language)
+   - For each inappropriate word/phrase, provide:
+     - The exact text
+     - Start and end character positions (0-based index)
+     - Type of inappropriate content (profanity, hate_speech, offensive, spam)
+     - Brief explanation (optional)
+
+Return **STRICT JSON ONLY**, following this exact structure:
+
+{{
+  ""is_meaningful"": true/false,
+  ""meaningfulness_reason"": ""brief explanation why content is or isn't meaningful"",
+  ""summary"": {{
+    ""english"": ""2-3 sentence summary in English"",
+    ""vietnamese"": ""2-3 câu tóm tắt bằng tiếng Việt""
+  }},
+  ""has_inappropriate_content"": true/false,
+  ""inappropriate_words"": [
+    {{
+      ""text"": ""exact inappropriate word or phrase"",
+      ""start_index"": 0,
+      ""end_index"": 5,
+      ""type"": ""profanity"" | ""hate_speech"" | ""offensive"" | ""spam"",
+      ""explanation"": ""brief explanation (optional)""
+    }}
+  ]
+}}
+
+{(contentType == "post" ? $"Post Title:\n{title}\n\nPost Content:" : "Comment Content:")}
+{content}";
+
+                var messages = new List<ChatMessage>
+                {
+                    new SystemChatMessage("You are a content moderation assistant. Always return valid JSON following the schema exactly."),
+                    new UserChatMessage(prompt)
+                };
+
+                var result = chatClient.CompleteChat(messages, new ChatCompletionOptions
+                {
+                    MaxOutputTokenCount = 2000,
+                    Temperature = 0.2f
+                });
+
+                string raw = result.Value.Content[0].Text ?? "{}";
+                _logger.LogInformation("[OpenAIService] Raw AI response: {Raw}", raw);
+                
+                // Extract clean JSON
+                int first = raw.IndexOf('{');
+                int last = raw.LastIndexOf('}');
+                string jsonText = (first >= 0 && last > first)
+                    ? raw.Substring(first, last - first + 1)
+                    : "{}";
+
+                jsonText = Regex.Replace(jsonText, @"\r\n|\r|\n", " ");
+                jsonText = Regex.Replace(jsonText, @"\s+", " ").Trim();
+
+                _logger.LogInformation("[OpenAIService] Cleaned JSON text: {JsonText}", jsonText);
+
+                try
+                {
+                    var jsonDoc = JsonDocument.Parse(jsonText);
+                    _logger.LogInformation("[OpenAIService] Content analysis JSON generated successfully");
+                    return jsonDoc;
+                }
+                catch (JsonException parseEx)
+                {
+                    _logger.LogError(parseEx, "[OpenAIService] JSON parsing failed. JSON text: {JsonText}", jsonText);
+                    throw;
+                }
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "[OpenAIService] Failed to parse JSON from content analysis output.");
+                return JsonDocument.Parse(@"{ ""error"": ""Invalid JSON returned from AI"", ""is_meaningful"": true, ""meaningfulness_reason"": """", ""summary"": { ""english"": """", ""vietnamese"": """" }, ""has_inappropriate_content"": false, ""inappropriate_words"": [] }");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[OpenAIService] Content analysis failed.");
+                var msg = ex.Message.Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
+                return JsonDocument.Parse($@"{{ ""error"": ""{msg}"", ""is_meaningful"": true, ""meaningfulness_reason"": """", ""summary"": {{ ""english"": """", ""vietnamese"": """" }}, ""has_inappropriate_content"": false, ""inappropriate_words"": [] }}");
             }
         }
 

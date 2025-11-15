@@ -77,3 +77,12 @@ export function restrictUser(userId) {
 export function unrestrictUser(userId) {
   return API.post(`/users/${userId}/unrestrict`);
 }
+
+// AI Analysis
+export function analyzePost(postId) {
+  return API.post(`/posts/${postId}/analyze`);
+}
+
+export function analyzeComment(commentId) {
+  return API.post(`/comments/${commentId}/analyze`);
+}
