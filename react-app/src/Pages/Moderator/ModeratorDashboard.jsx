@@ -419,6 +419,15 @@ export default function ModeratorDashboard() {
       // Update local state
       setPendingPosts(prev => prev.filter(post => (post.postId || post.id) !== postToReject));
       setStats(prev => ({ ...prev, pending: prev.pending - 1, rejected: prev.rejected + 1 }));
+      
+      // Reload rejected posts to show the newly rejected post immediately
+      try {
+        const rejectedResponse = await ModeratorApi.getRejectedPosts();
+        setRejectedPosts(rejectedResponse.data);
+      } catch (error) {
+        console.error("Error loading rejected posts:", error);
+      }
+      
       setShowPostDetail(false);
       setShowRejectionPopup(false);
       setPostToReject(null);
