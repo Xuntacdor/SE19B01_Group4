@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { marked } from "marked";
 import { submitListeningAttempt } from "../../Services/ListeningApi";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
-import { Clock } from "lucide-react";
+import { Clock, Highlighter } from "lucide-react";
 import styles from "./ListeningExamPage.module.css";
 
 // ---------- Markdown config ----------
@@ -36,11 +36,20 @@ export default function ListeningExamPage() {
   const [timeLeft, setTimeLeft] = useState(duration ? duration * 60 : 0);
   const [answers, setAnswers] = useState({});
   const formRef = useRef(null);
+  const [highlightMode, setHighlightMode] = useState(false);
+  const [useReadingLayout, setUseReadingLayout] = useState(false);
+
+  const toggleHighlightMode = () => {
+    setHighlightMode((prev) => !prev);
+  };
 
   // Countdown
   useEffect(() => {
     if (!timeLeft || submitted) return;
-    const timer = setInterval(() => setTimeLeft((t) => Math.max(0, t - 1)), 1000);
+    const timer = setInterval(
+      () => setTimeLeft((t) => Math.max(0, t - 1)),
+      1000
+    );
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
 
@@ -118,7 +127,8 @@ export default function ListeningExamPage() {
       questionKeys.forEach((key) => {
         const val = answers[key];
         if (Array.isArray(val) && val.length > 0) taskAnswers[key] = val;
-        else if (typeof val === "string" && val.trim() !== "") taskAnswers[key] = val;
+        else if (typeof val === "string" && val.trim() !== "")
+          taskAnswers[key] = val;
         else taskAnswers[key] = "_";
       });
 
@@ -161,15 +171,34 @@ export default function ListeningExamPage() {
 
   // Scroll top when switching parts
   useEffect(() => {
-    document.querySelector(`.${styles.examWrapper}`)?.scrollTo({ top: 0, behavior: "smooth" });
+    document
+      .querySelector(`.${styles.examWrapper}`)
+      ?.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentTask]);
 
   if (!exam)
     return (
       <div className={styles.fullscreenCenter}>
         <h2>No exam selected</h2>
-        <button className={styles.backBtn} onClick={() => navigate("/listening")}>
+        <button
+          className={styles.backBtn}
+          onClick={() => navigate("/listening")}
+        >
           ← Back
+        </button>
+      </div>
+    );
+
+  if (!tasks || tasks.length === 0)
+    return (
+      <div className={styles.fullscreenCenter}>
+        <h2>No listening tasks found for this exam</h2>
+        <p>Please contact the administrator.</p>
+        <button
+          className={styles.backBtn}
+          onClick={() => navigate("/listening")}
+        >
+          ← Back to Listening List
         </button>
       </div>
     );
@@ -179,7 +208,10 @@ export default function ListeningExamPage() {
       <div className={styles.fullscreenCenter}>
         <h3>✅ Listening Test Submitted!</h3>
         <p>Your answers have been recorded successfully.</p>
-        <button className={styles.backBtn} onClick={() => navigate("/listening")}>
+        <button
+          className={styles.backBtn}
+          onClick={() => navigate("/listening")}
+        >
           ← Back to Listening List
         </button>
       </div>
@@ -192,7 +224,10 @@ export default function ListeningExamPage() {
     <div className={styles.examWrapper}>
       {/* Header */}
       <div className={styles.topHeader}>
-        <button className={styles.backBtn} onClick={() => navigate("/listening")}>
+        <button
+          className={styles.backBtn}
+          onClick={() => navigate("/listening")}
+        >
           ← Back
         </button>
         <h2 className={styles.examTitle}>{exam.examName}</h2>
@@ -200,90 +235,181 @@ export default function ListeningExamPage() {
           <Clock size={20} />
           {formatTime(timeLeft)}
         </div>
+        <button
+          className={styles.switchLayoutButton}
+          onClick={() => setUseReadingLayout(!useReadingLayout)}
+        >
+          Transcript
+        </button>
       </div>
 
-      {/* Middle rail (panel stays in the middle, content left-aligned) */}
-      <div className={styles.middleGrid}>
-        <div className={styles.middleRail}>
-          <div className={styles.questionCard}>
-            <form ref={formRef} onChange={handleChange} onInput={handleChange}>
-              {currentTaskData?.passageTitle && (
-                <h3 className={styles.passageTitle}>{currentTaskData.passageTitle}</h3>
-              )}
+      {/* Middle rail (centered panel, left-aligned content) */}
+      {!useReadingLayout ? (
+        /* ===============================
+     ORIGINAL LISTENING LAYOUT
+  =============================== */
+        <div className={styles.middleGrid}>
+          <div className={styles.middleRail}>
+            <div
+              className={[
+                styles.questionCard,
+                highlightMode ? styles.highlightMode : "",
+              ].join(" ")}
+            >
+              <form
+                ref={formRef}
+                onChange={handleChange}
+                onInput={handleChange}
+              >
+                {currentTaskData?.passageTitle && (
+                  <h3 className={styles.passageTitle}>
+                    {currentTaskData.passageTitle}
+                  </h3>
+                )}
 
-              {currentTaskData?.listeningQuestion ? (
                 <ExamMarkdownRenderer
-                  markdown={currentTaskData.listeningQuestion}
+                  markdown={currentTaskData?.listeningQuestion}
                   showAnswers={false}
-                  skillId={currentTaskData.listeningId}
+                  skillId={currentTaskData?.listeningId}
                 />
-              ) : (
-                <div className={styles.noQuestionBox}>
-                  <h3>No Questions Found</h3>
-                  <p>This listening test doesn't have any questions configured yet.</p>
-                </div>
-              )}
-            </form>
-          </div>
+              </form>
+            </div>
 
-          {/* Slim audio playbar BELOW the panel */}
-          <div className={styles.audioPlaybarWrap}>
-            {currentTaskData?.listeningContent ? (
-              <audio controls className={styles.audioPlaybar}>
-                <source src={currentTaskData.listeningContent} type="audio/mpeg" />
-                Your browser does not support the audio element.
-              </audio>
-            ) : (
-              <div className={styles.noAudioSmall}>No audio available for this part.</div>
-            )}
+            <div className={styles.audioPlaybarWrap}>
+              {currentTaskData?.listeningContent ? (
+                <audio controls className={styles.audioPlaybar}>
+                  <source
+                    src={currentTaskData.listeningContent}
+                    type="audio/mpeg"
+                  />
+                </audio>
+              ) : (
+                <div className={styles.noAudioSmall}>No audio available</div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* ===============================
+     READING-STYLE LAYOUT
+  =============================== */
+        <div className={styles.readingMainContent}>
+          <div className={styles.leftPanel}>
+            <h3 className={styles.passageTitle}>Section {currentTask + 1}</h3>
 
-      {/* Bottom Navigation */}
+            {currentTaskData?.listeningContent ? (
+              <audio controls className={styles.audioPlayer}>
+                <source
+                  src={currentTaskData.listeningContent}
+                  type="audio/mpeg"
+                />
+              </audio>
+            ) : null}
+
+            <div
+              className={styles.passageContent}
+              dangerouslySetInnerHTML={{
+                __html: passageMarkdownToHtml(
+                  currentTaskData?.transcript || ""
+                ),
+              }}
+            />
+          </div>
+
+          <div className={styles.rightPanel}>
+            <div className={styles.rightPanelDock}>
+              <ExamMarkdownRenderer
+                markdown={currentTaskData?.listeningQuestion}
+                showAnswers={false}
+                skillId={currentTaskData?.listeningId}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Navigation – same structure as Reading */}
       <div className={styles.bottomNavigation}>
         <div className={styles.navScrollContainer}>
           {(tasks || []).map((task, taskIndex) => {
             const count = getQuestionCount(task.listeningQuestion);
             return (
-              <div key={task.listeningId} className={styles.navSection}>
+              <div
+                key={task.listeningId}
+                className={styles.navSection}
+                onClick={() => {
+                  setCurrentTask(taskIndex);
+                  document
+                    .querySelector(`.${styles.examWrapper}`)
+                    ?.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                role="button"
+              >
                 <div
                   className={`${styles.navSectionTitle} ${
-                    currentTask === taskIndex ? styles.navSectionTitleActive : ""
+                    currentTask === taskIndex
+                      ? styles.navSectionTitleActive
+                      : ""
                   }`}
-                  onClick={() => setCurrentTask(taskIndex)}
-                  role="button"
                 >
                   Part {taskIndex + 1}
                 </div>
-                <div className={styles.navQuestions}>
-                  {Array.from({ length: count }, (_, qIndex) => {
-                    const qNum = qIndex + 1;
-                    const answered = isAnswered(task.listeningId, qNum);
-                    const isCurrentPart = currentTask === taskIndex;
-                    return (
-                      <button
-                        type="button"
-                        key={`${taskIndex}-${qIndex}`}
-                        className={[
-                          styles.navButton,
-                          answered ? styles.completedNavButton : styles.unansweredNavButton,
-                          isCurrentPart && qIndex === 0 ? styles.activeNavButton : "",
-                        ].join(" ")}
-                        title={answered ? "Answered" : "Unanswered"}
-                        onClick={() => setCurrentTask(taskIndex)}
-                      >
-                        {qNum}
-                      </button>
-                    );
-                  })}
-                </div>
+
+                {currentTask === taskIndex && (
+                  <div className={styles.navQuestions}>
+                    {Array.from({ length: count }, (_, qIndex) => {
+                      const qNum = qIndex + 1;
+                      const answered = isAnswered(task.listeningId, qNum);
+
+                      return (
+                        <button
+                          type="button"
+                          key={`${taskIndex}-${qIndex}`}
+                          className={[
+                            styles.navButton,
+                            answered
+                              ? styles.completedNavButton
+                              : styles.unansweredNavButton,
+                            qIndex === 0 ? styles.activeNavButton : "",
+                          ].join(" ")}
+                          title={answered ? "Answered" : "Unanswered"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentTask(taskIndex);
+                            document
+                              .querySelector(`.${styles.examWrapper}`)
+                              ?.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                        >
+                          {qNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
 
-        <button className={styles.completeButton} onClick={handleSubmit} disabled={isSubmitting}>
+        <button
+          className={`${styles.highlightButton} ${
+            highlightMode ? styles.highlightButtonActive : ""
+          }`}
+          onClick={toggleHighlightMode}
+          title={
+            highlightMode ? "Disable Highlight Mode" : "Enable Highlight Mode"
+          }
+        >
+          <Highlighter size={18} style={{ marginRight: "6px" }} />
+          {highlightMode ? "Highlighting" : "Highlight"}
+        </button>
+
+        <button
+          className={styles.completeButton}
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >
           {isSubmitting ? "Submitting..." : "Complete"}
         </button>
       </div>

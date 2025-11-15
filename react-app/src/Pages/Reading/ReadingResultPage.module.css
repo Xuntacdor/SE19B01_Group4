@@ -46,27 +46,55 @@
   border-radius: 4px;
 }
 
+/* ================= Result Page Layout ================= */
+.resultPageWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+/* Header */
+.resultHeader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #ffffff;
+}
+
+.resultTitle {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: #0f172a;
+}
+
 /* ================= Score Summary Bar ================= */
 .scoreSummary {
   display: flex;
   gap: 16px;
-  padding: 12px 24px;
+  padding: 16px 24px;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
-  align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .scoreItem {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 8px 16px;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  min-width: 100px;
+  border-radius: 12px;
+  flex: 1;
+  min-width: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .scoreItem b {
@@ -74,12 +102,31 @@
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .scoreItem span {
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 700;
   color: #111827;
+}
+
+/* Band score special styling */
+.scoreItemBand {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+}
+
+.scoreItemBand b {
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.scoreItemBand span {
+  font-size: 32px;
+  color: #ffffff;
+  line-height: 1;
 }
 
 /* ================= Back Button ================= */
@@ -99,18 +146,207 @@
   background: #1d4ed8;
 }
 
+/* ================= Main Content Layout ================= */
+.mainContent {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.leftPanel {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  border-right: 1px solid #e0e0e0;
+  background-color: #ffffff;
+}
+
+.rightPanel {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background-color: #ffffff;
+}
+
+/* Right panel title */
+.qaTitle {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Empty states */
+.emptyMessage {
+  padding: 40px;
+  text-align: center;
+  color: #666666;
+}
+
+.emptyMessage h3 {
+  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* ================= Bottom Navigation ================= */
+.bottomNav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 12px 20px;
+  border-top: 1px solid #dddddd;
+  background: #fafafa;
+  gap: 12px;
+}
+
+.bottomNavList {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  flex: 0 1 auto;
+  padding: 2px 0;
+  scrollbar-width: thin;
+}
+
+.bottomNavList::-webkit-scrollbar {
+  height: 6px;
+}
+
+.bottomNavList::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.noPartsMessage {
+  padding: 8px 16px;
+  color: #666666;
+  font-size: 14px;
+}
+
+.partCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 140px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.partCard:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  border-color: #cbd5e1;
+}
+
+.partCardActive {
+  border-color: #2563eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.partTitle {
+  font-weight: 600;
+  font-size: 12px;
+  color: #374151;
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: 100%;
+  text-align: center;
+}
+
+.partTitleActive {
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.questionNumberList {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.questionBtn {
+  border: 1px solid #cccccc;
+  background: #ffffff;
+  color: #333333;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 32px;
+  font-weight: 400;
+  transition: all 0.2s ease;
+}
+
+.questionBtn:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.questionBtnCorrect {
+  border-color: #22c55e;
+  background: #ecfdf5;
+  color: #166534;
+  font-weight: 600;
+}
+
+.questionBtnIncorrect {
+  border-color: #ef4444;
+  background: #fee2e2;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* Back to list button */
+.backToListButton {
+  margin-left: auto;
+  background: #16a34a;
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.backToListButton:hover {
+  background: #15803d;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
+}
+
 /* ================= Passage Highlight ================= */
-:global(.passageHighlight),
+:global(.passageHighlight) {
+  background-color: #fef08a !important;
+  border-radius: 2px;
+}
+
 :global(.passageHighlight *) {
-  background: #fff3cd !important;
+  background: transparent !important;
 }
 
 @keyframes pulseGlow {
-  0%   { box-shadow: 0 0 0px 0 rgba(255, 193, 7, 0.85); }
-  50%  { box-shadow: 0 0 10px 6px rgba(255, 193, 7, 0.45); }
-  100% { box-shadow: 0 0 0px 0 rgba(255, 193, 7, 0.0); }
+  0% {
+    box-shadow: 0 0 0px 0 rgba(255, 193, 7, 0.85);
+  }
+  50% {
+    box-shadow: 0 0 10px 6px rgba(255, 193, 7, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0px 0 rgba(255, 193, 7, 0);
+  }
 }
 
-:global(.pulseOnce) { 
-  animation: pulseGlow 1.2s ease-out 1; 
+:global(.pulseOnce) {
+  animation: pulseGlow 1.2s ease-out 1;
 }

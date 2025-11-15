@@ -1,17 +1,23 @@
 // ListeningResultPage.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
+
 import * as ListeningApi from "../../Services/ListeningApi";
 import * as ExamApi from "../../Services/ExamApi";
+
 import { marked } from "marked";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
+
+// SAME LAYOUT AS READING
+import examStyles from "./ListeningExamPage.module.css";
+
+// LISTENING-SPECIFIC SCOREBAR + COLORS
 import styles from "./ListeningResultPage.module.css";
 
-// ---------- Markdown config for the TRANSCRIPT on the RESULT page ----------
+// ---------- Markdown config for TRANSCRIPT ----------
 marked.setOptions({
   gfm: true,
-  breaks: true, // single newlines -> <br>
+  breaks: true,
   mangle: false,
   headerIds: false,
 });
@@ -25,47 +31,21 @@ function escapeHtml(s) {
 }
 
 /**
- * Render the listening transcript like the reading passage:
- * - full Markdown support
- * - [H*id]...[/H] regions become .passageTarget anchors with data-hid
- * - inside [H] is also parsed as Markdown
+ * Transcript formatting with highlight anchors:
+ * EXACT same logic as Reading (one-to-one clone)
  */
 function transcriptWithAnchorsToHtml(raw) {
   if (!raw) return "";
-
-  const re = /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g;
-  let out = "";
-  let last = 0;
-  let m;
-
-  const hasBlock = (html) =>
-    /<(p|ul|ol|li|div|h[1-6]|table|thead|tbody|tr|th|td|blockquote|pre)/i.test(
-      html
-    );
-
-  while ((m = re.exec(raw))) {
-    const before = raw.slice(last, m.index);
-    if (before) out += marked.parse(before);
-
-    const hid = (m[1] || "").trim();
-    const inner = m[2] || "";
-    const innerHtml = marked.parse(inner);
-    const data = hid ? ` data-hid="${escapeHtml(hid)}"` : "";
-
-    if (hasBlock(innerHtml)) {
-      // block wrapper
-      out += `<div class="passageTarget passageTarget--block"${data}>${innerHtml}</div>`;
-    } else {
-      // inline wrapper
-      out += `<span class="passageTarget passageTarget--inline"${data}>${innerHtml}</span>`;
+  const withOpen = raw.replace(
+    /\[H(?:\*([^\]]*))?\]/g,
+    (_match, id) => {
+      const hid = (id || "").trim();
+      const data = hid ? ` data-hid="${escapeHtml(hid)}"` : "";
+      return `<span class="passageTarget passageTarget--inline"${data}>`;
     }
-
-    last = re.lastIndex;
-  }
-
-  const tail = raw.slice(last);
-  if (tail) out += marked.parse(tail);
-  return out;
+  );
+  const withClose = withOpen.replace(/\[\/H(?:\*([^\]]*))?\]/g, "</span>");
+  return marked.parse(withClose);
 }
 
 export default function ListeningResultPage() {
@@ -76,52 +56,10 @@ export default function ListeningResultPage() {
   const [listenings, setListenings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [currentPart, setCurrentPart] = useState(0);
 
-  // ===== Highlight sync: same behavior as ReadingResultPage =====
+  // ---------- Highlight Sync (same as Reading) ----------
   useEffect(() => {
-    const HIGHLIGHT_BG = "rgba(255, 243, 205, 1)";
-    const HIGHLIGHT_OUTLINE = "2px solid #ffd166";
-
-    const escFn =
-      typeof window !== "undefined" && window.CSS && CSS.escape
-        ? CSS.escape
-        : (s) => String(s).replace(/"/g, '\\"');
-
-    function applyHighlightInline(targets, on) {
-      targets.forEach((t) => {
-        if (on) {
-          if (!t.dataset.prevStyle) {
-            t.dataset.prevStyle = t.getAttribute("style") || "";
-          }
-          t.style.background = HIGHLIGHT_BG;
-          t.style.outline = HIGHLIGHT_OUTLINE;
-          t.style.borderRadius = "4px";
-          t.classList.add("pulseOnce");
-        } else {
-          const prev = t.dataset.prevStyle || "";
-          t.setAttribute("style", prev);
-          delete t.dataset.prevStyle;
-          t.classList.remove("pulseOnce");
-        }
-
-        // Make block children transparent so parent tint is visible
-        t.querySelectorAll(
-          ":scope > p, :scope > li, :scope > div, :scope > blockquote, :scope > pre, :scope > table"
-        ).forEach((child) => {
-          if (on) {
-            if (!child.dataset.prevBg) {
-              child.dataset.prevBg = child.style.background || "";
-            }
-            child.style.background = "transparent";
-          } else {
-            const prevBg = child.dataset.prevBg || "";
-            child.style.background = prevBg;
-            delete child.dataset.prevBg;
-          }
-        });
-      });
-    }
-
     function handleToggle(e) {
       const details =
         e.target instanceof HTMLElement &&
@@ -133,42 +71,35 @@ export default function ListeningResultPage() {
       const hid =
         details.getAttribute("data-hid") ||
         details.querySelector("summary.explainBtn")?.getAttribute("data-hid");
+
       if (!hid) return;
 
-      const container = details.closest(`.${styles.resultContainer}`);
+      const container = details.closest(`.${examStyles.examWrapper}`);
       if (!container) return;
 
-      const leftPanel = container.querySelector(`.${styles.leftPanel}`);
+      const leftPanel = container.querySelector(`.${examStyles.leftPanel}`);
       if (!leftPanel) return;
 
-      const selector = `.passageTarget[data-hid="${escFn(hid)}"]`;
+      const selector = `.passageTarget[data-hid="${hid.replace(/"/g, '\\"')}"]`;
       const targets = Array.from(leftPanel.querySelectorAll(selector));
 
-      if (targets.length === 0) {
-        console.warn(
-          "[Listening Highlight] No passageTarget for id:",
-          hid,
-          "selector:",
-          selector
-        );
-        return;
-      }
+      if (targets.length === 0) return;
 
       if (details.open) {
         targets.forEach((t) => t.classList.add("passageHighlight"));
-        applyHighlightInline(targets, true);
+        targets.forEach((t) => t.classList.add("pulseOnce"));
         targets[0].scrollIntoView({ behavior: "smooth", block: "center" });
       } else {
-        const anyOtherOpen = container.querySelectorAll(
-          `details.explainBlock[open][data-hid="${escFn(hid)}"]`
+        const stillOpen = container.querySelectorAll(
+          `details.explainBlock[open][data-hid="${hid.replace(/"/g, '\\"')}"]`
         ).length;
-        if (!anyOtherOpen) {
+
+        if (!stillOpen) {
           targets.forEach((t) => t.classList.remove("passageHighlight"));
-          applyHighlightInline(targets, false);
+          targets.forEach((t) => t.classList.remove("pulseOnce"));
         }
       }
     }
-
     document.addEventListener("toggle", handleToggle, true);
     return () => document.removeEventListener("toggle", handleToggle, true);
   }, []);
@@ -176,7 +107,7 @@ export default function ListeningResultPage() {
   if (!state) {
     return (
       <div className={styles.center}>
-        <h2>No result data found</h2>
+        <h2>No listening result data found</h2>
         <button
           onClick={() => navigate("/listening")}
           className={styles.backBtn}
@@ -189,10 +120,10 @@ export default function ListeningResultPage() {
 
   const { attemptId, examName, isWaiting } = state;
 
-  // ===== Fetch Attempt =====
+  // ---------- Fetch attempt ----------
   useEffect(() => {
     let timer;
-    const fetchAttempt = async () => {
+    async function loadAttempt() {
       try {
         const res = await ExamApi.getExamAttemptDetail(attemptId);
         if (res) {
@@ -200,60 +131,49 @@ export default function ListeningResultPage() {
           setLoading(false);
           clearInterval(timer);
         }
-      } catch (err) {
-        console.error("❌ Failed to fetch attempt detail:", err);
-        if (!isWaiting) {
-          setLoading(false);
-        }
+      } catch {
+        if (!isWaiting) setLoading(false);
       }
-    };
-
-    if (isWaiting) {
-      timer = setInterval(
-        () => setProgress((p) => (p < 90 ? p + 5 : p)),
-        1000
-      );
     }
 
-    fetchAttempt();
+    if (isWaiting) {
+      timer = setInterval(() => {
+        setProgress((p) => (p < 90 ? p + 5 : p));
+      }, 1000);
+    }
+
+    loadAttempt();
     return () => clearInterval(timer);
   }, [attemptId, isWaiting]);
 
-  // ===== Fetch Listening contents =====
+  // ---------- Fetch listening passages ----------
   useEffect(() => {
     if (!attempt?.examId) return;
-    const fetchListenings = async () => {
+
+    (async () => {
       try {
         const res = await ListeningApi.getByExam(attempt.examId);
         setListenings(res || []);
-      } catch (err) {
-        console.error("❌ Failed to fetch listening questions:", err);
+      } catch {
+        setListenings([]);
       }
-    };
-
-    fetchListenings();
+    })();
   }, [attempt?.examId]);
 
   if (loading) {
     return (
       <div className={styles.center}>
-        <div className={styles.loadingCard}>
-          <div className={styles.loadingIcon} />
-          <h2>Processing your Listening result...</h2>
-          {isWaiting ? (
-            <>
-              <p>Please wait a moment while we finalize your score.</p>
-              <div className={styles.progressBar}>
-                <div
-                  className={styles.progressFill}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </>
-          ) : (
-            <p>Loading your result...</p>
-          )}
-        </div>
+        <div className={styles.loadingSpinner}></div>
+        <p>Processing your listening result...</p>
+
+        {isWaiting && (
+          <div className={styles.progressBar}>
+            <div
+              className={styles.progressFill}
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        )}
       </div>
     );
   }
@@ -261,7 +181,7 @@ export default function ListeningResultPage() {
   if (!attempt) {
     return (
       <div className={styles.center}>
-        <h2>Could not load listening attempt.</h2>
+        <h3>No attempt found.</h3>
         <button
           onClick={() => navigate("/listening")}
           className={styles.backBtn}
@@ -272,7 +192,7 @@ export default function ListeningResultPage() {
     );
   }
 
-  // ===== Parse answers =====
+  // ---------- Parse answers ----------
   const parsedAnswers = (() => {
     try {
       return JSON.parse(attempt.answerText || "[]");
@@ -288,134 +208,274 @@ export default function ListeningResultPage() {
 
   const attemptedSkillIds = [...answerMap.keys()];
 
-  // ===== Totals =====
+  // ---------------- TOTALS ----------------
   let totalQuestions = 0;
   let correctCount = 0;
 
-  const normalize = (val) => {
-    if (Array.isArray(val)) return val.map((x) => x.trim().toLowerCase());
-    if (typeof val === "string") return [val.trim().toLowerCase()];
+  const normalize = (v) => {
+    if (Array.isArray(v)) return v.map((x) => x.trim().toLowerCase());
+    if (typeof v === "string") return [v.trim().toLowerCase()];
     return [];
   };
 
-  // Only listenings that were actually attempted
-  const relevantListenings = listenings.filter((l) =>
-    attemptedSkillIds.includes(l.listeningId)
-  );
+  const listeningsWithCorrect = listenings
+    .filter((l) => attemptedSkillIds.includes(l.listeningId))
+    .map((l) => {
+      let correctAnswers = {};
+      try {
+        correctAnswers = JSON.parse(l.correctAnswer || "{}");
+      } catch {
+        correctAnswers = {};
+      }
 
-  const listeningsWithCorrect = relevantListenings.map((l) => {
-    let correctAnswers = {};
-    try {
-      correctAnswers = JSON.parse(l.correctAnswer || "{}");
-    } catch {
-      correctAnswers = {};
-    }
+      const userAnswers = answerMap.get(l.listeningId) || {};
+      const correctKeys = Object.keys(correctAnswers);
 
-    const userAnswers = answerMap.get(l.listeningId) || {};
-    const correctKeys = Object.keys(correctAnswers);
+      correctKeys.forEach((qKey) => {
+        const uVal = normalize(userAnswers[qKey] || []);
+        const cVal = normalize(correctAnswers[qKey] || []);
 
-    correctKeys.forEach((key) => {
-      const userVal = normalize(userAnswers[key] || []);
-      const correctVal = normalize(correctAnswers[key] || []);
-      totalQuestions += correctVal.length;
-      correctVal.forEach((opt) => {
-        if (userVal.includes(opt.toLowerCase())) correctCount++;
+        totalQuestions += cVal.length;
+        cVal.forEach((opt) => {
+          if (uVal.includes(opt)) correctCount++;
+        });
       });
-    });
 
-    return { ...l, correctAnswers, userAnswers };
-  });
+      return { ...l, correctAnswers, userAnswers };
+    });
 
   const accuracy =
     totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+
+  // Count questions from markers
+  const getQuestionCount = (markdown) => {
+    if (!markdown) return 0;
+    const matches = markdown.match(/\[!num\]/g);
+    return matches ? matches.length : 0;
+  };
 
   const overallBand =
     typeof attempt.totalScore === "number"
       ? attempt.totalScore.toFixed(1)
       : "-";
 
-  // ===== UI (mirror ReadingResultPage) =====
+  // ===========================================
+  //              MAIN RENDER
+  // ===========================================
   return (
-    <div className={styles.pageLayout}>
-      <GeneralSidebar />
-      <div className={styles.mainContent}>
-        <div className={styles.header}>
-          <h2>Listening Result — {examName || attempt.examName}</h2>
+    <div className={`${examStyles.examWrapper} ${styles.resultPageWrapper}`}>
+      {/* Header */}
+      <div className={`${examStyles.topHeader} ${styles.resultHeader}`}>
+        <h2 className={`${examStyles.examTitle} ${styles.resultTitle}`}>
+          Listening Result — {examName || attempt.examName}
+        </h2>
+      </div>
+
+      {/* Score Summary */}
+      <div className={styles.scoreSummary}>
+        <div className={`${styles.scoreItem} ${styles.scoreItemBand}`}>
+          <b>Band Score</b>
+          <span>{overallBand}</span>
         </div>
 
-        <div className={styles.bandScoreBox}>
-          <div className={styles.bandOverall}>
-            <h4>IELTS Band</h4>
-            <div className={styles.bandMain}>{overallBand}</div>
+        <div className={styles.scoreItem}>
+          <b>Correct</b>
+          <span>{correctCount}</span>
+        </div>
+
+        <div className={styles.scoreItem}>
+          <b>Total</b>
+          <span>{totalQuestions}</span>
+        </div>
+
+        <div className={styles.scoreItem}>
+          <b>Accuracy</b>
+          <span>{accuracy.toFixed(1)}%</span>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      {listeningsWithCorrect.length > 0 &&
+      listeningsWithCorrect[currentPart] ? (
+        <div className={`${examStyles.mainContent} ${styles.mainContent}`}>
+          {/* LEFT PANEL */}
+          <div className={`${examStyles.leftPanel} ${styles.leftPanel}`}>
+            <h3 className={examStyles.passageTitle}>
+              Section {listeningsWithCorrect[currentPart].displayOrder ||
+                currentPart + 1}
+            </h3>
+
+            {/* Audio */}
+            {listeningsWithCorrect[currentPart].listeningContent ? (
+              <audio
+                controls
+                className={styles.audioPlayer}
+              >
+                <source
+                  src={listeningsWithCorrect[currentPart].listeningContent}
+                  type="audio/mpeg"
+                />
+                Your browser does not support the audio element.
+              </audio>
+            ) : (
+              <p className={styles.noAudio}>No audio provided</p>
+            )}
+
+            {/* Transcript */}
+            <div
+              className={examStyles.passageContent}
+              dangerouslySetInnerHTML={{
+                __html: transcriptWithAnchorsToHtml(
+                  listeningsWithCorrect[currentPart].transcript
+                ),
+              }}
+            />
           </div>
-          <div className={styles.bandGrid}>
-            <div>
-              <b>Correct</b>
-              <p>{correctCount}</p>
-            </div>
-            <div>
-              <b>Total</b>
-              <p>{totalQuestions}</p>
-            </div>
-            <div>
-              <b>Accuracy</b>
-              <p>{accuracy.toFixed(1)}%</p>
+
+          {/* RIGHT PANEL */}
+          <div className={`${examStyles.rightPanel} ${styles.rightPanel}`}>
+            <div className={examStyles.rightPanelDock}>
+              <h3 className={styles.qaTitle}>
+                Questions & Answers — Part {currentPart + 1}
+              </h3>
+
+              <ExamMarkdownRenderer
+                markdown={listeningsWithCorrect[currentPart].listeningQuestion}
+                showAnswers={true}
+                userAnswers={[
+                  {
+                    SkillId:
+                      listeningsWithCorrect[currentPart].listeningId,
+                    Answers:
+                      listeningsWithCorrect[currentPart].userAnswers,
+                  },
+                ]}
+                correctAnswers={[
+                  {
+                    SkillId:
+                      listeningsWithCorrect[currentPart].listeningId,
+                    Answers:
+                      listeningsWithCorrect[currentPart].correctAnswers,
+                  },
+                ]}
+                skillId={listeningsWithCorrect[currentPart].listeningId}
+              />
             </div>
           </div>
         </div>
+      ) : (
+        <div className={`${examStyles.mainContent} ${styles.mainContent}`}>
+          <div className={`${examStyles.leftPanel} ${styles.leftPanel}`}>
+            <h3>No listening content found</h3>
+          </div>
 
-        {listeningsWithCorrect.map((l, i) => {
-          const userAnswers = l.userAnswers || {};
-          const correctAnswers = l.correctAnswers || {};
+          <div className={`${examStyles.rightPanel} ${styles.rightPanel}`}>
+            <h3>No questions available</h3>
+          </div>
+        </div>
+      )}
 
-          return (
-            <div key={i} className={styles.resultContainer}>
-              <div className={styles.leftPanel}>
-                <h3>Section {l.displayOrder || i + 1}</h3>
+      {/* Bottom Navigation */}
+      <div className={`${examStyles.bottomNavigation} ${styles.bottomNav}`}>
+        <div className={styles.bottomNavList}>
+          {listeningsWithCorrect.map((part, index) => {
+            const count = getQuestionCount(part.listeningQuestion);
+            const isActive = currentPart === index;
 
-                {l.listeningContent && (
-                  <audio controls className={styles.audioPlayer}>
-                    <source src={l.listeningContent} type="audio/mpeg" />
-                    Your browser does not support the audio element.
-                  </audio>
-                )}
-
+            return (
+              <div
+                key={part.listeningId}
+                role="button"
+                onClick={() => {
+                  setCurrentPart(index);
+                  document
+                    .querySelector(`.${examStyles.examWrapper}`)
+                    ?.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className={
+                  isActive
+                    ? `${styles.partCard} ${styles.partCardActive}`
+                    : styles.partCard
+                }
+              >
                 <div
-                  className={styles.passageContent}
-                  dangerouslySetInnerHTML={{
-                    __html:
-                      l.transcript &&
-                      transcriptWithAnchorsToHtml(l.transcript),
-                  }}
-                />
-              </div>
+                  className={
+                    isActive
+                      ? `${styles.partTitle} ${styles.partTitleActive}`
+                      : styles.partTitle
+                  }
+                >
+                  Part {index + 1}
+                </div>
 
-              <div className={styles.rightPanel}>
-                <h3>Questions & Answers</h3>
-                <ExamMarkdownRenderer
-                  markdown={l.listeningQuestion}
-                  showAnswers={true}
-                  userAnswers={[
-                    { SkillId: l.listeningId, Answers: userAnswers },
-                  ]}
-                  correctAnswers={[
-                    { SkillId: l.listeningId, Answers: correctAnswers },
-                  ]}
-                  skillId={l.listeningId}
-                />
-              </div>
-            </div>
-          );
-        })}
+                {isActive && count > 0 && (
+                  <div className={styles.questionNumberList}>
+                    {Array.from({ length: count }, (_, qIndex) => {
+                      const qNum = qIndex + 1;
 
-        <div className={styles.footer}>
-          <button
-            className={styles.backBtn}
-            onClick={() => navigate("/listening")}
-          >
-            ← Back to Listening List
-          </button>
+                      const key = `${part.listeningId}_q${qNum}`;
+                      const userVal = normalize(
+                        part.userAnswers?.[key] || []
+                      );
+                      const isAnswered =
+                        userVal.length > 0 && userVal[0] !== "_";
+
+                      const correctVal = normalize(
+                        part.correctAnswers?.[key] || []
+                      );
+
+                      const isCorrect =
+                        isAnswered &&
+                        correctVal.some((c) => userVal.includes(c));
+
+                      const isIncorrect =
+                        isAnswered && !isCorrect;
+
+                      const isUnanswered = !isAnswered;
+
+                      let className = styles.questionBtn;
+                      if (isCorrect)
+                        className += ` ${styles.questionBtnCorrect}`;
+                      else if (isIncorrect || isUnanswered)
+                        className += ` ${styles.questionBtnIncorrect}`;
+
+                      return (
+                        <button
+                          type="button"
+                          key={`${index}-${qIndex}`}
+                          className={className}
+                          title={
+                            isUnanswered
+                              ? "Not answered"
+                              : isIncorrect
+                              ? "Incorrect"
+                              : "Correct"
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentPart(index);
+                            document
+                              .querySelector(`.${examStyles.examWrapper}`)
+                              ?.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                        >
+                          {qNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
+
+        <button
+          className={`${examStyles.completeButton} ${styles.backToListButton}`}
+          onClick={() => navigate("/listening")}
+        >
+          ← Back to Listening List
+        </button>
       </div>
     </div>
   );

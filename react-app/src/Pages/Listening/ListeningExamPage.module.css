@@ -1,4 +1,6 @@
-/* Main Exam Wrapper */
+/* ================================================
+   MAIN EXAM WRAPPER
+================================================ */
 .examWrapper {
   display: flex;
   flex-direction: column;
@@ -7,7 +9,9 @@
   font-family: Arial, sans-serif;
 }
 
-/* Top Header */
+/* ================================================
+   TOP HEADER
+================================================ */
 .topHeader {
   display: flex;
   justify-content: space-between;
@@ -27,7 +31,9 @@
   cursor: pointer;
   font-size: 14px;
 }
-.backBtn:hover { background: #5a6268; }
+.backBtn:hover {
+  background: #5a6268;
+}
 
 .examTitle {
   font-size: 20px;
@@ -48,22 +54,40 @@
   color: #1d4ed8;
 }
 
-/* === Middle rail grid === */
+/* ================================================
+   LAYOUT SWITCH BUTTON
+================================================ */
+.switchLayoutButton {
+  margin-left: 12px;
+  background: #2563eb;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.switchLayoutButton:hover {
+  background: #1d4ed8;
+}
+
+/* ================================================
+   ORIGINAL LISTENING EXAM LAYOUT (CENTER PANEL)
+================================================ */
 .middleGrid {
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: 1fr minmax(740px, 920px) 1fr; /* side gutters | middle rail | side gutters */
-  gap: 0;
+  grid-template-columns: 1fr minmax(740px, 920px) 1fr;
   background: #fff;
 }
 
 .middleRail {
-  grid-column: 2; /* place content in the middle column */
+  grid-column: 2;
   display: flex;
   flex-direction: column;
-  align-items: stretch; /* keep content left-aligned, not centered text */
-  padding: 20px 16px 0;
+  padding: 20px 16px 80px;
 }
 
 .questionCard {
@@ -72,8 +96,15 @@
   border-radius: 10px;
   padding: 24px;
   box-shadow: 0 10px 20px rgba(2, 6, 23, 0.04);
-  /* Make sure content is left aligned */
   text-align: left;
+}
+
+.highlightMode {
+  user-select: text;
+}
+.highlightMode ::selection {
+  background-color: #fef08a;
+  color: #000;
 }
 
 .passageTitle {
@@ -89,47 +120,56 @@
   color: #666;
 }
 
-/* Slim audio playbar under the questions */
+/* Audio bar under question card */
 .audioPlaybarWrap {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
   display: flex;
-  justify-content: stretch;
-  padding: 12px 0 0 0;
-  margin-bottom: 6px;
+  padding: 8px 0 4px 0;
+  margin-top: 12px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
 }
 
 .audioPlaybar {
   width: 100%;
   height: 40px;
 }
-
 .noAudioSmall {
   font-size: 14px;
   color: #6b7280;
 }
 
-/* Bottom Navigation */
+/* ================================================
+   ORIGINAL LISTENING BOTTOM NAVIGATION
+================================================ */
 .bottomNavigation {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 12px 20px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #ddd;
   background: #fafafa;
   position: sticky;
   bottom: 0;
   z-index: 10;
-  gap: 10px;
+  gap: 12px;
 }
 
 .navScrollContainer {
   display: flex;
   overflow-x: auto;
-  gap: 24px;
-  flex: 1;
+  gap: 12px;
+  flex: 0 1 auto;
+  padding: 2px 0;
   scrollbar-width: thin;
   scrollbar-color: #ccc transparent;
 }
-.navScrollContainer::-webkit-scrollbar { height: 6px; }
+
+.navScrollContainer::-webkit-scrollbar {
+  height: 6px;
+}
 .navScrollContainer::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 10px;
@@ -140,76 +180,278 @@
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+.navSection:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .navSectionTitle {
   font-weight: 600;
-  font-size: 13px;
-  color: #6b7280;
+  font-size: 12px;
+  color: #374151;
   margin-bottom: 6px;
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 .navSectionTitleActive {
-  color: #111827;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 700;
 }
 
 .navQuestions {
   display: flex;
-  gap: 6px;
-  flex-wrap: nowrap;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
 }
 
 .navButton {
-  border: 1px solid #d1d5db;
+  border: 1px solid #ccc;
   background: white;
-  color: #374151;
+  color: #333;
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s ease;
   min-width: 32px;
 }
-.navButton:hover { background: #f3f4f6; }
-
-.activeNavButton {
-  outline: 2px solid #2563eb;
-  outline-offset: 1px;
+.navButton:hover {
+  background: #f1f5f9;
 }
 
-/* answered vs unanswered */
 .completedNavButton {
   border-color: #22c55e;
   background: #ecfdf5;
   color: #166534;
   font-weight: 600;
 }
+
 .unansweredNavButton {
   border-color: #d1d5db;
   background: #ffffff;
   color: #6b7280;
 }
 
+.activeNavButton {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Highlight + Complete buttons */
+.highlightButton,
 .completeButton {
-  margin-left: 10px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.highlightButton {
+  background: #6b7280;
+  color: white;
+}
+.highlightButton:hover {
+  background: #4b5563;
+}
+.highlightButtonActive {
+  background: #3b82f6;
+}
+.completeButton {
   background: #16a34a;
   color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 14px;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
 }
-.completeButton:hover { background: #15803d; }
-.completeButton:disabled { background: #9ca3af; cursor: not-allowed; }
+.completeButton:hover {
+  background: #15803d;
+}
 
-/* Centered screens (No exam / Submitted) */
+/* ================================================
+   READING-STYLE LAYOUT (NEW)
+================================================ */
+.readingMainContent {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Reading-like left panel */
+.leftPanel {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  border-right: 1px solid #e0e0e0;
+  background: #ffffff;
+}
+
+/* Reading-like right panel */
+.rightPanel {
+  flex: 1;
+  padding: 24px;
+  padding-top: 0;
+  overflow-y: auto;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.rightPanel > * {
+  align-self: stretch;
+}
+
+/* Transcript area */
+.passageContent {
+  line-height: 1.7;
+  color: #333;
+  text-align: justify;
+}
+.passageContent p {
+  margin-bottom: 16px;
+}
+
+/* Audio in reading layout */
+.audioPlayer {
+  width: 100%;
+  margin: 12px 0 20px 0;
+  border-radius: 6px;
+}
+
+/* Right panel dock (for markdown) */
+.rightPanelDock {
+  width: 100%;
+  margin: 0;
+}
+
+/* ================================================
+   READING-STYLE BOTTOM NAVIGATION
+   (Used only in Listening RESULT PAGE)
+================================================ */
+.bottomNav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 12px 20px;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
+  gap: 12px;
+}
+
+.bottomNavList {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 0;
+}
+.bottomNavList::-webkit-scrollbar {
+  height: 6px;
+}
+.bottomNavList::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.partCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 140px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.partCardActive {
+  border-color: #2563eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.partTitle {
+  font-weight: 600;
+  font-size: 12px;
+  color: #374151;
+}
+.partTitleActive {
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.questionNumberList {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.questionBtn {
+  border: 1px solid #ccc;
+  background: white;
+  color: #333;
+  padding: 4px 8px;
+  border-radius: 4px;
+  min-width: 32px;
+}
+.questionBtnCorrect {
+  border-color: #22c55e;
+  background: #ecfdf5;
+  color: #166534;
+  font-weight: 600;
+}
+.questionBtnIncorrect {
+  border-color: #ef4444;
+  background: #fee2e2;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.backToListButton {
+  margin-left: auto;
+  background: #16a34a;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+/* ================================================
+   HIGHLIGHT SYSTEM (RESULT PAGE)
+================================================ */
+:global(.passageHighlight) {
+  background-color: #fef08a !important;
+  border-radius: 2px;
+}
+:global(.passageHighlight *) {
+  background: transparent !important;
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.85);
+  }
+  50% {
+    box-shadow: 0 0 10px 6px rgba(255, 193, 7, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+  }
+}
+:global(.pulseOnce) {
+  animation: pulseGlow 1.2s ease-out 1;
+}
+
+/* ================================================
+   LOADING + CENTER STATES
+================================================ */
 .fullscreenCenter {
   display: flex;
   flex-direction: column;
@@ -218,23 +460,30 @@
   height: 60vh;
   text-align: center;
 }
-.fullscreenCenter h2 { color: #333; margin-bottom: 20px; }
-.fullscreenCenter h3 { color: #22c55e; margin-bottom: 15px; }
-.fullscreenCenter p { color: #666; margin-bottom: 25px; font-size: 16px; }
 
-/* Responsive: shrink middle rail on small screens */
-@media (max-width: 768px) {
-  .middleGrid {
-    grid-template-columns: 0 minmax(0, 1fr) 0; /* just the middle column on mobile */
+.loadingSpinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
-  .middleRail { padding: 12px 10px 0; }
-  .questionCard { padding: 16px; }
 }
 
-/* Optional: highlight unanswered inputs (you can add this class where you render inputs) */
-.unanswered {
-  outline: 2px solid #ef4444;
-  background-color: #fee2e2;
+.progressBar {
+  width: 300px;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
 }
-
-.questionCard :where(h1,h2,h3,h4,h5,h6,p,ul,ol,li,table,blockquote,code,pre){text-align:left!important;margin-inline:0;}
+.progressFill {
+  height: 100%;
+  background: #2563eb;
+  transition: width 0.3s ease;
+}
