@@ -14,27 +14,44 @@ namespace WebAPI.Services
             _context = context;
         }
 
-        public async Task<List<TagDTO>> GetAllTagsAsync()
+        public List<TagDTO> GetAllTags()
         {
-            var tags = await _context.Tag
-                .Include(t => t.Posts)
+            // Optimize: Don't load all Posts, instead count from Post_Tag junction table
+            var tags = _context.Tag
+                .AsNoTracking()
                 .OrderBy(t => t.TagName)
-                .ToListAsync();
+                .Select(t => new
+                {
+                    t.TagId,
+                    t.TagName,
+                    t.CreatedAt,
+                    PostCount = t.Posts.Count
+                })
+                .ToList();
 
             return tags.Select(t => new TagDTO
             {
                 TagId = t.TagId,
                 TagName = t.TagName,
                 CreatedAt = t.CreatedAt,
-                PostCount = t.Posts.Count
+                PostCount = t.PostCount
             }).ToList();
         }
 
-        public async Task<TagDTO?> GetTagByIdAsync(int id)
+        public TagDTO? GetTagById(int id)
         {
-            var tag = await _context.Tag
-                .Include(t => t.Posts)
-                .FirstOrDefaultAsync(t => t.TagId == id);
+            // Optimize: Don't load all Posts, instead count from Post_Tag junction table
+            var tag = _context.Tag
+                .AsNoTracking()
+                .Where(t => t.TagId == id)
+                .Select(t => new
+                {
+                    t.TagId,
+                    t.TagName,
+                    t.CreatedAt,
+                    PostCount = t.Posts.Count
+                })
+                .FirstOrDefault();
 
             if (tag == null) return null;
 
@@ -43,15 +60,24 @@ namespace WebAPI.Services
                 TagId = tag.TagId,
                 TagName = tag.TagName,
                 CreatedAt = tag.CreatedAt,
-                PostCount = tag.Posts.Count
+                PostCount = tag.PostCount
             };
         }
 
-        public async Task<TagDTO?> GetTagByNameAsync(string tagName)
+        public TagDTO? GetTagByName(string tagName)
         {
-            var tag = await _context.Tag
-                .Include(t => t.Posts)
-                .FirstOrDefaultAsync(t => t.TagName.ToLower() == tagName.ToLower());
+            // Optimize: Don't load all Posts, instead count from Post_Tag junction table
+            var tag = _context.Tag
+                .AsNoTracking()
+                .Where(t => t.TagName.ToLower() == tagName.ToLower())
+                .Select(t => new
+                {
+                    t.TagId,
+                    t.TagName,
+                    t.CreatedAt,
+                    PostCount = t.Posts.Count
+                })
+                .FirstOrDefault();
 
             if (tag == null) return null;
 
@@ -60,28 +86,36 @@ namespace WebAPI.Services
                 TagId = tag.TagId,
                 TagName = tag.TagName,
                 CreatedAt = tag.CreatedAt,
-                PostCount = tag.Posts.Count
+                PostCount = tag.PostCount
             };
         }
 
-        public async Task<List<TagDTO>> SearchTagsAsync(string query)
+        public List<TagDTO> SearchTags(string query)
         {
-            var tags = await _context.Tag
-                .Include(t => t.Posts)
+            // Optimize: Don't load all Posts, instead count from Post_Tag junction table
+            var tags = _context.Tag
+                .AsNoTracking()
                 .Where(t => t.TagName.ToLower().Contains(query.ToLower()))
                 .OrderBy(t => t.TagName)
-                .ToListAsync();
+                .Select(t => new
+                {
+                    t.TagId,
+                    t.TagName,
+                    t.CreatedAt,
+                    PostCount = t.Posts.Count
+                })
+                .ToList();
 
             return tags.Select(t => new TagDTO
             {
                 TagId = t.TagId,
                 TagName = t.TagName,
                 CreatedAt = t.CreatedAt,
-                PostCount = t.Posts.Count
+                PostCount = t.PostCount
             }).ToList();
         }
 
-        public async Task<TagDTO> CreateTagAsync(CreateTagDTO dto)
+        public TagDTO CreateTag(CreateTagDTO dto)
         {
             var tag = new Tag
             {
@@ -90,7 +124,7 @@ namespace WebAPI.Services
             };
 
             _context.Tag.Add(tag);
-            await _context.SaveChangesAsync();
+            _context.SaveChanges();
 
             return new TagDTO
             {
@@ -101,42 +135,53 @@ namespace WebAPI.Services
             };
         }
 
-        public async Task<TagDTO?> UpdateTagAsync(int id, UpdateTagDTO dto)
+        public TagDTO? UpdateTag(int id, UpdateTagDTO dto)
         {
-            var tag = await _context.Tag
-                .Include(t => t.Posts)
-                .FirstOrDefaultAsync(t => t.TagId == id);
+            var tag = _context.Tag
+                .FirstOrDefault(t => t.TagId == id);
 
             if (tag == null) return null;
 
             tag.TagName = dto.TagName.Trim();
-            await _context.SaveChangesAsync();
+            _context.SaveChanges();
+
+            // Optimize: Load PostCount separately without loading all Posts
+            var postCount = _context.Tag
+                .AsNoTracking()
+                .Where(t => t.TagId == id)
+                .Select(t => t.Posts.Count)
+                .FirstOrDefault();
 
             return new TagDTO
             {
                 TagId = tag.TagId,
                 TagName = tag.TagName,
                 CreatedAt = tag.CreatedAt,
-                PostCount = tag.Posts.Count
+                PostCount = postCount
             };
         }
 
-        public async Task<bool> DeleteTagAsync(int id)
+        public bool DeleteTag(int id)
         {
-            var tag = await _context.Tag
-                .Include(t => t.Posts)
-                .FirstOrDefaultAsync(t => t.TagId == id);
+            var tag = _context.Tag
+                .FirstOrDefault(t => t.TagId == id);
 
             if (tag == null) return false;
 
-            // Check if tag is being used by any posts
-            if (tag.Posts.Any())
+            // Optimize: Check if tag is being used by counting from Post_Tag junction table
+            var isUsed = _context.Tag
+                .AsNoTracking()
+                .Where(t => t.TagId == id)
+                .Select(t => t.Posts.Any())
+                .FirstOrDefault();
+
+            if (isUsed)
             {
                 throw new InvalidOperationException("Cannot delete tag that is being used by posts");
             }
 
             _context.Tag.Remove(tag);
-            await _context.SaveChangesAsync();
+            _context.SaveChanges();
             return true;
         }
     }
