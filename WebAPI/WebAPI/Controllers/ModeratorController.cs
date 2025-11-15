@@ -376,7 +376,6 @@ namespace WebAPI.Controllers
 
         // POST /api/moderator/posts/{id}/analyze
         [HttpPost("posts/{id}/analyze")]
-        [Route("posts/{id}/analyze", Name = "AnalyzePost")]
         public ActionResult<JsonElement> AnalyzePost(int id)
         {
             _logger.LogInformation("[ModeratorController] AnalyzePost called with id: {PostId}", id);
@@ -413,7 +412,6 @@ namespace WebAPI.Controllers
 
         // POST /api/moderator/comments/{id}/analyze
         [HttpPost("comments/{id}/analyze")]
-        [Route("comments/{id}/analyze", Name = "AnalyzeComment")]
         public ActionResult<JsonElement> AnalyzeComment(int id)
         {
             _logger.LogInformation("[ModeratorController] AnalyzeComment called with id: {CommentId}", id);
