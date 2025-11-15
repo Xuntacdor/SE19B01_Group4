@@ -1,233 +1,379 @@
-.dashboard {
-  padding: 2rem 3rem;
-  background-color: #f7f8fb;
-  font-family: "Nunito Sans", sans-serif;
+/* ========================================
+   EXAM MANAGEMENT — MODERN ADMIN STYLE
+======================================== */
+
+.page {
   min-height: 100vh;
-  color: #222;
-}
-
-/* ========== HEADER ========== */
-.header {
+  background: #f8fafc;
+  padding: 48px 28px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.8rem;
+  justify-content: center;
+  font-family: "Dongle", sans-serif;
 }
 
-.header h2 {
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: #212529;
-  margin-left: 250px;
-}
-
-.exportBtn {
-  background: #e9eef9;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-weight: 600;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.exportBtn:hover {
-  background: #dde6f7;
-}
-
-/* ========== CARD CONTAINERS ========== */
-.card {
-  background: #fff;
+.container {
+  width: 100%;
+  max-width: 1200px;
+  background: white;
+  padding: 40px 48px;
   border-radius: 16px;
-  padding: 25px 30px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  margin-bottom: 30px;
-  transition: 0.25s ease;
-  margin-left: 250px;
-}
-.card:hover {
-  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
 }
 
-/* ========== FORM ========== */
+/* Title */
+.title {
+  text-align: center;
+  font-size: 48px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 36px;
+}
+
+/* -------------------------
+      FORM AREA
+------------------------- */
+
 .form {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 1.5rem;
+  gap: 18px;
+  margin-bottom: 24px;
 }
 
-.group {
-  display: flex;
-  flex-direction: column;
+.form input,
+.form select {
   flex: 1;
-  min-width: 200px;
+  min-width: 240px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  font-size: 22px;
+  transition: 0.2s;
 }
 
-.group label {
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #333;
+.form input:focus,
+.form select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
 }
 
-.group input,
-.group select {
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 15px;
-  font-family: inherit;
-  transition: border 0.2s ease;
-}
-
-.group input:focus,
-.group select:focus {
-  outline: none;
-  border-color: #007bff;
-}
-
-/* Create Button */
-.btnPrimary {
-  background: linear-gradient(135deg, #ff8c1a, #ff6200);
+.submitBtn {
+  background: #2563eb;
+  color: white;
   border: none;
-  color: #fff;
-  padding: 12px 22px;
-  border-radius: 8px;
+  border-radius: 12px;
+  padding: 12px 28px;
+  font-size: 26px;
   cursor: pointer;
-  font-weight: 700;
-  transition: background 0.3s ease;
+  transition: 0.2s ease;
+  height: fit-content;
 }
-.btnPrimary:hover {
-  background: linear-gradient(135deg, #ff9d3f, #ff7a00);
+
+.submitBtn:hover {
+  background: #1e40af;
+  transform: translateY(-2px);
 }
+
+/* -------------------------
+      STATUS TEXT
+------------------------- */
 
 .status {
   margin-top: 10px;
-  color: #007bff;
-  font-weight: 500;
+  font-size: 26px;
+  color: #374151;
 }
 
-/* ========== TABLE ========== */
-.tableWrapper {
-  overflow-x: auto;
-}
+/* -------------------------
+      TABLE
+------------------------- */
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 15px;
-  font-size: 15px;
+  margin-top: 20px;
 }
 
 .table th {
-  background: #f1f4f8;
-  color: #333;
-  font-weight: 700;
+  background: #f3f4f6;
+  padding: 14px 12px;
   text-align: left;
-  padding: 12px;
-  border-bottom: 2px solid #e0e0e0;
+  font-size: 26px;
+  font-weight: 700;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 .table td {
+  padding: 16px 12px;
+  font-size: 24px;
+  color: #4b5563;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.table tr:hover td {
+  background: #f9fafb;
+}
+
+/* ACTION BUTTONS */
+
+.editBtn {
+  background: #facc15;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 24px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.editBtn:hover {
+  background: #eab308;
+}
+
+.deleteBtn {
+  margin-left: 10px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 24px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.deleteBtn:hover {
+  background: #dc2626;
+}
+
+/* Empty Row */
+.empty {
+  text-align: center;
+  padding: 22px;
+  color: #6b7280;
+  font-size: 24px;
+}
+
+/* ==========================================
+     IMAGE UPLOAD SECTION (RESTORED + MODERN)
+========================================== */
+
+.imageUploadBox {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.imageUploadBtn {
+  padding: 10px 16px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 22px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  width: 100%;
+  text-align: center;
+}
+
+.imageUploadBtn:hover {
+  background: #1e40af;
+  transform: translateY(-2px);
+}
+
+.imageUploadBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.imagePreviewWrapper {
+  display: flex;
+  gap: 14px;
   padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  background: #f3f4f6;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  width: fit-content;
 }
 
-.table tr:hover {
-  background: #fafbfe;
+.imagePreview {
+  width: 200px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
 }
 
-/* Manage Button */
-.btnManage {
-  background: #007bff;
+.imageRemoveBtn {
+  padding: 6px 14px;
+  background: #ef4444;
   color: white;
   border: none;
-  padding: 7px 14px;
-  border-radius: 6px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-size: 20px;
   cursor: pointer;
-  transition: background 0.2s ease;
-}
-.btnManage:hover {
-  background: #0062cc;
+  height: fit-content;
+  transition: 0.2s;
 }
 
-/* Delete Button */
-.btnDelete {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 7px 14px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-.btnDelete:hover {
-  background: #c82333;
+.imageRemoveBtn:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
 }
 
-/* ========== EXAM LIST HEADER ========== */
-.examListHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
+/* RESPONSIVE */
 
-.examListHeader h3 {
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #333;
-}
-
-/* ========== FILTER BAR ========== */
-.filterBar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.filterLabel {
-  font-weight: 600;
-  color: #555;
-  font-size: 14px;
-}
-
-.filterSelect {
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-family: inherit;
-  background: #fff;
-  cursor: pointer;
-  transition: border 0.2s ease;
-  min-width: 120px;
-}
-
-.filterSelect:focus {
-  outline: none;
-  border-color: #007bff;
-}
-
-/* ========== RESPONSIVE ========== */
 @media (max-width: 768px) {
+  .container {
+    padding: 24px;
+  }
+
   .form {
     flex-direction: column;
   }
-  .group {
+
+  .submitBtn {
     width: 100%;
   }
+}
 
-  .examListHeader {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
+/* Fix container overflow — allow full scroll */
+.page {
+  overflow-y: auto !important;
+}
 
-  .filterBar {
-    align-self: flex-end;
-  }
+/* Ensure the content box grows normally */
+.container {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+
+.searchBar input {
+  padding: 10px 16px;
+  font-size: 22px;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  width: 260px;
+}
+
+/* Scrollable table panel */
+.scrollArea {
+  max-height: 450px;      /* adjust height if needed */
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Prevent container overflow */
+.page {
+  overflow-y: auto !important;
+}
+
+.container {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.admin-main {
+  overflow-y: auto !important;
+  height: auto !important;
+  min-height: 100vh !important;
+}
+
+
+/* Sticky table header */
+.scrollWrapper table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Fix clipping of table inside scroll */
+.scrollWrapper table {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0;
+}
+
+/* Prevent sidebar layout from clipping content */
+.admin-main {
+  overflow-y: auto !important;
+  height: auto !important;
+  min-height: 100vh !important;
+}
+
+.page {
+  overflow-y: auto !important;
+  height: auto !important;
+}
+
+.container {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* SECTION TITLES */
+.sectionTitle {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  color: #1f2937;
+}
+
+/* CLEAN FORM ROW */
+.formRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Input layout */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  flex: 1;
+}
+
+/* Top layout for exam list */
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+/* Search + Filter layout */
+.controlsRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Better search bar alignment */
+.searchBar {
+  padding: 10px 16px;
+  font-size: 22px;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  width: 240px;
+}
+
+/* Scroll wrapper (sticky header already done) */
+.scrollWrapper {
+  max-height: 450px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  position: relative;
 }
