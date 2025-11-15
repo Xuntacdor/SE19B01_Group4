@@ -78,9 +78,18 @@ const ResetPassword = () => {
     if (showPasswordGuide && passwordInputRef.current) {
       const updatePosition = () => {
         const rect = passwordInputRef.current.getBoundingClientRect();
+        const popupWidth = 300; // Approximate popup width
+        const gap = 12;
+        let leftPosition = rect.left - popupWidth - gap;
+        
+        // Prevent going off-screen on the left
+        if (leftPosition < 10) {
+          leftPosition = 10;
+        }
+        
         setPopupPosition({
-          top: rect.bottom + 8,
-          left: rect.left
+          top: rect.top,
+          left: leftPosition
         });
       };
       
