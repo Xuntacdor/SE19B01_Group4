@@ -7,7 +7,7 @@ namespace WebAPI.Controllers
 {
     [ApiController]
     [Route("api/vip")]
-    [Authorize]
+    [AllowAnonymous]
     public sealed class VipPaymentController : ControllerBase
     {
         private readonly IPaymentService _paymentService;
