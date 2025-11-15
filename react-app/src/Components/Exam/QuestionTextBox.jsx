@@ -1,4 +1,5 @@
-import React, { useRef, useCallback } from "react";
+// Components/Common/QuestionTextBox.jsx
+import React, { useRef, useCallback, useEffect } from "react";
 import styles from "./QuestionTextBox.module.css";
 import MarkdownToolbar from "./MarkdownToolbar";
 
@@ -6,11 +7,33 @@ export default function QuestionTextBox({ value, onChange, rows = 10 }) {
   const textareaRef = useRef(null);
   const text = value || "";
 
+  // simple history stack for Ctrl+Z / Ctrl+Y
+  const historyRef = useRef({
+    stack: [text],
+    index: 0,
+  });
+
+  // update history when external value changes
+  useEffect(() => {
+    const h = historyRef.current;
+    const current = h.stack[h.index];
+
+    if (current === text) return;
+
+    // if we've undone and then type something new, drop redo branch
+    if (h.index < h.stack.length - 1) {
+      h.stack = h.stack.slice(0, h.index + 1);
+    }
+
+    h.stack.push(text);
+    h.index = h.stack.length - 1;
+  }, [text]);
+
   const applyTransform = useCallback(
     (action) => {
       const textarea = textareaRef.current;
 
-      // Fallback: if no ref, just append at end
+      // Fallback: append at end if ref is missing
       if (!textarea) {
         let appended = text;
         switch (action) {
@@ -57,11 +80,13 @@ export default function QuestionTextBox({ value, onChange, rows = 10 }) {
 
       const wrapSimple = (left, right, placeholder) => {
         if (selected) {
-          // Toggle if already wrapped
           const isWrapped =
             selected.startsWith(left) && selected.endsWith(right);
           if (isWrapped) {
-            const inner = selected.slice(left.length, selected.length - right.length);
+            const inner = selected.slice(
+              left.length,
+              selected.length - right.length
+            );
             insert = inner;
             newSelectionStart = start;
             newSelectionEnd = start + inner.length;
@@ -73,7 +98,6 @@ export default function QuestionTextBox({ value, onChange, rows = 10 }) {
         } else {
           const content = placeholder || "";
           insert = left + content + right;
-          // place caret inside if placeholder given
           if (content) {
             newSelectionStart = start + left.length;
             newSelectionEnd = start + left.length + content.length;
@@ -115,16 +139,13 @@ export default function QuestionTextBox({ value, onChange, rows = 10 }) {
           break;
 
         case "question":
-          insert = selected
-            ? `[!num] ${selected}`
-            : "[!num] ";
+          insert = selected ? `[!num] ${selected}` : "[!num] ";
           newSelectionStart = start + insert.length;
           newSelectionEnd = newSelectionStart;
           break;
 
         case "textInput":
           if (selected) {
-            // turn selected into [T*answer]
             insert = `[T*${selected}]`;
             newSelectionStart = start;
             newSelectionEnd = start + insert.length;
@@ -190,7 +211,6 @@ export default function QuestionTextBox({ value, onChange, rows = 10 }) {
       const newText = before + insert + after;
       onChange(newText);
 
-      // Try to restore selection after React updates
       requestAnimationFrame(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
@@ -204,32 +224,51 @@ export default function QuestionTextBox({ value, onChange, rows = 10 }) {
 
   const handleKeyDown = (e) => {
     if (e.ctrlKey && !e.altKey) {
-      // Ctrl + B
-      if (e.key === "b" || e.key === "B") {
+      const key = e.key.toLowerCase();
+      const h = historyRef.current;
+
+      // Undo: Ctrl+Z
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        if (h.index > 0) {
+          h.index -= 1;
+          onChange(h.stack[h.index]);
+        }
+        return;
+      }
+
+      // Redo: Ctrl+Y or Ctrl+Shift+Z
+      if (key === "y" || (key === "z" && e.shiftKey)) {
+        e.preventDefault();
+        if (h.index < h.stack.length - 1) {
+          h.index += 1;
+          onChange(h.stack[h.index]);
+        }
+        return;
+      }
+
+      // Formatting / tools
+      if (key === "b") {
         e.preventDefault();
         applyTransform("bold");
         return;
       }
-      // Ctrl + I
-      if (e.key === "i" || e.key === "I") {
+      if (key === "i") {
         e.preventDefault();
         applyTransform("italic");
         return;
       }
-      // Ctrl + E
-      if (e.key === "e" || e.key === "E") {
+      if (key === "e") {
         e.preventDefault();
         applyTransform("explanation");
         return;
       }
-      // Ctrl + Shift + D
-      if (e.shiftKey && (e.key === "d" || e.key === "D")) {
+      if (e.shiftKey && key === "d") {
         e.preventDefault();
         applyTransform("dropdown");
         return;
       }
-      // Ctrl + Shift + Q
-      if (e.shiftKey && (e.key === "q" || e.key === "Q")) {
+      if (e.shiftKey && key === "q") {
         e.preventDefault();
         applyTransform("question");
         return;
