@@ -8,5 +8,6 @@ namespace WebAPI.ExternalServices
         JsonDocument GradeSpeaking(string question, string transcript);
         JsonDocument LookupWordAI(string query);
         JsonDocument GetSpeakingSuggestion(string question);
+        JsonDocument AnalyzeContent(string title, string content, string contentType = "post");
     }
 }
