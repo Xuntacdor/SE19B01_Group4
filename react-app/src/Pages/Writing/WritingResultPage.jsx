@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
 import * as WritingApi from "../../Services/WritingApi";
+import * as ExamApi from "../../Services/ExamApi";
 import styles from "./WritingResultPage.module.css";
 import { SpellCheck, CheckCircle2, ListTree, Link2 } from "lucide-react";
 
@@ -135,19 +136,69 @@ export default function WritingResultPage() {
   const [feedbackData, setFeedbackData] = useState(null);
   const [replacedTexts, setReplacedTexts] = useState({});
   const [activeTaskIndex, setActiveTaskIndex] = useState(0);
+  const [fetchedAnswers, setFetchedAnswers] = useState(null);
 
-  // if (!state) {
-  //   return (
-  //     <div className={styles.center}>
-  //       <h2>No result data found</h2>
-  //       <button onClick={() => navigate("/")} className={styles.backBtn}>
-  //         ← Back
-  //       </button>
-  //     </div>
-  //   );
-  // }
+  if (!state) {
+    return (
+      <div className={styles.center}>
+        <h2>No result data found</h2>
+        <button onClick={() => navigate("/")} className={styles.backBtn}>
+          ← Back
+        </button>
+      </div>
+    );
+  }
 
-  const { examId, userId, exam, mode, originalAnswers, isWaiting } = state;
+  const { examId, userId, exam, mode, originalAnswers, isWaiting, attemptId } = state || {};
+
+  /* ====================== Fetch AnswerText from ExamAttempt ====================== */
+  useEffect(() => {
+    // Chỉ fetch nếu không có originalAnswers
+    if (originalAnswers || !examId || !userId) return;
+
+    const fetchAnswers = async () => {
+      try {
+        // Tìm attemptId cho exam này
+        let targetAttemptId = attemptId;
+        if (!targetAttemptId) {
+          const attempts = await ExamApi.getExamAttemptsByUser(userId);
+          const attempt = attempts.find((a) => a.examId === examId);
+          targetAttemptId = attempt?.attemptId;
+        }
+
+        if (targetAttemptId) {
+          const attemptDetail = await ExamApi.getExamAttemptDetail(targetAttemptId);
+          if (attemptDetail?.answerText) {
+            let answerText = attemptDetail.answerText;
+            
+            // Loại bỏ phần feedback JSON nếu có (format: "answer\n\n---\n[AI Feedback JSON]\n...")
+            const feedbackMarker = "\n\n---\n[AI Feedback JSON]\n";
+            if (answerText.includes(feedbackMarker)) {
+              answerText = answerText.split(feedbackMarker)[0];
+            }
+
+            // Thử parse answerText như JSON object (writingId -> answerText)
+            try {
+              const parsed = JSON.parse(answerText);
+              if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+                setFetchedAnswers(parsed);
+              } else {
+                // Nếu không phải object, có thể là text đơn giản
+                setFetchedAnswers({ _single: answerText });
+              }
+            } catch {
+              // Nếu không parse được JSON, lưu như text đơn giản
+              setFetchedAnswers({ _single: answerText });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch answerText from ExamAttempt:", err);
+      }
+    };
+
+    fetchAnswers();
+  }, [examId, userId, originalAnswers, attemptId]);
 
   /* ====================== Fetch Feedback ====================== */
   useEffect(() => {
@@ -236,6 +287,28 @@ export default function WritingResultPage() {
   );
 
   /* ====================== RENDER ====================== */
+  if (!feedbackData || filteredFeedbacks.length === 0) {
+    return (
+      <div className={styles.pageLayout}>
+        <GeneralSidebar />
+        <div className={styles.mainContent}>
+          <div className={styles.header}>
+            <h2>
+              Writing Test Result — {exam?.examName || "Unknown Exam"} ({mode})
+            </h2>
+          </div>
+          <div className={styles.center}>
+            <h2>No feedback available</h2>
+            <p>There is no feedback data for this writing test.</p>
+            <button onClick={() => navigate("/dashboard")} className={styles.backBtn}>
+              ← Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.pageLayout}>
       <GeneralSidebar />
@@ -264,8 +337,25 @@ export default function WritingResultPage() {
 
         {filteredFeedbacks.map((f, i) => {
           if (i !== activeTaskIndex) return null;
-          const originalText =
-            originalAnswers?.[f.writingId] || f.answerText || "";
+          
+          // Ưu tiên: originalAnswers (từ state) > fetchedAnswers (từ ExamAttempt) > f.answerText (từ feedback) > ""
+          let originalText = "";
+          if (originalAnswers?.[f.writingId]) {
+            originalText = originalAnswers[f.writingId];
+          } else if (fetchedAnswers) {
+            if (fetchedAnswers[f.writingId]) {
+              // Nếu có answer cho writingId cụ thể
+              originalText = fetchedAnswers[f.writingId];
+            } else if (fetchedAnswers._single) {
+              // Nếu answerText là single string, dùng cho task đầu tiên
+              // (với full exam thường chỉ có 1 task, nhưng nếu có nhiều thì dùng cho task đầu tiên)
+              if (i === 0 || filteredFeedbacks.length === 1) {
+                originalText = fetchedAnswers._single;
+              }
+            }
+          } else {
+            originalText = f.answerText || "";
+          }
 
           // === parse new JSON fields ===
           const grammarVocabParsed = JSON.parse(f.grammarVocabJson || "{}");

@@ -1,12 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "./QuizPage.module.css";
-import {
-  CheckCircle,
-  XCircle,
-  ArrowLeft,
-  Trophy,
-  RotateCcw,
-} from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
 
 export default function QuizPage({ groupWords, onBack }) {
   const initialOrder = useMemo(
@@ -16,15 +10,21 @@ export default function QuizPage({ groupWords, onBack }) {
 
   const [queue, setQueue] = useState(initialOrder);
   const [cursor, setCursor] = useState(0);
+
   const [mastered, setMastered] = useState(new Set());
   const [failed, setFailed] = useState(new Set());
+
+  const [questionNumber, setQuestionNumber] = useState(1);
+
   const [selected, setSelected] = useState(null);
   const [revealing, setRevealing] = useState(false);
-  const [finished, setFinished] = useState(false);
+  const [showMeaningRevealed, setShowMeaningRevealed] = useState(false);
+  const [fadeOthers, setFadeOthers] = useState(false);
 
   const total = groupWords.length;
   const currentIndex = queue[cursor];
 
+  // ========== FALLBACK WRONG OPTIONS ==========
   const fallbackWrong = [
     "an unrelated action",
     "a small object or device",
@@ -34,11 +34,13 @@ export default function QuizPage({ groupWords, onBack }) {
     "a type of weather condition",
   ];
 
+  // ========== CREATE OPTIONS ==========
   const makeOptions = (idx) => {
     if (idx == null || idx < 0)
       return { question: "", options: [], answer: "" };
 
     const word = groupWords[idx];
+
     let pool = groupWords
       .filter((w, i) => i !== idx && w.meaning?.trim())
       .map((w) => w.meaning);
@@ -71,109 +73,97 @@ export default function QuizPage({ groupWords, onBack }) {
     [currentIndex, groupWords]
   );
 
-  const uniqueCorrect = Array.from(mastered).filter(
-    (i) => !failed.has(i)
-  ).length;
-
-  const progressPercent =
-    total === 0 ? 0 : Math.round((uniqueCorrect / total) * 100);
-
+  // ========== AUTO RETURN WHEN DONE ==========
   useEffect(() => {
-    if (finished) return;
-    let c = cursor;
-    while (c < queue.length && mastered.has(queue[c])) c++;
-    if (c !== cursor) setCursor(c);
-    if (c >= queue.length && mastered.size === total) setFinished(true);
-  }, [cursor, queue, mastered, finished, total]);
+    if (cursor >= queue.length) {
+      onBack(); // 🔥 Auto quay về dictionary
+    }
+  }, [cursor, queue.length, onBack]);
 
+  // ========== NEXT STEP LOGIC ==========
   const goNext = (wasCorrect) => {
-    if (wasCorrect && !mastered.has(currentIndex)) {
+    if (wasCorrect) {
       setMastered((prev) => new Set(prev).add(currentIndex));
-    } else if (!wasCorrect) {
-      setQueue((q) => [...q, currentIndex]);
+      setQuestionNumber((n) => n + 1);   // Only correct → count question
+    } else {
+      setQueue((q) => [...q, currentIndex]); // wrong → requeue
       setFailed((prev) => new Set(prev).add(currentIndex));
+      // ❌ do NOT increase questionNumber
     }
 
     setCursor((c) => c + 1);
+  };
 
-    if (
-      mastered.size +
-        (wasCorrect && !mastered.has(currentIndex) ? 1 : 0) ===
-      total
-    ) {
-      setFinished(true);
-    }
+const handleSkip = () => {
+  // Skip: KHÔNG tính là sai → KHÔNG requeue
+  setCursor((c) => c + 1);
+  setQuestionNumber((n) => n + 1); 
+
+  setSelected(null);
+  setRevealing(false);
+  setShowMeaningRevealed(false);
+  setFadeOthers(false);
+};
+
+  const handleRevealMeaning = () => {
+    if (revealing || selected) return;
+    setShowMeaningRevealed(true);
+
+    setTimeout(() => {
+      setShowMeaningRevealed(false);
+    }, 1200);
   };
 
   const handleAnswer = (opt) => {
-    if (revealing) return;
+    if (revealing || showMeaningRevealed) return;
+
     const correct = opt === answer;
+
     setSelected(opt);
     setRevealing(true);
+    setFadeOthers(true);
 
     setTimeout(() => {
       setSelected(null);
       setRevealing(false);
-      goNext(correct);
+      setFadeOthers(false);
+      setShowMeaningRevealed(false);
+
+      goNext(correct); // ✔ correct or wrong processed here
     }, 700);
   };
 
-  // === FINISHED STATE ===
-  if (finished || total === 0) {
-    return (
-      <div className={styles.quizContainer}>
-        <Trophy size={64} color="#facc15" />
-        <h2 className={styles.finishTitle}>Quiz Finished 🎉</h2>
-        <p className={styles.finishScore}>
-          Your score: <strong>{uniqueCorrect}</strong> / {total}
-        </p>
-
-        <div className={styles.progressWrap}>
-          <div
-            className={styles.progressBarCorrect}
-            style={{ width: `${(uniqueCorrect / total) * 100}%` }}
-          />
-          <div
-            className={styles.progressBarWrong}
-            style={{ width: `${((total - uniqueCorrect) / total) * 100}%` }}
-          />
-        </div>
-
-        <button className={styles.backBtn} onClick={onBack}>
-          <RotateCcw size={20} /> Back to Dictionary
-        </button>
-      </div>
-    );
-  }
-
-  const displayIndex = Math.min(uniqueCorrect + 1, total);
-
   return (
     <div className={styles.quizContainer}>
-      <div className={styles.topRow}>
-        <button className={styles.backLink} onClick={onBack}>
-          <ArrowLeft size={18} /> Back
-        </button>
-        <div className={styles.counter}>
-          <CheckCircle size={16} color="#4ade80" /> {uniqueCorrect}/{total} mastered
-        </div>
-      </div>
-
       <h2 className={styles.question}>{question}</h2>
+
+      <button
+        className={styles.revealBtn}
+        onClick={handleRevealMeaning}
+        disabled={!!selected || revealing || showMeaningRevealed}
+      >
+        Reveal meaning
+      </button>
 
       <ul className={styles.optionsGrid}>
         {options.map((opt, idx) => {
           const isCorrect = selected && opt === answer;
           const isWrong = selected && opt === selected && opt !== answer;
+          const isRevealed = showMeaningRevealed && opt === answer;
+          const shouldFade =
+            fadeOthers && !isCorrect && !isWrong && !isRevealed;
 
           return (
-            <li key={idx}>
+            <li key={idx} className={styles.optionItem}>
               <button
-                className={`${styles.optionBtn} ${
-                  isCorrect ? styles.correct : ""
-                } ${isWrong ? styles.wrong : ""}`}
+                className={`${styles.optionBtn}
+                  ${isCorrect ? styles.correct : ""}
+                  ${isWrong ? styles.wrong : ""}
+                  ${isRevealed ? styles.revealed : ""}
+                  ${shouldFade ? styles.faded : ""}
+                `}
                 onClick={() => handleAnswer(opt)}
-                disabled={!!selected}
+                disabled={!!selected || revealing || showMeaningRevealed}
               >
                 {opt}
                 {selected &&
@@ -188,15 +178,18 @@ export default function QuizPage({ groupWords, onBack }) {
         })}
       </ul>
 
-      <div className={styles.progressWrap}>
-        <div
-          className={styles.progressBar}
-          style={{ width: `${progressPercent}%` }}
-        />
+      <div className={styles.actionButtons}>
+        <button
+          className={styles.skipBtn}
+          onClick={handleSkip}
+          disabled={!!selected || revealing || showMeaningRevealed}
+        >
+          Skip this word
+        </button>
       </div>
 
       <p className={styles.meta}>
-        Question {displayIndex} of {total}
+        Question {Math.min(questionNumber, total)} of {total}
       </p>
     </div>
   );

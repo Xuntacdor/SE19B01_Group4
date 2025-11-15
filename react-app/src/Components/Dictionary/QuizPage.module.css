@@ -1,190 +1,171 @@
 @import url('https://fonts.googleapis.com/css2?family=Dongle&display=swap');
 
 .quizContainer {
-  max-width: 760px;
-  margin: 36px auto;
-  padding: 28px;
+  max-width: 80%;
+  height: 92vh;                    /* ❗ VỪA MÀN HÌNH */
+  margin: 2vh auto;
+  padding: 20px;
+
   background: #ffffff;
   border: 1px solid #eef2f7;
   border-radius: 14px;
   box-shadow: 0 8px 30px rgba(20, 32, 80, 0.06);
-  font-size: 24px;
+
   font-family: "Dongle", sans-serif;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;                /* ❗ KHÔNG SCROLL */
+}
+
+/* MOBILE scale */
+@media (max-width: 768px) {
+  .quizContainer {
+    height: 94vh;
+    padding: 14px;
+  }
 }
 
 .topRow {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
-  font-size: 26px;
+  font-size: 24px;
+  flex-shrink: 0;                   /* giữ nguyên */
+  margin-bottom: 6px;
 }
 
 .backLink {
   background: transparent;
   border: none;
   color: #475569;
-  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 28px;
-}
-.backLink:hover {
-  color: #111827;
+  font-size: 26px;
 }
 
 .counter {
-  font-size: 26px;
-  font-weight: 600;
-  color: #475569;
+  font-size: 24px;
   display: flex;
   align-items: center;
-  gap: 6px;
 }
 
 .question {
-  font-size: 25px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 30px 0;
   text-align: center;
+  font-size: 28px;
+  font-weight: 800;
+  margin: 10px 0 12px 0;
+  flex-shrink: 0;
 }
 
+/* Reveal Meaning button */
+.revealBtn {
+  margin: 0 auto 10px auto;
+  padding: 6px 12px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* GRID OPTIONS chiếm flex */
 .optionsGrid {
-  list-style: none;
-  padding: 0;
+  flex: 1;                          /* ❗ OPTION CHIẾM TOÀN BỘ KHOẢNG TRỐNG */
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 5px;
-  margin-bottom: 20px;
+  gap: 10px;
+  padding-bottom: 6px;
+}
+.optionItem{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0;
+}
+@media (max-width: 640px) {
+  .optionsGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
+/* Option buttons */
 .optionBtn {
   width: 100%;
-  height: 150px;
-  padding: 20px;
+  height: 70%;
+  min-height: 110px;                /* ❗ THU NHỎ CHIỀU CAO */
+  padding: 14px;
+
+  background: rgb(187, 156, 156) !important;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  background: #f8fafc;
+
   font-size: 20px;
+  font-weight: 600;
   line-height: 1.3;
-  cursor: pointer;
+
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  transition: transform 0.2s ease, background 0.2s ease;
-  word-wrap: break-word;
-  white-space: normal;
-  overflow: hidden;
+
+  transition: 0.2s;
+  word-break: break-word;
 }
 
 .optionBtn:hover:not(:disabled) {
-  background: #eaf2ff;
+  background: #7e8da3 !important;
   transform: translateY(-2px);
 }
 
-.optionBtn:disabled {
-  opacity: 0.9;
-  cursor: default;
-}
-
+/* Đúng / Sai / Reveal */
 .correct {
-  background: #48bb78 !important;
-  border-color: #48bb78 !important;
+  background: #4ade80 !important;
+  border-color: #4ade80 !important;
   color: white !important;
-  animation: pop 0.4s ease;
 }
 
 .wrong {
-  background: #f56565 !important;
-  border-color: #f56565 !important;
+  background: #f87171 !important;
+  border-color: #f87171 !important;
   color: white !important;
-  animation: shake 0.4s ease;
 }
 
-@keyframes pop {
-  0% { transform: scale(0.95); }
-  60% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+.revealed {
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-6px); }
-  40% { transform: translateX(6px); }
-  60% { transform: translateX(-4px); }
-  80% { transform: translateX(4px); }
+/* Skip button */
+.skipBtn {
+  padding: 8px 20px;
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
-.progressWrap {
-  height: 18px;
-  background: #eef2f7;
-  border-radius: 999px;
-  overflow: hidden;
-  display: flex;
-  margin-top: 16px;
-}
+/* Progress bar */
 
-.progressBar {
-  height: 100%;
-  background: linear-gradient(90deg, #facc15, #f59e0b);
-  transition: width 0.4s ease-in-out;
+.optionsGrid li {
+  list-style: none !important;
 }
-
-.progressBarCorrect {
-  height: 100%;
-  background: #48bb78;
-  transition: width 0.35s ease;
-}
-
-.progressBarWrong {
-  height: 100%;
-  background: #f56565;
-  transition: width 0.35s ease;
-}
-
 .meta {
-  margin-top: 12px;
-  font-size: 24px;
-  color: #64748b;
+  margin-top: 4px;
+  font-size: 22px;
   text-align: right;
+  color: #64748b;
+  flex-shrink: 0;
 }
 
-.backBtn {
-  margin-top: 24px;
-  padding: 16px 28px;
-  border: none;
-  border-radius: 10px;
-  background: #48bb78;
-  color: white;
-  font-weight: 700;
-  font-size: 28px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-inline: auto;
-}
-.backBtn:hover {
-  background: #38a169;
-}
-
-.icon {
-  margin-left: 8px;
-  vertical-align: middle;
-}
-
+/* END SCREEN */
 .finishTitle {
-  font-size: 50px;
-  font-weight: 800;
+  font-size: 42px;
   margin-top: 16px;
-  color: #0f172a;
 }
 
 .finishScore {
-  font-size: 28px;
-  color: #334155;
-  margin-bottom: 20px;
+  font-size: 26px;
+}
+
+.backBtn {
+  font-size: 24px;
+  padding: 14px 20px;
 }

@@ -23,43 +23,13 @@ import {
 /* ================================
    Configs for stats display
 ================================ */
-const STAT_CONFIGS = [
-  {
-    key: "Reading",
-    label: "Reading",
-    color: "#fd7e14",
-    icon: <Book size={18} color="#fd7e14" />,
-    bg: "readingBg",
-  },
-  {
-    key: "Listening",
-    label: "Listening",
-    color: "#28a745",
-    icon: <Headphones size={18} color="#28a745" />,
-    bg: "listeningBg",
-  },
-  {
-    key: "Writing",
-    label: "Writing",
-    color: "#dc3545",
-    icon: <Pen size={18} color="#dc3545" />,
-    bg: "writingBg",
-  },
-  {
-    key: "Speaking",
-    label: "Speaking",
-    color: "#6f42c1",
-    icon: <Mic size={18} color="#6f42c1" />,
-    bg: "speakingBg",
-  },
-  {
-    key: "Overall",
-    label: "Overall",
-    color: "#007bff",
-    icon: <BarChart2 size={18} color="#007bff" />,
-    bg: "overallBg",
-  },
-];
+import {
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis
+} from "recharts";
 
 export default function DashboardUser() {
   const navigate = useNavigate();
@@ -91,7 +61,7 @@ export default function DashboardUser() {
 
   // ===== Pagination logic =====
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 3;
 
   const totalPages = Math.ceil(historyData.length / itemsPerPage);
 
@@ -139,9 +109,9 @@ export default function DashboardUser() {
                   res.averageOverall ??
                   (res.feedbacks?.length
                     ? res.feedbacks.reduce(
-                        (sum, f) => sum + (f.overall ?? 0),
-                        0
-                      ) / res.feedbacks.length
+                      (sum, f) => sum + (f.overall ?? 0),
+                      0
+                    ) / res.feedbacks.length
                     : null);
 
                 score = overall != null ? Number(overall).toFixed(1) : "-";
@@ -197,74 +167,88 @@ export default function DashboardUser() {
     <AppLayout title="Summary of your hard work" sidebar={<GeneralSidebar />}>
       <div className={styles.dashboardContent}>
         {/* ===== Calendar Section ===== */}
+        {/* ===== Compact Calendar Section ===== */}
         <div className={`${styles.card} ${styles.calendarCard}`}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>Your dedication for studying</h3>
-            <div className={styles.status}>
-              <span className={styles.statusDot} />
-              <span className={styles.statusText}>Submitted</span>
-            </div>
+            <h3 className={styles.cardTitle}>Your dedication chart</h3>
+
           </div>
 
-          <div className={styles.calendar}>
-            <div className={styles.calendarHeader}>
-              <h4 className={styles.monthYear}>
-                {monthName} {year}
-              </h4>
+          <div className={styles.compactCalendar}>
+            <div className={styles.calendarMonthTitle}>
+              {monthName} / {year}
             </div>
 
-            <div className={styles.calendarGrid}>
-              <div />
+            {/* Weekday row */}
+            <div className={styles.calendarWeekdays}>
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                <div key={d} className={styles.calendarWeekday}>
-                  {d}
-                </div>
+                <div key={d}>{d}</div>
               ))}
-              {weeks.map((w, wi) => (
-                <React.Fragment key={wi}>
-                  <div className={styles.calendarWeekLabel}>Week {wi + 1}</div>
-                  {w.map((d, di) => (
-                    <div
-                      key={di}
-                      className={`${styles.calendarDay} ${
-                        isDaySubmitted(d, month, year, submittedDays)
-                          ? styles.submitted
-                          : ""
-                      }`}
-                    >
-                      {d || ""}
-                    </div>
-                  ))}
-                </React.Fragment>
+            </div>
+
+            {/* Grid */}
+            <div className={styles.calendarDaysGrid}>
+              {Array.from({ length: startOffset }).map((_, i) => (
+                <div key={`e-${i}`} className={styles.emptyDay}></div>
               ))}
+
+              {Array.from({ length: daysInMonth }, (_, i) => {
+                const day = i + 1;
+                const submitted = isDaySubmitted(day, month, year, submittedDays);
+
+                return (
+                  <div
+                    key={day}
+                    className={`${styles.dayCell} ${submitted ? styles.submittedDay : ""}`}
+                  >
+                    {day}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
 
+
         {/* ===== Stats Section ===== */}
         <div className={styles.goalsWrapper}>
-          <div className={styles.statsSection}>
-            <h3 className={styles.sectionTitle}>Outcome Statistics</h3>
+         <div className={styles.statsSection}>
+  <h3 className={styles.sectionTitle}>Outcome Statistics</h3>
+  <p className={styles.chartSubtitle}>Band scores scaled on a 0–9 range</p>
 
-            {STAT_CONFIGS.map(({ key, label, color, icon, bg }) => (
-              <div key={key} className={styles.statItem}>
-                <div className={`${styles.iconBox} ${styles[bg]}`}>{icon}</div>
-                <span className={styles.statLabel}>{label}</span>
-                <div className={styles.progressBar}>
-                  <div
-                    className={styles.progressFill}
-                    style={{
-                      width: `${(stats[key] / 9) * 100}%`,
-                      background: color,
-                    }}
-                  />
-                </div>
-                <span className={styles.statValue}>
-                  {stats[key]?.toFixed(1) ?? "0.0"}/9
-                </span>
-              </div>
-            ))}
-          </div>
+  <div className={styles.chartContainer}>
+    <RadarChart
+      cx="50%"
+      cy="50%"
+      outerRadius="75%"
+      width={350}
+      height={300}
+      data={[
+        { skill: "Reading", value: stats.Reading ?? 0 },
+        { skill: "Listening", value: stats.Listening ?? 0 },
+        { skill: "Writing", value: stats.Writing ?? 0 },
+        { skill: "Speaking", value: stats.Speaking ?? 0 },
+        { skill: "Overall", value: stats.Overall ?? 0 },
+      ]}
+    >
+      <PolarGrid stroke="#ddd" />
+      <PolarAngleAxis dataKey="skill" tick={{ fill: "#333", fontSize: 13 }} />
+      <PolarRadiusAxis
+        angle={90}
+        domain={[0, 9]}
+        tick={{ fill: "#666", fontSize: 11 }}
+      />
+
+      <Radar
+        dataKey="value"
+        stroke="#4c8ffb"
+        fill="#4c8ffb"
+        fillOpacity={0.45}
+      />
+    </RadarChart>
+  </div>
+</div>
+
 
           {/* ===== Banner Section ===== */}
           <div className={styles.bannerCard}>
@@ -363,6 +347,9 @@ export default function DashboardUser() {
                                 userId,
                                 exam: { examName: r.examName },
                                 mode: "full",
+                                originalAnswers: null,
+                                isWaiting: false,
+                                attemptId: r.attemptId,
                               },
                             });
                           } else if (r.examType === "Speaking") {
@@ -392,24 +379,53 @@ export default function DashboardUser() {
               })()}
             </div>
           )}
+         {totalPages > 1 && (
+  <div className={styles.pagination}>
+    {(() => {
+      const pages = [];
 
-          {totalPages > 1 && (
-            <div className={styles.pagination}>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`${styles.pageButton} ${
-                      currentPage === page ? styles.activePage : ""
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              )}
-            </div>
-          )}
+      // Luôn căn 5 trang quanh currentPage
+      let start = currentPage - 2;
+      let end = currentPage + 2;
+
+      // Không cho nhỏ hơn 1
+      if (start < 1) {
+        end += 1 - start;
+        start = 1;
+      }
+
+      // Không cho lớn hơn totalPages
+      if (end > totalPages) {
+        start -= end - totalPages;
+        end = totalPages;
+      }
+
+      // Giữ đúng 5 trang
+      start = Math.max(1, start);
+      end = Math.min(totalPages, end);
+
+      while (end - start < 4 && end < totalPages) end++;
+      while (end - start < 4 && start > 1) start--;
+
+      for (let p = start; p <= end; p++) {
+        pages.push(p);
+      }
+
+      return pages.map((page) => (
+        <button
+          key={page}
+          onClick={() => setCurrentPage(page)}
+          className={`${styles.pageButton} ${
+            currentPage === page ? styles.activePage : ""
+          }`}
+        >
+          {page}
+        </button>
+      ));
+    })()}
+  </div>
+)}
+
         </div>
       </div>
     </AppLayout>
