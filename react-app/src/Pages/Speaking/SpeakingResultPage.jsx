@@ -157,12 +157,10 @@ export default function SpeakingResultPage() {
 
                         {/* AUDIO */}
                         <div className={styles.audioRow}>
-                          <button
-                            className={styles.audioBtn}
-                            onClick={() => playAudio(f.audioUrl)}
-                          >
-                            <Volume2 size={18} /> Play Recording
-                          </button>
+                          <div className={styles.audioPlayer}>
+                            <Volume2 size={18} color="#2563eb" />
+                            <audio controls src={f.audioUrl} />
+                          </div>
                         </div>
 
                         {/* TRANSCRIPT */}
