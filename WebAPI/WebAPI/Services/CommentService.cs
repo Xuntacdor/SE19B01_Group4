@@ -19,12 +19,28 @@ namespace WebAPI.Services
 
         public IEnumerable<CommentDTO> GetCommentsByPostId(int postId, int? userId = null)
         {
-            // Load tất cả comments của post
+            // Optimize: Load all comments with eager loading and AsNoTracking for read-only
             var allComments = _context.Comment
+                .AsNoTracking()
                 .Include(c => c.User)
                 .Include(c => c.CommentLikes)
                 .Where(c => c.PostId == postId)
                 .ToList();
+
+            if (!allComments.Any())
+                return Enumerable.Empty<CommentDTO>();
+
+            // Optimize: Batch load user-specific data (which comments user has liked) to avoid checking in memory
+            HashSet<int>? userLikedCommentIds = null;
+            if (userId.HasValue)
+            {
+                var commentIds = allComments.Select(c => c.CommentId).ToList();
+                userLikedCommentIds = _context.CommentLike
+                    .AsNoTracking()
+                    .Where(cl => commentIds.Contains(cl.CommentId) && cl.UserId == userId.Value)
+                    .Select(cl => cl.CommentId)
+                    .ToHashSet();
+            }
 
             // Chỉ lấy root comments
             var rootComments = allComments
@@ -32,7 +48,7 @@ namespace WebAPI.Services
                 .OrderBy(c => c.CreatedAt)
                 .ToList();
 
-            return rootComments.Select(c => ToDTOWithReplies(c, allComments, userId));
+            return rootComments.Select(c => ToDTOWithRepliesOptimized(c, allComments, userId, userLikedCommentIds));
         }
 
         public CommentDTO? GetCommentById(int id, int? currentUserId = null)
@@ -487,6 +503,40 @@ namespace WebAPI.Services
             {
                 isVoted = comment.CommentLikes.Any(cl => cl.UserId == currentUserId.Value);
             }
+
+            return new CommentDTO
+            {
+                CommentId = comment.CommentId,
+                Content = comment.Content,
+                CreatedAt = comment.CreatedAt,
+                LikeNumber = comment.CommentLikes.Count,
+                VoteCount = comment.CommentLikes.Count,
+                IsVoted = isVoted,
+                ParentCommentId = comment.ParentCommentId,
+                User = new UserDTO
+                {
+                    UserId = comment.User.UserId,
+                    Username = comment.User.Username,
+                    Email = comment.User.Email,
+                    Firstname = comment.User.Firstname,
+                    Lastname = comment.User.Lastname,
+                    Role = comment.User.Role,
+                    Avatar = comment.User.Avatar
+                },
+                Replies = replies
+            };
+        }
+
+        private CommentDTO ToDTOWithRepliesOptimized(Comment comment, List<Comment> allComments, int? currentUserId, HashSet<int>? userLikedCommentIds)
+        {
+            var replies = allComments
+                .Where(c => c.ParentCommentId == comment.CommentId)
+                .OrderBy(c => c.CreatedAt)
+                .Select(c => ToDTOWithRepliesOptimized(c, allComments, currentUserId, userLikedCommentIds))
+                .ToList();
+
+            // Optimize: Use pre-loaded HashSet instead of checking CommentLikes in memory
+            bool isVoted = userLikedCommentIds != null && userLikedCommentIds.Contains(comment.CommentId);
 
             return new CommentDTO
             {

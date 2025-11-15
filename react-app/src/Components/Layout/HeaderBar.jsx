@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import styles from "./HeaderBar.module.css";
 import useAuth from "../../Hook/UseAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Mail,
   Bell,
@@ -9,6 +9,7 @@ import {
   LogOut,
   UserCircle,
   Home as HomeIcon,
+  LayoutDashboard,
 } from "lucide-react";
 import NotificationDropdown from "./NotificationDropdown";
 import { getNotifications } from "../../Services/NotificationApi";
@@ -16,11 +17,23 @@ import { getNotifications } from "../../Services/NotificationApi";
 export default function HeaderBar({ title }) {
   const { user, loading, handleLogout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
+
+  // Check if user is admin or moderator and not currently on their respective dashboard
+  const isAdmin = user && user.role === 'admin';
+  const isModerator = user && (user.role === 'moderator' || user.role === 'admin');
+  const isOnAdminDashboard = location.pathname.startsWith('/admin/dashboard');
+  const isOnModeratorDashboard = location.pathname.startsWith('/moderator/dashboard');
+  
+  // Show Dashboard option for admin when not on admin dashboard
+  const showAdminDashboard = isAdmin && !isOnAdminDashboard;
+  // Show Dashboard option for moderator when not on moderator dashboard (but allow admin to see it too when not on admin dashboard)
+  const showModeratorDashboard = isModerator && !isOnModeratorDashboard && !isOnAdminDashboard;
 
   const goToProfile = () => {
     navigate("/profile");
@@ -166,6 +179,38 @@ export default function HeaderBar({ title }) {
               {/* Dropdown Menu */}
               {isDropdownOpen && (
                 <div className={styles.dropdownMenu}>
+                  {showAdminDashboard && (
+                    <>
+                      <div
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          navigate("/admin/dashboard");
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        <LayoutDashboard size={18} />
+                        <span>Dashboard</span>
+                      </div>
+                      <div className={styles.dropdownDivider}></div>
+                    </>
+                  )}
+
+                  {showModeratorDashboard && (
+                    <>
+                      <div
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          navigate("/moderator/dashboard");
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        <LayoutDashboard size={18} />
+                        <span>Dashboard</span>
+                      </div>
+                      <div className={styles.dropdownDivider}></div>
+                    </>
+                  )}
+
                   <div
                     className={styles.dropdownItem}
                     onClick={() => {
