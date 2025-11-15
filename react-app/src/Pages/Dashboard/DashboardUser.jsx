@@ -10,7 +10,7 @@ import useExamAttempts from "../../Hook/UseExamAttempts";
 import { isDaySubmitted } from "../../utils/date";
 import * as SpeakingApi from "../../Services/SpeakingApi";
 import * as WritingApi from "../../Services/WritingApi";
-import sadcloud from "../../Assets/sad_cloud.png";
+import sadcloud from "../../assets/sad_cloud.png";
 import {
   Book,
   Headphones,
