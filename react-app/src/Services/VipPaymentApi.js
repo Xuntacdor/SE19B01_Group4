@@ -7,11 +7,6 @@ const API = axios.create({
   withCredentials: true,
 });
 
-/**
- * Gọi API tạo phiên thanh toán Stripe cho gói VIP.
- * @param {number} planId - ID của gói VIP cần thanh toán.
- * @returns {Promise<{ sessionUrl: string }>}
- */
 export function createVipCheckout(planId) {
   return API.post("/pay", { planId });
 }
