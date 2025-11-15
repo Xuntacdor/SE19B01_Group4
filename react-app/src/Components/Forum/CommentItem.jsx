@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { likeComment, unlikeComment, createComment } from "../../Services/ForumApi";
-import { ThumbsUp } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { likeComment, unlikeComment, createComment, reportComment, updateComment, deleteComment } from "../../Services/ForumApi";
+import { ThumbsUp, MoreVertical, Flag, Edit, Trash2, X } from "lucide-react";
 import useAuth from "../../Hook/UseAuth";
 import { formatTimeVietnam } from "../../utils/date";
 import NotificationPopup from "../Forum/NotificationPopup";
@@ -14,6 +14,15 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showReplies, setShowReplies] = useState(false); // Đóng replies mặc định
+  const [showMenu, setShowMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [editContent, setEditContent] = useState(comment.content);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const menuRef = useRef(null);
   
   // Notification state
   const [notification, setNotification] = useState({
@@ -27,7 +36,25 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
   useEffect(() => {
     setIsVoted(comment.isVoted || false);
     setVoteCount(comment.voteCount || comment.likeNumber || 0);
-  }, [comment.isVoted, comment.voteCount, comment.likeNumber]);
+    setEditContent(comment.content);
+  }, [comment.isVoted, comment.voteCount, comment.likeNumber, comment.content]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
 
 
   // Notification functions
@@ -115,6 +142,100 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
     return formatTimeVietnam(dateString);
   };
 
+  // Check permissions
+  const isOwner = user && comment.user?.userId === user.userId;
+  const isAdmin = user && user.role === 'admin';
+  const isPostOwner = user && postOwnerId === user.userId;
+  const canEdit = isOwner;
+  const canDelete = isOwner || isAdmin || isPostOwner;
+  const canReport = user && !isOwner;
+
+  // Handle menu toggle
+  const handleMenuToggle = (e) => {
+    e.stopPropagation();
+    setShowMenu(!showMenu);
+  };
+
+  // Handle report
+  const handleReport = () => {
+    setShowMenu(false);
+    setShowReportModal(true);
+  };
+
+  const handleSubmitReport = async (e) => {
+    e.preventDefault();
+    if (!reportReason.trim() || isSubmittingReport) return;
+
+    setIsSubmittingReport(true);
+    try {
+      await reportComment(comment.commentId, reportReason.trim());
+      setShowReportModal(false);
+      setReportReason("");
+      showNotification("success", "Comment Reported", "Thank you for your report. We will review it soon.");
+    } catch (error) {
+      console.error("Error reporting comment:", error);
+      const errorMessage = error.response?.data?.message || error.response?.data || error.message || "Failed to report comment";
+      showNotification("error", "Report Failed", errorMessage);
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
+  // Handle edit
+  const handleEdit = () => {
+    setShowMenu(false);
+    setShowEditForm(true);
+    setEditContent(comment.content);
+  };
+
+  const handleCancelEdit = () => {
+    setShowEditForm(false);
+    setEditContent(comment.content);
+  };
+
+  const handleSubmitEdit = async (e) => {
+    e.preventDefault();
+    if (!editContent.trim() || editContent === comment.content || isSubmittingEdit) return;
+
+    setIsSubmittingEdit(true);
+    try {
+      await updateComment(comment.commentId, editContent.trim());
+      // Update local comment content
+      comment.content = editContent.trim();
+      setShowEditForm(false);
+      showNotification("success", "Comment Updated", "Your comment has been updated successfully.");
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      const errorMessage = error.response?.data?.message || error.response?.data || error.message || "Failed to update comment";
+      showNotification("error", "Update Failed", errorMessage);
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
+  // Handle delete
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this comment?")) {
+      setShowMenu(false);
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteComment(postId, comment.commentId);
+      // Notify parent to remove comment
+      onReply({ action: 'delete', commentId: comment.commentId });
+      showNotification("success", "Comment Deleted", "The comment has been deleted successfully.");
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      const errorMessage = error.response?.data?.message || error.response?.data || error.message || "Failed to delete comment";
+      showNotification("error", "Delete Failed", errorMessage);
+    } finally {
+      setIsDeleting(false);
+      setShowMenu(false);
+    }
+  };
+
   const hasReplies = comment.replies && comment.replies.length > 0;
   
   // Đếm tất cả nested comments (bao gồm replies của replies)
@@ -151,10 +272,84 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
           className="comment-avatar"
         />
         <div className="comment-user-info">
-          <span className="comment-username">@{comment.user?.username}</span>
-          <div className="comment-content">
-            {comment.content}
+          <div className="comment-user-header">
+            <span className="comment-username">@{comment.user?.username}</span>
+            {(canEdit || canDelete || canReport) && (
+              <div className="comment-menu" ref={menuRef}>
+                <button 
+                  className="comment-menu-btn" 
+                  onClick={handleMenuToggle}
+                  aria-label="Comment options"
+                >
+                  <MoreVertical size={16} />
+                </button>
+                {showMenu && (
+                  <div className="comment-menu-dropdown">
+                    {canReport && (
+                      <button 
+                        className="forum-comment-menu-item report-item"
+                        onClick={handleReport}
+                      >
+                        <Flag size={16} />
+                        Report
+                      </button>
+                    )}
+                    {canEdit && (
+                      <button 
+                        className="forum-comment-menu-item"
+                        onClick={handleEdit}
+                      >
+                        <Edit size={16} />
+                        Edit
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button 
+                        className="forum-comment-menu-item delete-item"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                      >
+                        <Trash2 size={16} />
+                        {isDeleting ? "Deleting..." : "Delete"}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+          {showEditForm ? (
+            <form className="edit-comment-form" onSubmit={handleSubmitEdit}>
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="forum-comment-edit-textarea"
+                rows={3}
+                required
+              />
+              <div className="edit-actions">
+                <button
+                  type="button"
+                  className="forum-comment-btn forum-comment-btn-secondary"
+                  onClick={handleCancelEdit}
+                  disabled={isSubmittingEdit}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="forum-comment-btn forum-comment-btn-primary"
+                  disabled={isSubmittingEdit || !editContent.trim() || editContent === comment.content}
+                >
+                  {isSubmittingEdit ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="comment-content">
+              {comment.content}
+            </div>
+          )}
         </div>
       </div>
 
@@ -234,6 +429,59 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
         </div>
       )}
 
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="forum-comment-modal-overlay" onClick={() => setShowReportModal(false)}>
+          <div className="forum-comment-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="forum-comment-modal-header">
+              <h3>Report Comment</h3>
+              <button 
+                className="forum-comment-modal-close"
+                onClick={() => {
+                  setShowReportModal(false);
+                  setReportReason("");
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitReport}>
+              <div className="forum-comment-modal-body">
+                <p>Please provide a reason for reporting this comment:</p>
+                <textarea
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="forum-comment-report-textarea"
+                  placeholder="Enter reason for reporting..."
+                  required
+                  rows={4}
+                />
+              </div>
+              <div className="forum-comment-modal-footer">
+                <button
+                  type="button"
+                  className="forum-comment-btn forum-comment-btn-secondary"
+                  onClick={() => {
+                    setShowReportModal(false);
+                    setReportReason("");
+                  }}
+                  disabled={isSubmittingReport}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="forum-comment-btn forum-comment-btn-primary"
+                  disabled={isSubmittingReport || !reportReason.trim()}
+                >
+                  {isSubmittingReport ? "Submitting..." : "Submit Report"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Notification Popup */}
       <NotificationPopup
