@@ -18,6 +18,8 @@ import {
   EyeOff,
   FileAudio,
 } from "lucide-react";
+import ContentTextBox from "../../Components/Exam/ContentTextBox.jsx";
+import QuestionTextBox from "../../Components/Exam/QuestionTextBox.jsx";
 
 export default function AddListening() {
   const location = useLocation();
@@ -26,7 +28,7 @@ export default function AddListening() {
   const skill = location.state?.skill;
 
   const [listeningContent, setListeningContent] = useState("");
-  const [transcript, setTranscript] = useState("");          // 🔹 NEW
+  const [transcript, setTranscript] = useState(""); // 🔹 NEW
   const [listeningQuestion, setListeningQuestion] = useState("");
   const [status, setStatus] = useState({ icon: null, message: "" });
   const [showAnswers, setShowAnswers] = useState(true);
@@ -36,7 +38,7 @@ export default function AddListening() {
     if (skill) {
       setListeningContent(skill.listeningContent || "");
       setListeningQuestion(skill.listeningQuestion || "");
-      setTranscript(skill.transcript || "");                // 🔹 Prefill when editing
+      setTranscript(skill.transcript || ""); // 🔹 Prefill when editing
     }
   }, [skill]);
 
@@ -103,14 +105,13 @@ export default function AddListening() {
 
     try {
       // 1️⃣ First render without listeningId (uses "X_q#" keys)
-      const { html, answers } = renderMarkdownToHtmlAndAnswers(
-        listeningQuestion
-      );
+      const { html, answers } =
+        renderMarkdownToHtmlAndAnswers(listeningQuestion);
 
       const payload = {
         examId: exam.examId,
         listeningContent,
-        transcript,                           // 🔹 send transcript to backend
+        transcript, // 🔹 send transcript to backend
         listeningQuestion,
         listeningType: "Markdown",
         displayOrder: skill?.displayOrder || 1,
@@ -143,7 +144,7 @@ export default function AddListening() {
           renderMarkdownToHtmlAndAnswers(listeningQuestion, newId);
 
         await listeningService.update(newId, {
-          ...payload,                          // 🔹 still includes transcript
+          ...payload, // 🔹 still includes transcript
           questionHtml: fixedHtml,
           correctAnswer: JSON.stringify(fixedAnswers),
         });
@@ -209,26 +210,19 @@ export default function AddListening() {
           </div>
 
           {/* ===== Transcript (like reading content) ===== */}
-          <div className={styles.group}>
-            <label>Transcript / Script</label>
-            <textarea
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              rows={6}
-              placeholder="Paste or type the listening transcript here..."
-            />
-          </div>
+          <ContentTextBox
+            label="Transcript / Script"
+            value={transcript}
+            onChange={setTranscript}
+            rows={6}
+            placeholder="Paste or type the listening transcript here..."
+          />
 
           {/* ===== Question markdown ===== */}
-          <div className={styles.group}>
-            <label>Question (Markdown)</label>
-            <textarea
-              value={listeningQuestion}
-              onChange={(e) => setListeningQuestion(e.target.value)}
-              rows={10}
-              placeholder="[!num] Question text here..."
-            />
-          </div>
+          <QuestionTextBox
+            value={listeningQuestion}
+            onChange={setListeningQuestion}
+          />
 
           <div className={styles.buttons}>
             <button

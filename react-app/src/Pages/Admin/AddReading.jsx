@@ -15,6 +15,8 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import ContentTextBox from "../../Components/Exam/ContentTextBox.jsx";
+import QuestionTextBox from "../../Components/Exam/QuestionTextBox.jsx";
 
 export default function AddReading() {
   const location = useLocation();
@@ -118,25 +120,18 @@ export default function AddReading() {
       <div className={styles.grid}>
         {/* ===== Left: Form ===== */}
         <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.group}>
-            <label>Passage / Content</label>
-            <textarea
-              value={readingContent}
-              onChange={(e) => setReadingContent(e.target.value)}
-              rows={6}
-              placeholder="Write the reading passage here..."
-            />
-          </div>
+          <ContentTextBox
+            label="Passage / Content"
+            value={readingContent}
+            onChange={setReadingContent}
+            rows={6}
+            placeholder="Write the reading passage here..."
+          />
 
-          <div className={styles.group}>
-            <label>Question (Markdown)</label>
-            <textarea
-              value={readingQuestion}
-              onChange={(e) => setReadingQuestion(e.target.value)}
-              rows={10}
-              placeholder="[!num] Question text here..."
-            />
-          </div>
+          <QuestionTextBox
+            value={readingQuestion}
+            onChange={setReadingQuestion}
+          />
 
           <div className={styles.buttons}>
             <button type="submit" className={styles.btnPrimary}>

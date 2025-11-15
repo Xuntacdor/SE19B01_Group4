@@ -264,10 +264,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowReactApp");
 // Handle 401 / 403 as JSON instead of redirect or 404
 app.UseStatusCodePages(async context =>
 {
     var response = context.HttpContext.Response;
+    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+    
+    logger.LogWarning($"[StatusCode] {response.StatusCode} for {context.HttpContext.Request.Path}");
 
     if (response.StatusCode == StatusCodes.Status401Unauthorized)
     {
@@ -279,8 +283,12 @@ app.UseStatusCodePages(async context =>
         response.ContentType = "application/json";
         await response.WriteAsync("{\"error\":\"Access denied - VIP only feature.\"}");
     }
+    else if (response.StatusCode == StatusCodes.Status404NotFound)
+    {
+        logger.LogWarning($"[404] Route not found: {context.HttpContext.Request.Method} {context.HttpContext.Request.Path}");
+    }
 });
-app.UseCors("AllowReactApp");
+
 
 // Must be before Authentication
 app.UseCookiePolicy();
@@ -290,6 +298,8 @@ app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Explicit routing - IMPORTANT for production
+app.UseRouting();
 app.MapControllers();
 
 app.Run();

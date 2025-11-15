@@ -376,10 +376,14 @@ namespace WebAPI.Controllers
 
         // POST /api/moderator/posts/{id}/analyze
         [HttpPost("posts/{id}/analyze")]
+        [Route("posts/{id}/analyze", Name = "AnalyzePost")]
         public ActionResult<JsonElement> AnalyzePost(int id)
         {
+            _logger.LogInformation("[ModeratorController] AnalyzePost called with id: {PostId}", id);
+            
             if (!IsModeratorOrAdmin())
             {
+                _logger.LogWarning("[ModeratorController] Unauthorized access attempt to AnalyzePost {PostId}", id);
                 return Unauthorized("Access denied. Moderator or Admin role required.");
             }
 
@@ -388,13 +392,15 @@ namespace WebAPI.Controllers
                 var post = _postService.GetPostById(id);
                 if (post == null)
                 {
+                    _logger.LogWarning("[ModeratorController] Post {PostId} not found", id);
                     return NotFound("Post not found");
                 }
 
+                _logger.LogInformation("[ModeratorController] Starting analysis for post {PostId}", id);
                 var analysis = _openAIService.AnalyzeContent(post.Title ?? "", post.Content ?? "", "post");
                 
                 // Log for debugging
-                _logger.LogInformation("[ModeratorController] Analysis result: {Analysis}", analysis.RootElement.GetRawText());
+                _logger.LogInformation("[ModeratorController] Analysis completed for post {PostId}", id);
                 
                 return Ok(analysis.RootElement);
             }
@@ -407,10 +413,14 @@ namespace WebAPI.Controllers
 
         // POST /api/moderator/comments/{id}/analyze
         [HttpPost("comments/{id}/analyze")]
+        [Route("comments/{id}/analyze", Name = "AnalyzeComment")]
         public ActionResult<JsonElement> AnalyzeComment(int id)
         {
+            _logger.LogInformation("[ModeratorController] AnalyzeComment called with id: {CommentId}", id);
+            
             if (!IsModeratorOrAdmin())
             {
+                _logger.LogWarning("[ModeratorController] Unauthorized access attempt to AnalyzeComment {CommentId}", id);
                 return Unauthorized("Access denied. Moderator or Admin role required.");
             }
 
@@ -419,13 +429,15 @@ namespace WebAPI.Controllers
                 var comment = _commentService.GetCommentById(id, null);
                 if (comment == null)
                 {
+                    _logger.LogWarning("[ModeratorController] Comment {CommentId} not found", id);
                     return NotFound("Comment not found");
                 }
 
+                _logger.LogInformation("[ModeratorController] Starting analysis for comment {CommentId}", id);
                 var analysis = _openAIService.AnalyzeContent("", comment.Content ?? "", "comment");
                 
                 // Log for debugging
-                _logger.LogInformation("[ModeratorController] Analysis result: {Analysis}", analysis.RootElement.GetRawText());
+                _logger.LogInformation("[ModeratorController] Analysis completed for comment {CommentId}", id);
                 
                 return Ok(analysis.RootElement);
             }
