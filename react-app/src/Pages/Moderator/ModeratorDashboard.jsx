@@ -1338,20 +1338,22 @@ export default function ModeratorDashboard() {
               </button>
             </div>
             <form onSubmit={editingTag ? handleEditTag : handleCreateTag}>
-              <div className="form-group">
-                <label>Tag Name</label>
-                <input
-                  type="text"
-                  value={tagName}
-                  onChange={(e) => setTagName(e.target.value)}
-                  placeholder="Enter tag name"
-                  required
-                />
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Tag Name</label>
+                  <input
+                    type="text"
+                    value={tagName}
+                    onChange={(e) => setTagName(e.target.value)}
+                    placeholder="Enter tag name"
+                    required
+                  />
+                </div>
+                {tagError && (
+                  <div className="error-message">{tagError}</div>
+                )}
               </div>
-              {tagError && (
-                <div className="error-message">{tagError}</div>
-              )}
-              <div className="modal-actions">
+              <div className="modal-footer">
                 <button type="button" onClick={closeModal} className="btn-secondary">
                   Cancel
                 </button>
