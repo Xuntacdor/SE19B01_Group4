@@ -264,6 +264,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowReactApp");
 // Handle 401 / 403 as JSON instead of redirect or 404
 app.UseStatusCodePages(async context =>
 {
@@ -280,7 +281,7 @@ app.UseStatusCodePages(async context =>
         await response.WriteAsync("{\"error\":\"Access denied - VIP only feature.\"}");
     }
 });
-app.UseCors("AllowReactApp");
+
 
 // Must be before Authentication
 app.UseCookiePolicy();

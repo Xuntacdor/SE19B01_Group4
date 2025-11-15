@@ -30,13 +30,15 @@ import {
   LogOut,
   Settings,
   LayoutDashboard,
-  LayoutList
+  LayoutList,
+  Sparkles,
+  Loader
 } from "lucide-react";
 import "./ModeratorDashboard.css";
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend } from "chart.js";
 import * as ModeratorApi from "../../Services/ModeratorApi";
-import { approveReport, dismissReport } from "../../Services/ModeratorApi";
+import { approveReport, dismissReport, analyzePost } from "../../Services/ModeratorApi";
 import { getPostsByFilter } from "../../Services/ForumApi";
 import NotificationPopup from "../../Components/Forum/NotificationPopup";
 import RejectionReasonPopup from "../../Components/Common/RejectionReasonPopup";
@@ -129,6 +131,10 @@ export default function ModeratorDashboard() {
     title: "",
     message: ""
   });
+
+  // AI Analysis states
+  const [postAnalysis, setPostAnalysis] = useState({}); // { postId: analysisResult }
+  const [analyzingPost, setAnalyzingPost] = useState(null); // postId being analyzed
 
   // Load data from API
   useEffect(() => {
@@ -433,8 +439,10 @@ export default function ModeratorDashboard() {
     }
   };
 
-  const handleViewPost = (post) => {
-    setSelectedPost(post);
+  const handleViewPost = (post, fromPendingList = false) => {
+    // Set status if viewing from pending posts list
+    const postWithStatus = fromPendingList ? { ...post, status: "pending" } : post;
+    setSelectedPost(postWithStatus);
     setShowPostDetail(true);
   };
 
@@ -553,6 +561,162 @@ export default function ModeratorDashboard() {
         "An error occurred while unrestricting the user. Please try again."
       );
     }
+  };
+
+  // AI Analysis handlers
+  const handleAnalyzePost = async (postId) => {
+    try {
+      setAnalyzingPost(postId);
+      const response = await analyzePost(postId);
+      console.log("Analysis response:", response.data);
+      
+      // Check if response has error
+      const analysisData = response.data;
+      if (analysisData && analysisData.error) {
+        console.error("AI analysis error:", analysisData.error);
+        showNotification("error", "Analysis Failed", analysisData.error || "Failed to analyze the post. Please check AI service configuration.");
+        setAnalyzingPost(null);
+        return;
+      }
+      
+      // Ensure summary is in correct format
+      if (analysisData && !analysisData.summary) {
+        // If summary is missing, set empty object structure
+        analysisData.summary = {
+          english: "",
+          vietnamese: ""
+        };
+      } else if (analysisData && typeof analysisData.summary === 'string') {
+        // Convert string summary to object format
+        const summaryStr = analysisData.summary.trim();
+        if (!summaryStr) {
+          // If summary is empty string, set empty object
+          analysisData.summary = {
+            english: "",
+            vietnamese: ""
+          };
+        } else {
+          // If summary has content, use it as English summary
+          analysisData.summary = {
+            english: summaryStr,
+            vietnamese: ""
+          };
+        }
+      } else if (analysisData && analysisData.summary && typeof analysisData.summary === 'object') {
+        // Ensure both english and vietnamese exist
+        if (!analysisData.summary.english) analysisData.summary.english = "";
+        if (!analysisData.summary.vietnamese) analysisData.summary.vietnamese = "";
+      }
+      
+      setPostAnalysis(prev => ({
+        ...prev,
+        [postId]: analysisData
+      }));
+      showNotification("success", "Analysis Complete", "AI analysis has been completed successfully.");
+    } catch (error) {
+      console.error("Error analyzing post:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error message:", error.message);
+      showNotification("error", "Analysis Failed", error.response?.data?.error || error.response?.data?.message || "Failed to analyze the post. Please try again.");
+    } finally {
+      setAnalyzingPost(null);
+    }
+  };
+
+
+  // Helper function to highlight inappropriate words in content
+  const renderContentWithHighlights = (content, analysis) => {
+    if (!content) return null;
+    
+    if (!analysis || !analysis.has_inappropriate_content || !analysis.inappropriate_words || analysis.inappropriate_words.length === 0) {
+      return renderContent(content);
+    }
+
+    // Create array of segments (normal text and highlighted text)
+    const segments = [];
+    let lastIndex = 0;
+    
+    // Sort inappropriate words by start_index
+    const sortedWords = [...analysis.inappropriate_words].sort((a, b) => 
+      (a.start_index || 0) - (b.start_index || 0)
+    );
+
+    sortedWords.forEach((word) => {
+      const start = word.start_index || 0;
+      const end = word.end_index || content.length;
+      
+      // Add text before highlighted part
+      if (start > lastIndex) {
+        segments.push({
+          text: content.substring(lastIndex, start),
+          isHighlighted: false
+        });
+      }
+      
+      // Add highlighted part
+      segments.push({
+        text: content.substring(start, end),
+        isHighlighted: true,
+        type: word.type
+      });
+      
+      lastIndex = end;
+    });
+
+    // Add remaining text
+    if (lastIndex < content.length) {
+      segments.push({
+        text: content.substring(lastIndex),
+        isHighlighted: false
+      });
+    }
+
+    // Render segments with markdown parsing
+    return (
+      <div>
+        {segments.map((segment, idx) => {
+          if (segment.isHighlighted) {
+            // Parse markdown for highlighted segment
+            let html = segment.text;
+            try {
+              html = marked.parse(segment.text, {
+                breaks: true,
+                gfm: true
+              });
+            } catch (e) {
+              // If markdown parsing fails, use plain text
+            }
+            return (
+              <mark
+                key={idx}
+                style={{
+                  backgroundColor: '#ffcccc',
+                  color: '#cc0000',
+                  fontWeight: 'bold',
+                  padding: '2px 4px',
+                  borderRadius: '3px',
+                  textDecoration: 'underline',
+                  textDecorationColor: '#cc0000'
+                }}
+                title={`Inappropriate content: ${segment.type}`}
+                dangerouslySetInnerHTML={{ __html: html }}
+              />
+            );
+          } else {
+            // Parse markdown for normal segment
+            try {
+              const html = marked.parse(segment.text, {
+                breaks: true,
+                gfm: true
+              });
+              return <span key={idx} dangerouslySetInnerHTML={{ __html: html }} />;
+            } catch (error) {
+              return <span key={idx}>{segment.text}</span>;
+            }
+          }
+        })}
+      </div>
+    );
   };
 
   const renderContent = (content) => {
@@ -778,7 +942,7 @@ export default function ModeratorDashboard() {
             <div className="post-actions">
               <button 
                 className="btn btn-primary"
-                onClick={() => handleViewPost(post)}
+                onClick={() => handleViewPost(post, true)}
               >
                 <Eye size={16} />
                 View Detail
@@ -790,7 +954,7 @@ export default function ModeratorDashboard() {
                 <Check size={16} />
                 Accept
               </button>
-              <button 
+                <button 
                 className="btn btn-danger"
                 onClick={() => handleOpenRejectPopup(post.postId || post.id)}
               >
@@ -1174,20 +1338,22 @@ export default function ModeratorDashboard() {
               </button>
             </div>
             <form onSubmit={editingTag ? handleEditTag : handleCreateTag}>
-              <div className="form-group">
-                <label>Tag Name</label>
-                <input
-                  type="text"
-                  value={tagName}
-                  onChange={(e) => setTagName(e.target.value)}
-                  placeholder="Enter tag name"
-                  required
-                />
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Tag Name</label>
+                  <input
+                    type="text"
+                    value={tagName}
+                    onChange={(e) => setTagName(e.target.value)}
+                    placeholder="Enter tag name"
+                    required
+                  />
+                </div>
+                {tagError && (
+                  <div className="error-message">{tagError}</div>
+                )}
               </div>
-              {tagError && (
-                <div className="error-message">{tagError}</div>
-              )}
-              <div className="modal-actions">
+              <div className="modal-footer">
                 <button type="button" onClick={closeModal} className="btn-secondary">
                   Cancel
                 </button>
@@ -1227,7 +1393,7 @@ export default function ModeratorDashboard() {
   );
 
   return (
-    <>
+    <div className="moderator-dashboard">
       <AppLayout 
         title="Moderator Dashboard" 
         sidebar={<ModeratorNavbar currentView={currentView} onViewChange={setCurrentView} />}
@@ -1248,12 +1414,14 @@ export default function ModeratorDashboard() {
           <div className="modal-content">
             <div className="modal-header">
               <h2>{selectedPost.title}</h2>
-              <button 
-                className="close-btn"
-                onClick={() => setShowPostDetail(false)}
-              >
-                <XCircle size={20} />
-              </button>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button 
+                  className="close-btn"
+                  onClick={() => setShowPostDetail(false)}
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
             </div>
             
             <div className="modal-body">
@@ -1289,7 +1457,10 @@ export default function ModeratorDashboard() {
                 fontSize: '16px',
                 color: '#333'
               }}>
-                {renderContent(selectedPost.content)}
+                {postAnalysis[selectedPost.postId || selectedPost.id] 
+                  ? renderContentWithHighlights(selectedPost.content, postAnalysis[selectedPost.postId || selectedPost.id])
+                  : renderContent(selectedPost.content)
+                }
               </div>
 
               {selectedPost.reportReason && (
@@ -1307,34 +1478,207 @@ export default function ModeratorDashboard() {
                   postOwnerId={selectedPost.user?.userId}
                 />
               </div>
+
+              {/* AI Analysis Section - At the end of modal body */}
+              {postAnalysis[selectedPost.postId || selectedPost.id] && (
+                <div style={{ 
+                  marginTop: '30px', 
+                  padding: '20px', 
+                  background: '#f8f9fa', 
+                  borderRadius: '8px', 
+                  border: '1px solid #dee2e6' 
+                }}>
+                  <h4 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', color: '#212529' }}>
+                    <Sparkles size={20} color="#007bff" />
+                    AI Analysis
+                  </h4>
+                  
+                  {/* Meaningfulness Check */}
+                  {postAnalysis[selectedPost.postId || selectedPost.id].is_meaningful !== undefined && (
+                    <div style={{ 
+                      marginBottom: '15px', 
+                      padding: '12px', 
+                      background: postAnalysis[selectedPost.postId || selectedPost.id].is_meaningful ? '#d4edda' : '#f8d7da',
+                      borderRadius: '6px', 
+                      border: `1px solid ${postAnalysis[selectedPost.postId || selectedPost.id].is_meaningful ? '#28a745' : '#dc3545'}`,
+                      color: postAnalysis[selectedPost.postId || selectedPost.id].is_meaningful ? '#155724' : '#721c24'
+                    }}>
+                      <strong style={{ display: 'block', marginBottom: '5px' }}>
+                        {postAnalysis[selectedPost.postId || selectedPost.id].is_meaningful ? '✓ Content is Meaningful' : '⚠ Content May Not Be Meaningful'}
+                      </strong>
+                      {postAnalysis[selectedPost.postId || selectedPost.id].meaningfulness_reason && (
+                        <p style={{ margin: 0, fontSize: '14px' }}>
+                          {postAnalysis[selectedPost.postId || selectedPost.id].meaningfulness_reason}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Error Display */}
+                  {postAnalysis[selectedPost.postId || selectedPost.id].error && (
+                    <div style={{ 
+                      marginBottom: '15px', 
+                      padding: '12px', 
+                      background: '#f8d7da', 
+                      borderRadius: '6px', 
+                      border: '1px solid #dc3545',
+                      color: '#721c24'
+                    }}>
+                      <strong style={{ display: 'block', marginBottom: '5px' }}>⚠ Error:</strong>
+                      <p style={{ margin: 0, fontSize: '14px' }}>
+                        {postAnalysis[selectedPost.postId || selectedPost.id].error}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Bilingual Summary */}
+                  {!postAnalysis[selectedPost.postId || selectedPost.id].error && (
+                    <div style={{ marginBottom: '15px' }}>
+                      <strong style={{ color: '#495057', display: 'block', marginBottom: '10px' }}>Summary:</strong>
+                      {postAnalysis[selectedPost.postId || selectedPost.id].summary ? (
+                        typeof postAnalysis[selectedPost.postId || selectedPost.id].summary === 'object' ? (
+                          <>
+                            {(postAnalysis[selectedPost.postId || selectedPost.id].summary.english && postAnalysis[selectedPost.postId || selectedPost.id].summary.english.trim()) || (postAnalysis[selectedPost.postId || selectedPost.id].summary.vietnamese && postAnalysis[selectedPost.postId || selectedPost.id].summary.vietnamese.trim()) ? (
+                              <>
+                                {postAnalysis[selectedPost.postId || selectedPost.id].summary.english && postAnalysis[selectedPost.postId || selectedPost.id].summary.english.trim() && (
+                                  <div style={{ marginBottom: '12px' }}>
+                                    <strong style={{ color: '#495057', display: 'block', marginBottom: '5px', fontSize: '14px' }}>English:</strong>
+                                    <p style={{ margin: 0, color: '#495057', lineHeight: '1.6', fontSize: '14px' }}>
+                                      {postAnalysis[selectedPost.postId || selectedPost.id].summary.english}
+                                    </p>
+                                  </div>
+                                )}
+                                {postAnalysis[selectedPost.postId || selectedPost.id].summary.vietnamese && postAnalysis[selectedPost.postId || selectedPost.id].summary.vietnamese.trim() && (
+                                  <div>
+                                    <strong style={{ color: '#495057', display: 'block', marginBottom: '5px', fontSize: '14px' }}>Tiếng Việt:</strong>
+                                    <p style={{ margin: 0, color: '#495057', lineHeight: '1.6', fontSize: '14px' }}>
+                                      {postAnalysis[selectedPost.postId || selectedPost.id].summary.vietnamese}
+                                    </p>
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <p style={{ margin: 0, color: '#6c757d', fontStyle: 'italic' }}>No summary available</p>
+                            )}
+                          </>
+                        ) : (
+                          postAnalysis[selectedPost.postId || selectedPost.id].summary.trim() ? (
+                            <p style={{ margin: 0, color: '#495057', lineHeight: '1.6' }}>
+                              {postAnalysis[selectedPost.postId || selectedPost.id].summary}
+                            </p>
+                          ) : (
+                            <p style={{ margin: 0, color: '#6c757d', fontStyle: 'italic' }}>No summary available</p>
+                          )
+                        )
+                      ) : (
+                        <p style={{ margin: 0, color: '#6c757d', fontStyle: 'italic' }}>No summary available</p>
+                      )}
+                    </div>
+                  )}
+                  {postAnalysis[selectedPost.postId || selectedPost.id].has_inappropriate_content && (
+                    <div style={{ 
+                      marginTop: '15px', 
+                      padding: '15px', 
+                      background: '#fff3cd', 
+                      borderRadius: '6px', 
+                      border: '1px solid #ffc107' 
+                    }}>
+                      <strong style={{ color: '#cc0000', display: 'block', marginBottom: '10px' }}>
+                        ⚠ Inappropriate Content Detected
+                      </strong>
+                      <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#856404' }}>
+                        Found {postAnalysis[selectedPost.postId || selectedPost.id].inappropriate_words?.length || 0} inappropriate word(s). Details below:
+                      </p>
+                      {postAnalysis[selectedPost.postId || selectedPost.id].inappropriate_words && 
+                       postAnalysis[selectedPost.postId || selectedPost.id].inappropriate_words.length > 0 && (
+                        <div style={{ marginTop: '10px' }}>
+                          <ul style={{ margin: 0, paddingLeft: '20px', color: '#856404' }}>
+                            {postAnalysis[selectedPost.postId || selectedPost.id].inappropriate_words.map((word, idx) => (
+                              <li key={idx} style={{ marginBottom: '5px' }}>
+                                <strong>"{word.text || word.excerpt || 'Unknown'}"</strong>
+                                {word.type && <span style={{ marginLeft: '8px', fontSize: '12px' }}>({word.type})</span>}
+                                {word.explanation && <div style={{ fontSize: '12px', marginTop: '3px', color: '#6c757d' }}>{word.explanation}</div>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <p style={{ margin: '10px 0 0 0', fontSize: '13px', color: '#856404', fontStyle: 'italic' }}>
+                        Inappropriate words are highlighted in red in the content above.
+                      </p>
+                    </div>
+                  )}
+                  {!postAnalysis[selectedPost.postId || selectedPost.id].has_inappropriate_content && (
+                    <div style={{ 
+                      marginTop: '15px', 
+                      padding: '10px', 
+                      background: '#d4edda', 
+                      borderRadius: '6px', 
+                      border: '1px solid #28a745',
+                      color: '#155724'
+                    }}>
+                      ✓ No inappropriate content detected. Content appears to be appropriate.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="modal-footer">
-              {selectedPost.status === "pending" ? (
-                <>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {(selectedPost.status === "pending" || selectedPost.reportReason || currentView === "pending") && (
                   <button 
-                    className="btn btn-success"
-                    onClick={() => handleAcceptPost(selectedPost.id)}
+                    className="btn btn-info"
+                    onClick={() => handleAnalyzePost(selectedPost.postId || selectedPost.id)}
+                    disabled={analyzingPost === (selectedPost.postId || selectedPost.id)}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      padding: '8px 16px'
+                    }}
                   >
-                    <CheckCircle size={16} />
-                    Accept
+                    {analyzingPost === (selectedPost.postId || selectedPost.id) ? (
+                      <>
+                        <Loader size={16} className="spinning" style={{ animation: 'spin 1s linear infinite' }} />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        AI Analyze
+                      </>
+                    )}
                   </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {selectedPost.status === "pending" ? (
+                  <>
+                    <button 
+                      className="btn btn-success"
+                      onClick={() => handleAcceptPost(selectedPost.id)}
+                    >
+                      <CheckCircle size={16} />
+                      Accept
+                    </button>
+                    <button 
+                      className="btn btn-danger"
+                      onClick={() => handleOpenRejectPopup(selectedPost.id)}
+                    >
+                      <XCircle size={16} />
+                      Reject
+                    </button>
+                  </>
+                ) : (
                   <button 
-                    className="btn btn-danger"
-                    onClick={() => handleOpenRejectPopup(selectedPost.id)}
+                    className="btn btn-primary"
+                    onClick={() => setShowPostDetail(false)}
                   >
-                    <XCircle size={16} />
-                    Reject
+                    Close
                   </button>
-                </>
-              ) : (
-                <button 
-                  className="btn btn-primary"
-                  onClick={() => setShowPostDetail(false)}
-                >
-                  Close
-                </button>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1346,12 +1690,14 @@ export default function ModeratorDashboard() {
           <div className="modal-content">
             <div className="modal-header">
               <h2>Reported Comment</h2>
-              <button 
-                className="close-btn"
-                onClick={() => setShowCommentDetail(false)}
-              >
-                <XCircle size={20} />
-              </button>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button 
+                  className="close-btn"
+                  onClick={() => setShowCommentDetail(false)}
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
             </div>
             
             <div className="modal-body">
@@ -1381,7 +1727,7 @@ export default function ModeratorDashboard() {
                 whiteSpace: 'pre-wrap',
                 wordWrap: 'break-word'
               }}>
-                {selectedComment.content}
+                {renderContent(selectedComment.content)}
               </div>
 
               {selectedComment.reportReason && (
@@ -1399,32 +1745,34 @@ export default function ModeratorDashboard() {
             </div>
 
             <div className="modal-footer">
-              <button 
-                className="btn btn-success"
-                onClick={() => {
-                  handleApproveReport(selectedComment.reportId);
-                  setShowCommentDetail(false);
-                }}
-              >
-                <Check size={16} />
-                Approve & Delete
-              </button>
-              <button 
-                className="btn btn-secondary"
-                onClick={() => {
-                  handleDismissReport(selectedComment.reportId);
-                  setShowCommentDetail(false);
-                }}
-              >
-                <X size={16} />
-                Dismiss
-              </button>
-              <button 
-                className="btn btn-primary"
-                onClick={() => setShowCommentDetail(false)}
-              >
-                Close
-              </button>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button 
+                  className="btn btn-success"
+                  onClick={() => {
+                    handleApproveReport(selectedComment.reportId);
+                    setShowCommentDetail(false);
+                  }}
+                >
+                  <Check size={16} />
+                  Approve & Delete
+                </button>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    handleDismissReport(selectedComment.reportId);
+                    setShowCommentDetail(false);
+                  }}
+                >
+                  <X size={16} />
+                  Dismiss
+                </button>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => setShowCommentDetail(false)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1447,6 +1795,6 @@ export default function ModeratorDashboard() {
         onConfirm={handleRejectPost}
         title="Reject Post"
       />
-    </>
+    </div>
   );
 }

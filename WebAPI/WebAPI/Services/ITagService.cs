@@ -4,12 +4,12 @@ namespace WebAPI.Services
 {
     public interface ITagService
     {
-        Task<List<TagDTO>> GetAllTagsAsync();
-        Task<TagDTO?> GetTagByIdAsync(int id);
-        Task<TagDTO?> GetTagByNameAsync(string tagName);
-        Task<List<TagDTO>> SearchTagsAsync(string query);
-        Task<TagDTO> CreateTagAsync(CreateTagDTO dto);
-        Task<TagDTO?> UpdateTagAsync(int id, UpdateTagDTO dto);
-        Task<bool> DeleteTagAsync(int id);
+        List<TagDTO> GetAllTags();
+        TagDTO? GetTagById(int id);
+        TagDTO? GetTagByName(string tagName);
+        List<TagDTO> SearchTags(string query);
+        TagDTO CreateTag(CreateTagDTO dto);
+        TagDTO? UpdateTag(int id, UpdateTagDTO dto);
+        bool DeleteTag(int id);
     }
 }

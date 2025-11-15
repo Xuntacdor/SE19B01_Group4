@@ -1,10 +1,11 @@
 /* Moderator Dashboard - Using AppLayout */
 /* Scope moderator-main to avoid margin-left override */
+/* Remove overflow to prevent double scrollbar - use parent .app-main scrollbar instead */
 .app-main .moderator-main,
 .app-shell .app-main .moderator-main {
   flex: 1;
   padding: 20px 30px;
-  overflow-y: auto;
+  overflow: visible;
   background: #f8fafc;
   min-height: 100vh;
   box-sizing: border-box;
@@ -12,6 +13,18 @@
   margin-right: 0;
   margin-top: 0;
   margin-bottom: 0;
+}
+
+/* Prevent double scrollbar */
+.moderator-content {
+  overflow: visible;
+  width: 100%;
+  padding-bottom: 40px; /* Add space at the bottom */
+}
+
+.posts-list {
+  overflow: visible;
+  margin-bottom: 40px; /* Add space after last post */
 }
 
 .page-title {
@@ -94,6 +107,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-bottom: 40px; /* Add space after last post */
 }
 
 .post-card {
@@ -377,15 +391,25 @@
 }
 
 .users-section .users-table th {
-  background: linear-gradient(135deg, #8D931F 0%, #7A8019 100%);
+  background: #2563EB;
   font-weight: 600;
   color: white;
   font-size: 16px;
   text-align: center;
 }
 
+.users-section .users-table th:first-child {
+  text-align: left;
+}
+
 .users-table td {
   text-align: center;
+}
+
+.users-table td:first-child {
+  text-align: left;
+  width: auto;
+  min-width: 200px;
 }
 
 .users-table .user-info {
@@ -395,6 +419,21 @@
   text-align: center;
   gap: 8px;
   flex-direction: row;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.users-table td:first-child .user-info {
+  justify-content: flex-start;
+  text-align: left;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
 }
 
 .users-table .user-info > div {
@@ -402,6 +441,19 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.users-table td:first-child .user-info > div {
+  align-items: flex-start;
+  text-align: left;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
 }
 
 .username {
@@ -409,12 +461,28 @@
   color: #1a1a1a;
   font-size: 16px;
   text-align: center;
+  text-decoration: none;
+  border-bottom: none;
+}
+
+.users-table td:first-child .username {
+  text-align: left;
+  text-decoration: none;
+  border-bottom: none;
 }
 
 .email {
   font-size: 14px;
   color: #6c757d;
   text-align: center;
+  text-decoration: none;
+  border-bottom: none;
+}
+
+.users-table td:first-child .email {
+  text-align: left;
+  text-decoration: none;
+  border-bottom: none;
 }
 
 .approved {
@@ -441,7 +509,7 @@
 .users-table .btn-action {
   padding: 6px 12px;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -463,6 +531,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-bottom: 40px; /* Add space after last post */
 }
 
 .post-card {
@@ -554,7 +623,7 @@
   gap: 6px;
   padding: 8px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -563,11 +632,11 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  background-color: #2563EB;
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 25px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 600;
@@ -575,77 +644,47 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #ee5a24 0%, #ff6b6b 100%);
+  background-color: #1E40AF;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
 }
 
 .btn-primary:active {
   transform: translateY(0);
-  box-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
 }
 
 /* Special styling for Create Tag button */
 .tag-header .btn-primary {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
+  background-color: #2563EB;
+  border: none;
 }
 
 .tag-header .btn-primary::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transition: left 0.6s;
-}
-
-.tag-header .btn-primary:hover::before {
-  left: 100%;
+  display: none;
 }
 
 .tag-header .btn-primary:hover {
-  background: linear-gradient(135deg, #ee5a24 0%, #ff6b6b 100%);
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
-  border-color: rgba(255, 255, 255, 0.6);
+  background-color: #1E40AF;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
 }
 
-/* Pulse animation for Create Tag button */
-@keyframes pulse {
-  0% {
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-  }
-  50% {
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.6), 0 0 0 10px rgba(255, 107, 107, 0.1);
-  }
-  100% {
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-  }
-}
-
-.tag-header .btn-primary {
-  animation: pulse 2s infinite;
-}
-
-.tag-header .btn-primary:hover {
-  animation: none;
-}
 
 .btn-success {
   background: #28a745;
   color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-success:hover {
@@ -655,6 +694,11 @@
 .btn-danger {
   background: #dc3545;
   color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-danger:hover {
@@ -677,11 +721,11 @@
   overflow: hidden;
 }
 
-.moderator-dashboard .modal-content {
+.moderator-dashboard .modal-overlay .modal-content {
   background: white;
   border-radius: 16px;
-  max-width: 1400px;
   width: 70%;
+  max-width: 1400px;
   max-height: 90vh;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -699,6 +743,20 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* AI Analysis Loading Animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
 }
 
 .moderator-dashboard .modal-header {
@@ -767,8 +825,8 @@
   background: #555;
 }
 
-/* Post detail styles inside modal - scoped under moderator-dashboard .modal-content */
-.moderator-dashboard .modal-content .post-title-detail {
+/* Post detail styles inside modal - scoped under moderator-dashboard .modal-overlay .modal-content */
+.moderator-dashboard .modal-overlay .modal-content .post-title-detail {
   margin-top: 0;
   margin-bottom: 24px;
   padding: 32px 40px;
@@ -777,7 +835,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.moderator-dashboard .modal-content .post-title-detail h3 {
+.moderator-dashboard .modal-overlay .modal-content .post-title-detail h3 {
   font-size: 32px;
   font-weight: 700;
   color: #212529;
@@ -786,7 +844,7 @@
   max-width: 100%;
 }
 
-.moderator-dashboard .modal-content .post-meta {
+.moderator-dashboard .modal-overlay .modal-content .post-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 24px;
@@ -798,9 +856,9 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.moderator-dashboard .modal-content .post-author,
-.moderator-dashboard .modal-content .post-time,
-.moderator-dashboard .modal-content .post-stats {
+.moderator-dashboard .modal-overlay .modal-content .post-author,
+.moderator-dashboard .modal-overlay .modal-content .post-time,
+.moderator-dashboard .modal-overlay .modal-content .post-stats {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -812,7 +870,7 @@
   justify-content: flex-start;
 }
 
-.moderator-dashboard .modal-content .post-content-full {
+.moderator-dashboard .modal-overlay .modal-content .post-content-full {
   margin-top: 20px;
   padding: 40px 48px;
   background: white;
@@ -824,11 +882,11 @@
   max-width: 100%;
 }
 
-.moderator-dashboard .modal-content .post-content-full p {
+.moderator-dashboard .modal-overlay .modal-content .post-content-full p {
   margin-bottom: 16px;
 }
 
-.moderator-dashboard .modal-content .post-content-full img {
+.moderator-dashboard .modal-overlay .modal-content .post-content-full img {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
@@ -837,7 +895,7 @@
   display: block;
 }
 
-.moderator-dashboard .modal-content .post-content-full code {
+.moderator-dashboard .modal-overlay .modal-content .post-content-full code {
   background: #f8f9fa;
   padding: 2px 6px;
   border-radius: 4px;
@@ -845,7 +903,7 @@
   font-size: 14px;
 }
 
-.moderator-dashboard .modal-content .post-tags-detail {
+.moderator-dashboard .modal-overlay .modal-content .post-tags-detail {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -857,7 +915,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.moderator-dashboard .modal-content .post-tag-detail {
+.moderator-dashboard .modal-overlay .modal-content .post-tag-detail {
   padding: 8px 16px;
   background: white;
   color: #333;
@@ -868,12 +926,12 @@
   transition: transform 0.2s ease;
 }
 
-.moderator-dashboard .modal-content .post-tag-detail:hover {
+.moderator-dashboard .modal-overlay .modal-content .post-tag-detail:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.moderator-dashboard .modal-content .report-info {
+.moderator-dashboard .modal-overlay .modal-content .report-info {
   margin-top: 24px;
   padding: 28px 36px;
   background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
@@ -882,14 +940,14 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.moderator-dashboard .modal-content .report-info h4 {
+.moderator-dashboard .modal-overlay .modal-content .report-info h4 {
   margin: 0 0 16px 0;
   color: #721c24;
   font-size: 18px;
   font-weight: 600;
 }
 
-.moderator-dashboard .modal-content .report-info p {
+.moderator-dashboard .modal-overlay .modal-content .report-info p {
   margin: 0;
   color: #721c24;
   font-size: 15px;
@@ -1027,7 +1085,8 @@
 
 .moderator-dashboard .modal-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 16px;
   padding: 28px 48px;
   border-top: 2px solid #e9ecef;
@@ -1108,7 +1167,7 @@
 .btn-action {
   padding: 8px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -1199,10 +1258,10 @@
     font-size: 14px;
   }
   
-  .moderator-dashboard .modal-content {
+  .moderator-dashboard .modal-overlay .modal-content {
     margin: 10px;
-    max-width: 1400px;
     width: 70%;
+    max-width: 1400px;
     max-height: 90vh;
   }
   
@@ -1277,7 +1336,7 @@
 .btn-edit, .btn-delete {
   padding: 8px;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -1334,17 +1393,7 @@
   padding: 20px;
 }
 
-.moderator-dashboard .modal-content {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  width: 70%;
-  max-width: 1400px;
-  max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+/* Duplicate removed - using definition at line 680 */
 
 .moderator-dashboard .modal-header {
   display: flex;
@@ -1411,39 +1460,59 @@
   margin-top: 20px;
 }
 
-.moderator-dashboard .modal-content form {
-  overflow-y: auto;
-  overflow-x: hidden;
+.moderator-dashboard .modal-overlay .modal-content form {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
-  max-height: calc(90vh - 150px);
-  padding-right: 8px;
+  overflow: hidden;
 }
 
-.moderator-dashboard .modal-content form::-webkit-scrollbar {
+.moderator-dashboard .modal-overlay .modal-content form .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 40px 48px;
+  background: white;
+  min-height: 0;
+}
+
+.moderator-dashboard .modal-overlay .modal-content form .modal-body::-webkit-scrollbar {
   width: 8px;
 }
 
-.moderator-dashboard .modal-content form::-webkit-scrollbar-track {
+.moderator-dashboard .modal-overlay .modal-content form .modal-body::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
-.moderator-dashboard .modal-content form::-webkit-scrollbar-thumb {
+.moderator-dashboard .modal-overlay .modal-content form .modal-body::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
 }
 
-.moderator-dashboard .modal-content form::-webkit-scrollbar-thumb:hover {
+.moderator-dashboard .modal-overlay .modal-content form .modal-body::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+.moderator-dashboard .modal-overlay .modal-content form .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 48px;
+  border-top: 2px solid #e9ecef;
+  background: white;
+  flex-shrink: 0;
+}
+
 
 .btn-secondary {
   background: #6c757d;
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s ease;
 }
@@ -1469,7 +1538,7 @@
   }
 
   /* Modal responsive */
-  .moderator-dashboard .modal-content {
+  .moderator-dashboard .modal-overlay .modal-content {
     width: 70%;
     max-width: 1400px;
     max-height: 95vh;
@@ -1488,25 +1557,25 @@
     max-height: 70vh;
   }
 
-  .moderator-dashboard .modal-content .post-title-detail {
+  .moderator-dashboard .modal-overlay .modal-content .post-title-detail {
     padding: 20px;
   }
 
-  .moderator-dashboard .modal-content .post-title-detail h3 {
+  .moderator-dashboard .modal-overlay .modal-content .post-title-detail h3 {
     font-size: 22px;
   }
 
-  .moderator-dashboard .modal-content .post-meta {
+  .moderator-dashboard .modal-overlay .modal-content .post-meta {
     padding: 16px 20px;
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .moderator-dashboard .modal-content .post-content-full {
+  .moderator-dashboard .modal-overlay .modal-content .post-content-full {
     padding: 20px;
   }
 
-  .moderator-dashboard .modal-content .post-tags-detail {
+  .moderator-dashboard .modal-overlay .modal-content .post-tags-detail {
     padding: 16px 20px;
   }
 
