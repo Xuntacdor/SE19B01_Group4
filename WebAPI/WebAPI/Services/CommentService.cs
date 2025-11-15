@@ -318,7 +318,7 @@ namespace WebAPI.Services
                     var notification = new Notification
                     {
                         UserId = commentAuthorUserId,
-                        Content = $"Your comment has been deleted because it violated community guidelines. If you has beed reported more than 3 times, your account will be not allowed to comment or post on forum. Please contact the moderator if you think this is a mistake.",
+                        Content = $"Your comment has been deleted because it violated community guidelines. If you have been reported more than 3 times, your account will not be allowed to comment or post on forum. Please contact the moderator if you think this is a mistake.",
                         Type = "comment_deleted",
                         IsRead = false,
                         CreatedAt = DateTime.UtcNow

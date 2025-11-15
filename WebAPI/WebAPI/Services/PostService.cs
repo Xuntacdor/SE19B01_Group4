@@ -1215,11 +1215,11 @@ namespace WebAPI.Services
             post.Status = "approved";
             post.RejectionReason = null; // Clear rejection reason if any
 
-            // Tạo notification cho user
+            // Create notification for user
             var notification = new Notification
             {
                 UserId = post.UserId,
-                Content = $"Bài viết '{post.Title}' của bạn đã được duyệt và hiển thị công khai.",
+                Content = $"Your post '{post.Title}' has been approved and is now publicly visible.",
                 Type = "post_approved",
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow,
@@ -1238,11 +1238,11 @@ namespace WebAPI.Services
             post.Status = "rejected";
             post.RejectionReason = reason;
 
-            // Tạo notification cho user
+            // Create notification for user
             var notification = new Notification
             {
                 UserId = post.UserId,
-                Content = $"Bài viết '{post.Title}' của bạn đã bị từ chối. Lý do: {reason}",
+                Content = $"Your post '{post.Title}' has been rejected. Reason: {reason}",
                 Type = "post_rejected",
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow,
