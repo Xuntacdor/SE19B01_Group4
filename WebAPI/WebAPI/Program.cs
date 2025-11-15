@@ -295,11 +295,11 @@ app.UseCookiePolicy();
 app.UseSession();
 
 // Authentication & Authorization
-app.UseAuthentication();
-app.UseAuthorization();
+
 
 // Explicit routing - IMPORTANT for production
 app.UseRouting();
 app.MapControllers();
-
+app.UseAuthentication();
+app.UseAuthorization();
 app.Run();
