@@ -183,7 +183,7 @@ const Login = () => {
           role: params.get("role") || "user" 
         };
         localStorage.setItem("user", JSON.stringify(user));
-        const routes = { admin: "/admin/dashboard", moderator: "/moderator/dashboard" };
+        const routes = { admin: "/admin/users", moderator: "/moderator/dashboard" };
         navigate(routes[user.role] || "/home");
       }
     }, [navigate, mode]);
@@ -533,7 +533,7 @@ const Login = () => {
             const user = res.data;
             localStorage.setItem("user", JSON.stringify(user));
             const routes = {
-              admin: "/admin/dashboard",
+              admin: "/admin/users",
               moderator: "/moderator/dashboard"
             };
             navigate(routes[user.role] || "/home");
