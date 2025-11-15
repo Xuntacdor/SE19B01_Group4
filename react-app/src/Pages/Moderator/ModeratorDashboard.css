@@ -1,10 +1,11 @@
 /* Moderator Dashboard - Using AppLayout */
 /* Scope moderator-main to avoid margin-left override */
+/* Remove overflow to prevent double scrollbar - use parent .app-main scrollbar instead */
 .app-main .moderator-main,
 .app-shell .app-main .moderator-main {
   flex: 1;
   padding: 20px 30px;
-  overflow-y: auto;
+  overflow: visible;
   background: #f8fafc;
   min-height: 100vh;
   box-sizing: border-box;
@@ -12,6 +13,18 @@
   margin-right: 0;
   margin-top: 0;
   margin-bottom: 0;
+}
+
+/* Prevent double scrollbar */
+.moderator-content {
+  overflow: visible;
+  width: 100%;
+  padding-bottom: 40px; /* Add space at the bottom */
+}
+
+.posts-list {
+  overflow: visible;
+  margin-bottom: 40px; /* Add space after last post */
 }
 
 .page-title {
@@ -94,6 +107,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-bottom: 40px; /* Add space after last post */
 }
 
 .post-card {
@@ -463,6 +477,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-bottom: 40px; /* Add space after last post */
 }
 
 .post-card {
@@ -677,11 +692,11 @@
   overflow: hidden;
 }
 
-.moderator-dashboard .modal-content {
+.moderator-dashboard .modal-overlay .modal-content {
   background: white;
   border-radius: 16px;
-  max-width: 1400px;
   width: 70%;
+  max-width: 1400px;
   max-height: 90vh;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -699,6 +714,20 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* AI Analysis Loading Animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
 }
 
 .moderator-dashboard .modal-header {
@@ -767,8 +796,8 @@
   background: #555;
 }
 
-/* Post detail styles inside modal - scoped under moderator-dashboard .modal-content */
-.moderator-dashboard .modal-content .post-title-detail {
+/* Post detail styles inside modal - scoped under moderator-dashboard .modal-overlay .modal-content */
+.moderator-dashboard .modal-overlay .modal-content .post-title-detail {
   margin-top: 0;
   margin-bottom: 24px;
   padding: 32px 40px;
@@ -777,7 +806,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.moderator-dashboard .modal-content .post-title-detail h3 {
+.moderator-dashboard .modal-overlay .modal-content .post-title-detail h3 {
   font-size: 32px;
   font-weight: 700;
   color: #212529;
@@ -786,7 +815,7 @@
   max-width: 100%;
 }
 
-.moderator-dashboard .modal-content .post-meta {
+.moderator-dashboard .modal-overlay .modal-content .post-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 24px;
@@ -798,9 +827,9 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.moderator-dashboard .modal-content .post-author,
-.moderator-dashboard .modal-content .post-time,
-.moderator-dashboard .modal-content .post-stats {
+.moderator-dashboard .modal-overlay .modal-content .post-author,
+.moderator-dashboard .modal-overlay .modal-content .post-time,
+.moderator-dashboard .modal-overlay .modal-content .post-stats {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -812,7 +841,7 @@
   justify-content: flex-start;
 }
 
-.moderator-dashboard .modal-content .post-content-full {
+.moderator-dashboard .modal-overlay .modal-content .post-content-full {
   margin-top: 20px;
   padding: 40px 48px;
   background: white;
@@ -824,11 +853,11 @@
   max-width: 100%;
 }
 
-.moderator-dashboard .modal-content .post-content-full p {
+.moderator-dashboard .modal-overlay .modal-content .post-content-full p {
   margin-bottom: 16px;
 }
 
-.moderator-dashboard .modal-content .post-content-full img {
+.moderator-dashboard .modal-overlay .modal-content .post-content-full img {
   max-width: 100%;
   height: auto;
   border-radius: 8px;
@@ -837,7 +866,7 @@
   display: block;
 }
 
-.moderator-dashboard .modal-content .post-content-full code {
+.moderator-dashboard .modal-overlay .modal-content .post-content-full code {
   background: #f8f9fa;
   padding: 2px 6px;
   border-radius: 4px;
@@ -845,7 +874,7 @@
   font-size: 14px;
 }
 
-.moderator-dashboard .modal-content .post-tags-detail {
+.moderator-dashboard .modal-overlay .modal-content .post-tags-detail {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -857,7 +886,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.moderator-dashboard .modal-content .post-tag-detail {
+.moderator-dashboard .modal-overlay .modal-content .post-tag-detail {
   padding: 8px 16px;
   background: white;
   color: #333;
@@ -868,12 +897,12 @@
   transition: transform 0.2s ease;
 }
 
-.moderator-dashboard .modal-content .post-tag-detail:hover {
+.moderator-dashboard .modal-overlay .modal-content .post-tag-detail:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.moderator-dashboard .modal-content .report-info {
+.moderator-dashboard .modal-overlay .modal-content .report-info {
   margin-top: 24px;
   padding: 28px 36px;
   background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
@@ -882,14 +911,14 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.moderator-dashboard .modal-content .report-info h4 {
+.moderator-dashboard .modal-overlay .modal-content .report-info h4 {
   margin: 0 0 16px 0;
   color: #721c24;
   font-size: 18px;
   font-weight: 600;
 }
 
-.moderator-dashboard .modal-content .report-info p {
+.moderator-dashboard .modal-overlay .modal-content .report-info p {
   margin: 0;
   color: #721c24;
   font-size: 15px;
@@ -1027,7 +1056,8 @@
 
 .moderator-dashboard .modal-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 16px;
   padding: 28px 48px;
   border-top: 2px solid #e9ecef;
@@ -1199,10 +1229,10 @@
     font-size: 14px;
   }
   
-  .moderator-dashboard .modal-content {
+  .moderator-dashboard .modal-overlay .modal-content {
     margin: 10px;
-    max-width: 1400px;
     width: 70%;
+    max-width: 1400px;
     max-height: 90vh;
   }
   
@@ -1334,17 +1364,7 @@
   padding: 20px;
 }
 
-.moderator-dashboard .modal-content {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  width: 70%;
-  max-width: 1400px;
-  max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+/* Duplicate removed - using definition at line 680 */
 
 .moderator-dashboard .modal-header {
   display: flex;
@@ -1411,7 +1431,7 @@
   margin-top: 20px;
 }
 
-.moderator-dashboard .modal-content form {
+.moderator-dashboard .modal-overlay .modal-content form {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
@@ -1420,21 +1440,21 @@
   padding-right: 8px;
 }
 
-.moderator-dashboard .modal-content form::-webkit-scrollbar {
+.moderator-dashboard .modal-overlay .modal-content form::-webkit-scrollbar {
   width: 8px;
 }
 
-.moderator-dashboard .modal-content form::-webkit-scrollbar-track {
+.moderator-dashboard .modal-overlay .modal-content form::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
-.moderator-dashboard .modal-content form::-webkit-scrollbar-thumb {
+.moderator-dashboard .modal-overlay .modal-content form::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
 }
 
-.moderator-dashboard .modal-content form::-webkit-scrollbar-thumb:hover {
+.moderator-dashboard .modal-overlay .modal-content form::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
 
@@ -1469,7 +1489,7 @@
   }
 
   /* Modal responsive */
-  .moderator-dashboard .modal-content {
+  .moderator-dashboard .modal-overlay .modal-content {
     width: 70%;
     max-width: 1400px;
     max-height: 95vh;
@@ -1488,25 +1508,25 @@
     max-height: 70vh;
   }
 
-  .moderator-dashboard .modal-content .post-title-detail {
+  .moderator-dashboard .modal-overlay .modal-content .post-title-detail {
     padding: 20px;
   }
 
-  .moderator-dashboard .modal-content .post-title-detail h3 {
+  .moderator-dashboard .modal-overlay .modal-content .post-title-detail h3 {
     font-size: 22px;
   }
 
-  .moderator-dashboard .modal-content .post-meta {
+  .moderator-dashboard .modal-overlay .modal-content .post-meta {
     padding: 16px 20px;
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .moderator-dashboard .modal-content .post-content-full {
+  .moderator-dashboard .modal-overlay .modal-content .post-content-full {
     padding: 20px;
   }
 
-  .moderator-dashboard .modal-content .post-tags-detail {
+  .moderator-dashboard .modal-overlay .modal-content .post-tags-detail {
     padding: 16px 20px;
   }
 
