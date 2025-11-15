@@ -4,9 +4,11 @@ using System.Threading;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using WebAPI.Controllers;
 using WebAPI.DTOs;
+using WebAPI.ExternalServices;
 using WebAPI.Services;
 using Xunit;
 
@@ -17,6 +19,8 @@ namespace WebAPI.Tests.Unit.Controller
         private readonly Mock<IPostService> _postService;
         private readonly Mock<IUserService> _userService;
         private readonly Mock<ICommentService> _commentService;
+        private readonly Mock<IOpenAIService> _openAIService;
+        private readonly Mock<ILogger<ModeratorController>> _logger;
         private readonly ModeratorController _controller;
 
         public ModeratorControllerTests()
@@ -24,7 +28,9 @@ namespace WebAPI.Tests.Unit.Controller
             _postService = new Mock<IPostService>();
             _userService = new Mock<IUserService>();
             _commentService = new Mock<ICommentService>();
-            _controller = new ModeratorController(_postService.Object, _userService.Object, _commentService.Object);
+            _openAIService = new Mock<IOpenAIService>();
+            _logger = new Mock<ILogger<ModeratorController>>();
+            _controller = new ModeratorController(_postService.Object, _userService.Object, _commentService.Object, _openAIService.Object, _logger.Object);
             ClearSession();
         }
 

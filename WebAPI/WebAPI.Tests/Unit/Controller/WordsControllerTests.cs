@@ -8,18 +8,21 @@ using WebAPI.Controllers;
 using WebAPI.Services;
 using WebAPI.Models;
 using WebAPI.DTOs;
+using WebAPI.ExternalServices;
 
 namespace WebAPI.Tests.Unit.Controllers
 {
     public class WordsControllerTests
     {
         private readonly Mock<IWordService> _serviceMock;
+        private readonly Mock<IOpenAIService> _openAIServiceMock;
         private readonly WordsController _controller;
 
         public WordsControllerTests()
         {
             _serviceMock = new Mock<IWordService>();
-            _controller = new WordsController(_serviceMock.Object);
+            _openAIServiceMock = new Mock<IOpenAIService>();
+            _controller = new WordsController(_serviceMock.Object, _openAIServiceMock.Object);
         }
 
         private static Word CreateWord(int id = 1, string term = "distort")

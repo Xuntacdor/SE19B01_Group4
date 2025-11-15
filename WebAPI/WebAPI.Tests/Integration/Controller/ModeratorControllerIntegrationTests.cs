@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -24,8 +25,10 @@ namespace WebAPI.Tests.Integration.Controller
             var mockOtpService = new Mock<IOtpService>();
             var userService = new UserService(userRepository, mockEmailService.Object, _context, mockOtpService.Object);
             var commentService = new CommentService(_context, userRepository);
+            var mockOpenAIService = new Mock<IOpenAIService>();
+            var mockLogger = new Mock<ILogger<ModeratorController>>();
 
-            var controller = new ModeratorController(postService, userService, commentService);
+            var controller = new ModeratorController(postService, userService, commentService, mockOpenAIService.Object, mockLogger.Object);
 
             if (userId.HasValue)
             {
