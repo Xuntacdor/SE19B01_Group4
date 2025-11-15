@@ -803,6 +803,13 @@ export default function ModeratorDashboard() {
         ticks: {
           font: {
             size: 12
+          },
+          stepSize: 1,
+          callback: function(value) {
+            if (Number.isInteger(value)) {
+              return value;
+            }
+            return '';
           }
         }
       }
