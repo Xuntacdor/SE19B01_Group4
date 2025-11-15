@@ -10,6 +10,7 @@ import useExamAttempts from "../../Hook/UseExamAttempts";
 import { isDaySubmitted } from "../../utils/date";
 import * as SpeakingApi from "../../Services/SpeakingApi";
 import * as WritingApi from "../../Services/WritingApi";
+import sadcloud from "../../Assets/sad_cloud.png";
 import {
   Book,
   Headphones,
@@ -24,13 +25,14 @@ import {
    Configs for stats display
 ================================ */
 import {
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from "recharts";
-
 export default function DashboardUser() {
   const navigate = useNavigate();
 
@@ -212,42 +214,43 @@ export default function DashboardUser() {
 
         {/* ===== Stats Section ===== */}
         <div className={styles.goalsWrapper}>
-         <div className={styles.statsSection}>
-  <h3 className={styles.sectionTitle}>Outcome Statistics</h3>
-  <p className={styles.chartSubtitle}>Band scores scaled on a 0–9 range</p>
+          <div className={styles.statsSection}>
+            <h3 className={styles.sectionTitle}>Outcome Statistics</h3>
+            <p className={styles.chartSubtitle}>Band scores scaled on a 0–9 range</p>
 
-  <div className={styles.chartContainer}>
-    <RadarChart
-      cx="50%"
-      cy="50%"
-      outerRadius="75%"
-      width={350}
-      height={300}
-      data={[
-        { skill: "Reading", value: stats.Reading ?? 0 },
-        { skill: "Listening", value: stats.Listening ?? 0 },
-        { skill: "Writing", value: stats.Writing ?? 0 },
-        { skill: "Speaking", value: stats.Speaking ?? 0 },
-        { skill: "Overall", value: stats.Overall ?? 0 },
-      ]}
-    >
-      <PolarGrid stroke="#ddd" />
-      <PolarAngleAxis dataKey="skill" tick={{ fill: "#333", fontSize: 13 }} />
-      <PolarRadiusAxis
-        angle={90}
-        domain={[0, 9]}
-        tick={{ fill: "#666", fontSize: 11 }}
-      />
+            <div className={styles.chartContainer}>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart
+                  data={[
+                    { skill: "Reading", value: stats.Reading ?? 0 },
+                    { skill: "Listening", value: stats.Listening ?? 0 },
+                    { skill: "Writing", value: stats.Writing ?? 0 },
+                    { skill: "Speaking", value: stats.Speaking ?? 0 },
+                    { skill: "Overall", value: stats.Overall ?? 0 },
+                  ]}
+                  margin={{ top: 10, right: 20, left: -10, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
+                  <XAxis
+                    dataKey="skill"
+                    tick={{ fill: "#333", fontSize: 12 }}
+                    interval={0}
+                  />
+                  <YAxis
+                    domain={[0, 9]}
+                    tick={{ fill: "#666", fontSize: 12 }}
+                  />
+                  <Tooltip />
+                  <Bar
+                    dataKey="value"
+                    fill="#4c8ffb"
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
-      <Radar
-        dataKey="value"
-        stroke="#4c8ffb"
-        fill="#4c8ffb"
-        fillOpacity={0.45}
-      />
-    </RadarChart>
-  </div>
-</div>
 
 
           {/* ===== Banner Section ===== */}
@@ -277,7 +280,7 @@ export default function DashboardUser() {
             <div className={styles.stateText}>Fetching AI feedback...</div>
           ) : !hasHistory ? (
             <NothingFound
-              imageSrc="/src/assets/sad_cloud.png"
+              imageSrc={sadcloud}
               title="No practice history"
               message="You have not done any exercises yet! Choose the appropriate form and practice now!"
               actionLabel="Do your homework now!"
@@ -379,52 +382,51 @@ export default function DashboardUser() {
               })()}
             </div>
           )}
-         {totalPages > 1 && (
-  <div className={styles.pagination}>
-    {(() => {
-      const pages = [];
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              {(() => {
+                const pages = [];
 
-      // Luôn căn 5 trang quanh currentPage
-      let start = currentPage - 2;
-      let end = currentPage + 2;
+                // Luôn căn 5 trang quanh currentPage
+                let start = currentPage - 2;
+                let end = currentPage + 2;
 
-      // Không cho nhỏ hơn 1
-      if (start < 1) {
-        end += 1 - start;
-        start = 1;
-      }
+                // Không cho nhỏ hơn 1
+                if (start < 1) {
+                  end += 1 - start;
+                  start = 1;
+                }
 
-      // Không cho lớn hơn totalPages
-      if (end > totalPages) {
-        start -= end - totalPages;
-        end = totalPages;
-      }
+                // Không cho lớn hơn totalPages
+                if (end > totalPages) {
+                  start -= end - totalPages;
+                  end = totalPages;
+                }
 
-      // Giữ đúng 5 trang
-      start = Math.max(1, start);
-      end = Math.min(totalPages, end);
+                // Giữ đúng 5 trang
+                start = Math.max(1, start);
+                end = Math.min(totalPages, end);
 
-      while (end - start < 4 && end < totalPages) end++;
-      while (end - start < 4 && start > 1) start--;
+                while (end - start < 4 && end < totalPages) end++;
+                while (end - start < 4 && start > 1) start--;
 
-      for (let p = start; p <= end; p++) {
-        pages.push(p);
-      }
+                for (let p = start; p <= end; p++) {
+                  pages.push(p);
+                }
 
-      return pages.map((page) => (
-        <button
-          key={page}
-          onClick={() => setCurrentPage(page)}
-          className={`${styles.pageButton} ${
-            currentPage === page ? styles.activePage : ""
-          }`}
-        >
-          {page}
-        </button>
-      ));
-    })()}
-  </div>
-)}
+                return pages.map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`${styles.pageButton} ${currentPage === page ? styles.activePage : ""
+                      }`}
+                  >
+                    {page}
+                  </button>
+                ));
+              })()}
+            </div>
+          )}
 
         </div>
       </div>
