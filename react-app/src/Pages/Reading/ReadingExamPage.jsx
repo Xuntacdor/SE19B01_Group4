@@ -41,7 +41,7 @@ export default function ReadingExamPage() {
   const [contextMenu, setContextMenu] = useState(null);
   const [pendingSelection, setPendingSelection] = useState(null);
   const passageContentRef = useRef(null);
-
+  const [useReadingLayout, setUseReadingLayout] = useState(false);
 
   // Countdown
   useEffect(() => {
@@ -179,23 +179,28 @@ export default function ReadingExamPage() {
 
     // Check if selection is within the passage content
     const passageElement = passageContentRef.current;
-    if (!passageElement || !passageElement.contains(range.commonAncestorContainer)) {
+    if (
+      !passageElement ||
+      !passageElement.contains(range.commonAncestorContainer)
+    ) {
       return;
     }
 
     // Check if selection is already inside a highlight
     let node = range.commonAncestorContainer;
     let highlightElement = null;
-    
+
     // Check if the selection is inside a highlighted element
     if (node.nodeType === Node.TEXT_NODE) {
       node = node.parentElement;
     }
-    
+
     while (node && node !== passageElement) {
-      if (node.nodeType === Node.ELEMENT_NODE && 
-          node.getAttribute && 
-          node.getAttribute("data-highlight-id")) {
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        node.getAttribute &&
+        node.getAttribute("data-highlight-id")
+      ) {
         highlightElement = node;
         break;
       }
@@ -216,7 +221,7 @@ export default function ReadingExamPage() {
 
     // Store the selection for highlighting later
     setPendingSelection({ text: selectedText });
-    
+
     // Show context menu with Highlight option
     setContextMenu({
       x: e.clientX || (e.touches && e.touches[0]?.clientX) || 0,
@@ -231,9 +236,11 @@ export default function ReadingExamPage() {
     if (!pendingSelection) return;
 
     const selectedText = pendingSelection.text;
-    
+
     // Create a unique ID for this highlight
-    const highlightId = `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const highlightId = `highlight-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
 
     // Store highlight data
     const highlightData = {
@@ -267,44 +274,50 @@ export default function ReadingExamPage() {
     if (!highlightsList || highlightsList.length === 0) return html;
 
     let processedHtml = html;
-    
+
     // Process each highlight - only highlight the first unhighlighted occurrence
     highlightsList.forEach((highlight) => {
       const textToHighlight = highlight.text.trim();
-      
+
       // Create a flexible regex that handles whitespace variations
       // Escape special regex characters
-      const escapedText = textToHighlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const escapedText = textToHighlight.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+      );
       // Replace all whitespace (spaces, newlines, tabs) with flexible whitespace matcher
-      const flexiblePattern = escapedText.replace(/\s+/g, '\\s+');
-      
+      const flexiblePattern = escapedText.replace(/\s+/g, "\\s+");
+
       // Try to find the text with flexible whitespace matching
       const regex = new RegExp(flexiblePattern, "gi");
       let match;
       let found = false;
-      
+
       while ((match = regex.exec(processedHtml)) !== null && !found) {
         const matchIndex = match.index;
         const beforeMatch = processedHtml.substring(0, matchIndex);
-        
+
         // Check if we're inside an HTML tag
-        const lastOpenTag = beforeMatch.lastIndexOf('<');
-        const lastCloseTag = beforeMatch.lastIndexOf('>');
+        const lastOpenTag = beforeMatch.lastIndexOf("<");
+        const lastCloseTag = beforeMatch.lastIndexOf(">");
         if (lastOpenTag > lastCloseTag) {
           continue; // Skip if inside a tag
         }
-        
+
         // Check if we're already inside a highlight span
-        const lastHighlightOpen = beforeMatch.lastIndexOf(`<span class="${styles.highlightedText}"`);
-        const lastHighlightClose = beforeMatch.lastIndexOf('</span>');
+        const lastHighlightOpen = beforeMatch.lastIndexOf(
+          `<span class="${styles.highlightedText}"`
+        );
+        const lastHighlightClose = beforeMatch.lastIndexOf("</span>");
         if (lastHighlightOpen > lastHighlightClose) {
           continue; // Skip if already highlighted
         }
-        
+
         // Found a valid position - apply highlight
         const before = processedHtml.substring(0, matchIndex);
         const after = processedHtml.substring(matchIndex + match[0].length);
-        processedHtml = before +
+        processedHtml =
+          before +
           `<span class="${styles.highlightedText}" data-highlight-id="${highlight.id}">${match[0]}</span>` +
           after;
         found = true;
@@ -357,7 +370,7 @@ export default function ReadingExamPage() {
       const timeoutId = setTimeout(() => {
         document.addEventListener("click", handleClickOutside);
       }, 100);
-      
+
       return () => {
         clearTimeout(timeoutId);
         document.removeEventListener("click", handleClickOutside);
@@ -431,7 +444,8 @@ export default function ReadingExamPage() {
               if (highlightElement) {
                 e.preventDefault();
                 e.stopPropagation();
-                const highlightId = highlightElement.getAttribute("data-highlight-id");
+                const highlightId =
+                  highlightElement.getAttribute("data-highlight-id");
                 if (highlightId) {
                   setContextMenu({
                     x: e.clientX,
@@ -490,8 +504,8 @@ export default function ReadingExamPage() {
           {(tasks || []).map((task, taskIndex) => {
             const count = getQuestionCount(task.readingQuestion);
             return (
-              <div 
-                key={task.readingId} 
+              <div
+                key={task.readingId}
                 className={styles.navSection}
                 onClick={() => {
                   setCurrentTask(taskIndex);
@@ -551,7 +565,9 @@ export default function ReadingExamPage() {
             highlightMode ? styles.highlightButtonActive : ""
           }`}
           onClick={toggleHighlightMode}
-          title={highlightMode ? "Disable Highlight Mode" : "Enable Highlight Mode"}
+          title={
+            highlightMode ? "Disable Highlight Mode" : "Enable Highlight Mode"
+          }
         >
           <Highlighter size={18} style={{ marginRight: "6px" }} />
           {highlightMode ? "Highlighting" : "Highlight"}
@@ -577,10 +593,7 @@ export default function ReadingExamPage() {
           onClick={(e) => e.stopPropagation()}
         >
           {contextMenu.type === "new" ? (
-            <button
-              className={styles.contextMenuItem}
-              onClick={applyHighlight}
-            >
+            <button className={styles.contextMenuItem} onClick={applyHighlight}>
               <Pencil size={16} className={styles.contextMenuIcon} />
               Highlight
             </button>
