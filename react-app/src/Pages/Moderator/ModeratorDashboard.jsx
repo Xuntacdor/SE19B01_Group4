@@ -196,127 +196,81 @@ export default function ModeratorDashboard() {
     }
   }, [searchQuery, selectedTag]);
 
-  const loadDashboardData = async () => {
-    try {
-      // Load dashboard stats
-      const statsResponse = await ModeratorApi.getModeratorStats();
-      setStats({
-        total: statsResponse.data.totalPosts,
-        pending: statsResponse.data.pendingPosts,
-        reported: statsResponse.data.reportedComments,
-        rejected: statsResponse.data.rejectedPosts
+  const loadDashboardData = () => {
+    // Load dashboard stats
+    ModeratorApi.getModeratorStats()
+      .then((statsResponse) => {
+        setStats({
+          total: statsResponse.data.totalPosts,
+          pending: statsResponse.data.pendingPosts,
+          reported: statsResponse.data.reportedComments,
+          rejected: statsResponse.data.rejectedPosts
+        });
+      })
+      .catch((error) => {
+        console.error("Error loading stats:", error);
+        setStats({
+          total: 150,
+          pending: 8,
+          reported: 12,
+          rejected: 5
+        });
       });
 
-      // Load chart data
-      const currentYear = new Date().getFullYear();
-      const chartResponse = await ModeratorApi.getPostsChartData(selectedMonth, currentYear);
-      setChartData(chartResponse.data);
-
-      // Load users data
-      const usersResponse = await ModeratorApi.getUsers();
-      setUsers(usersResponse.data);
-
-      // Load pending posts
-      const pendingResponse = await ModeratorApi.getPendingPosts();
-      setPendingPosts(pendingResponse.data);
-
-      // Load reported comments  
-      const reportedResponse = await ModeratorApi.getReportedComments();
-      setReportedComments(reportedResponse.data);
-
-      // Load rejected posts
-      const rejectedResponse = await ModeratorApi.getRejectedPosts();
-      setRejectedPosts(rejectedResponse.data);
-
-    } catch (error) {
-      console.error("Error loading dashboard data:", error);
-      // Fallback to mock data if API fails
-      setStats({
-        total: 150,
-        pending: 8,
-        reported: 12,
-        rejected: 5
+    // Load chart data
+    const currentYear = new Date().getFullYear();
+    ModeratorApi.getPostsChartData(selectedMonth, currentYear)
+      .then((chartResponse) => {
+        setChartData(chartResponse.data);
+      })
+      .catch((error) => {
+        console.error("Error loading chart data:", error);
+        setChartData([
+          { label: "1/12", value: 5 },
+          { label: "2/12", value: 8 },
+          { label: "3/12", value: 12 },
+          { label: "4/12", value: 6 },
+          { label: "5/12", value: 15 },
+          { label: "6/12", value: 9 },
+          { label: "7/12", value: 11 }
+        ]);
       });
 
-      // Fallback chart data
-      setChartData([
-        { label: "1/12", value: 5 },
-        { label: "2/12", value: 8 },
-        { label: "3/12", value: 12 },
-        { label: "4/12", value: 6 },
-        { label: "5/12", value: 15 },
-        { label: "6/12", value: 9 },
-        { label: "7/12", value: 11 }
-      ]);
+    // Load users data
+    ModeratorApi.getUsers()
+      .then((usersResponse) => {
+        setUsers(usersResponse.data);
+      })
+      .catch((error) => {
+        console.error("Error loading users:", error);
+      });
 
-      // Fallback users data
-      setUsers([
-        {
-          userId: 1,
-          username: "john_doe",
-          email: "john@example.com",
-          totalPosts: 25,
-          totalComments: 45,
-          approvedPosts: 20,
-          rejectedPosts: 3,
-          reportedComments: 2
-        },
-        {
-          userId: 2,
-          username: "jane_smith",
-          email: "jane@example.com",
-          totalPosts: 18,
-          totalComments: 32,
-          approvedPosts: 15,
-          rejectedPosts: 2,
-          reportedComments: 1
-        },
-        {
-          userId: 3,
-          username: "mike_wilson",
-          email: "mike@example.com",
-          totalPosts: 12,
-          totalComments: 28,
-          approvedPosts: 10,
-          rejectedPosts: 1,
-          reportedComments: 1
-        }
-      ]);
+    // Load pending posts
+    ModeratorApi.getPendingPosts()
+      .then((pendingResponse) => {
+        setPendingPosts(pendingResponse.data);
+      })
+      .catch((error) => {
+        console.error("Error loading pending posts:", error);
+      });
 
-      // Fallback posts data
-      setPendingPosts([
-        {
-          postId: 1,
-          id: 1,
-          title: "IELTS Reading Tips for Beginners",
-          content: "Here are some useful tips for IELTS reading...",
-          author: "john_doe",
-          createdAt: "2024-12-07T10:30:00Z",
-          status: "pending"
-        },
-        {
-          postId: 2,
-          id: 2,
-          title: "How to Improve Writing Task 2",
-          content: "I want to share my experience with writing task 2...",
-          author: "jane_smith",
-          createdAt: "2024-12-07T09:15:00Z",
-          status: "pending"
-        }
-      ]);
+    // Load reported comments
+    ModeratorApi.getReportedComments()
+      .then((reportedResponse) => {
+        setReportedComments(reportedResponse.data);
+      })
+      .catch((error) => {
+        console.error("Error loading reported comments:", error);
+      });
 
-      setReportedComments([
-        {
-          commentId: 3,
-          content: "This is a spam comment...",
-          author: "spam_user",
-          createdAt: "2024-12-06T14:20:00Z",
-          postTitle: "Sample Post Title",
-          reportReason: "Spam content",
-          reportCount: 3
-        }
-      ]);
-    }
+    // Load rejected posts
+    ModeratorApi.getRejectedPosts()
+      .then((rejectedResponse) => {
+        setRejectedPosts(rejectedResponse.data);
+      })
+      .catch((error) => {
+        console.error("Error loading rejected posts:", error);
+      });
   };
 
   const loadAllPosts = async () => {
@@ -419,6 +373,15 @@ export default function ModeratorDashboard() {
       // Update local state
       setPendingPosts(prev => prev.filter(post => (post.postId || post.id) !== postToReject));
       setStats(prev => ({ ...prev, pending: prev.pending - 1, rejected: prev.rejected + 1 }));
+      
+      // Reload rejected posts to show the newly rejected post immediately
+      try {
+        const rejectedResponse = await ModeratorApi.getRejectedPosts();
+        setRejectedPosts(rejectedResponse.data);
+      } catch (error) {
+        console.error("Error loading rejected posts:", error);
+      }
+      
       setShowPostDetail(false);
       setShowRejectionPopup(false);
       setPostToReject(null);
@@ -794,6 +757,13 @@ export default function ModeratorDashboard() {
         ticks: {
           font: {
             size: 12
+          },
+          stepSize: 1,
+          callback: function(value) {
+            if (Number.isInteger(value)) {
+              return value;
+            }
+            return '';
           }
         }
       }

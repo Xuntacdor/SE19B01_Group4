@@ -24,16 +24,22 @@ export default function HeaderBar({ title }) {
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
 
-  // Check if user is admin or moderator and not currently on their respective dashboard
+  // Check if user is admin or moderator
   const isAdmin = user && user.role === 'admin';
-  const isModerator = user && (user.role === 'moderator' || user.role === 'admin');
-  const isOnAdminDashboard = location.pathname.startsWith('/admin/dashboard');
+  const isModerator = user && user.role === 'moderator';
   const isOnModeratorDashboard = location.pathname.startsWith('/moderator/dashboard');
+  const isOnAdminPage = location.pathname.startsWith('/admin/');
   
-  // Show Dashboard option for admin when not on admin dashboard
-  const showAdminDashboard = isAdmin && !isOnAdminDashboard;
-  // Show Dashboard option for moderator when not on moderator dashboard (but allow admin to see it too when not on admin dashboard)
-  const showModeratorDashboard = isModerator && !isOnModeratorDashboard && !isOnAdminDashboard;
+  // Show Dashboard option for admin when:
+  // 1. Not on admin pages (Users, Exams, Transactions, etc.)
+  // This allows admin to navigate back to User Management from Home/Profile
+  const showAdminDashboard = isAdmin && !isOnAdminPage;
+  
+  // Show Dashboard option for moderator when:
+  // 1. Not on moderator dashboard
+  // 2. Not on admin pages
+  // This allows moderator to navigate back to moderator dashboard from Home/Profile
+  const showModeratorDashboard = isModerator && !isOnModeratorDashboard && !isOnAdminPage;
 
   const goToProfile = () => {
     navigate("/profile");
@@ -184,7 +190,7 @@ export default function HeaderBar({ title }) {
                       <div
                         className={styles.dropdownItem}
                         onClick={() => {
-                          navigate("/admin/dashboard");
+                          navigate("/admin/users");
                           setIsDropdownOpen(false);
                         }}
                       >

@@ -41,30 +41,34 @@ export default function RejectionReasonPopup({
       onClose={handleClose}
     >
       <form className="rejection-reason-popup-content" onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="rejection-reason">Enter rejection reason:</label>
-          <textarea
-            id="rejection-reason"
-            className="rejection-input"
-            value={reason}
-            onChange={(e) => {
-              setReason(e.target.value);
-              setError("");
-            }}
-            placeholder="Please explain why this post is being rejected..."
-            rows={5}
-            required
-          />
-          {error && <div className="error-message">{error}</div>}
+        <div className="rejection-popup-body">
+          <div className="form-group">
+            <label htmlFor="rejection-reason">Enter rejection reason:</label>
+            <textarea
+              id="rejection-reason"
+              className="rejection-input"
+              value={reason}
+              onChange={(e) => {
+                setReason(e.target.value);
+                setError("");
+              }}
+              placeholder="Please explain why this post is being rejected..."
+              rows={5}
+              required
+            />
+            {error && <div className="error-message">{error}</div>}
+          </div>
         </div>
 
-        <div className="rejection-actions">
-          <button type="button" className="btn-cancel" onClick={handleClose}>
-            Cancel
-          </button>
-          <button type="submit" className="btn-confirm danger">
-            Reject Post
-          </button>
+        <div className="rejection-popup-footer">
+          <div className="rejection-actions">
+            <button type="button" className="btn-cancel" onClick={handleClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-confirm danger">
+              Reject Post
+            </button>
+          </div>
         </div>
       </form>
     </PopupBase>
