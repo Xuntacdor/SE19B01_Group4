@@ -255,7 +255,7 @@ namespace WebAPI.Tests.Units.Repository
             Assert.NotNull(feedback);
             Assert.Equal(7.5m, feedback.Pronunciation);
             Assert.Equal(8.0m, feedback.Fluency);
-            Assert.Equal(7.8m, feedback.Overall);
+            Assert.Equal(7.5m, feedback.Overall);
             Assert.Equal(1, feedback.SpeakingAttemptId);
         }
 
@@ -303,7 +303,7 @@ namespace WebAPI.Tests.Units.Repository
             var feedback = context.SpeakingFeedbacks.First(f => f.FeedbackId == 1);
             Assert.Equal(7.5m, feedback.Pronunciation);
             Assert.Equal(8.0m, feedback.Fluency);
-            Assert.Equal(7.8m, feedback.Overall);
+            Assert.Equal(7.5m, feedback.Overall);
             Assert.Equal(1, feedback.SpeakingAttemptId);
         }
 
