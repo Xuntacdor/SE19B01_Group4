@@ -46,7 +46,8 @@ namespace WebAPI.Services
                 Firstname = dto.Firstname,
                 Lastname = dto.Lastname,
                 Role = "user",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Avatar = "https://res.cloudinary.com/dutxxv0ow/image/upload/v1762135195/ieltsphobic/images/blob_emodva.png"
             };
 
             _repo.Add(user);
