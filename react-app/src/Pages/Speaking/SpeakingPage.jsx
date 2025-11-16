@@ -12,7 +12,7 @@ import styles from "./SpeakingPage.module.css";
 import SearchBar from "../../Components/Common/SearchBar";
 
 import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
-
+import sadCloud from "../../assets/sad_cloud.png";
 export default function SpeakingPage() {
   const navigate = useNavigate();
 
@@ -150,7 +150,7 @@ export default function SpeakingPage() {
               ) : (
                 <div className={styles.centerWrapper}>
                   <NothingFound
-                    imageSrc="/src/assets/sad_cloud.png"
+                    imageSrc={sadCloud}
                     title="No speaking exams found"
                     message="Try adjusting your search keywords."
                   />

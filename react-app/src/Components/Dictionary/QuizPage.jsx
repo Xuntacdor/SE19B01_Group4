@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "./QuizPage.module.css";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Sparkles, SkipForward } from "lucide-react";
 
 export default function QuizPage({ groupWords, onBack }) {
   const initialOrder = useMemo(
@@ -135,16 +135,22 @@ const handleSkip = () => {
 
   return (
     <div className={styles.quizContainer}>
-      <h2 className={styles.question}>{question}</h2>
+      {/* Question Section */}
+      <div className={styles.questionSection}>
+        <h2 className={styles.question}>{question}</h2>
+      </div>
 
+      {/* Reveal Button */}
       <button
         className={styles.revealBtn}
         onClick={handleRevealMeaning}
         disabled={!!selected || revealing || showMeaningRevealed}
       >
+        <Sparkles size={18} />
         Reveal meaning
       </button>
 
+      {/* Options Grid */}
       <ul className={styles.optionsGrid}>
         {options.map((opt, idx) => {
           const isCorrect = selected && opt === answer;
@@ -165,32 +171,31 @@ const handleSkip = () => {
                 onClick={() => handleAnswer(opt)}
                 disabled={!!selected || revealing || showMeaningRevealed}
               >
-                {opt}
+                <span className={styles.optionText}>{opt}</span>
                 {selected &&
                   (isCorrect ? (
-                    <CheckCircle className={styles.icon} color="#4ade80" />
+                    <CheckCircle className={styles.icon} size={24} />
                   ) : isWrong ? (
-                    <XCircle className={styles.icon} color="#f87171" />
+                    <XCircle className={styles.icon} size={24} />
                   ) : null)}
+                {isRevealed && <CheckCircle className={styles.icon} size={24} />}
               </button>
             </li>
           );
         })}
       </ul>
 
+      {/* Action Buttons */}
       <div className={styles.actionButtons}>
         <button
           className={styles.skipBtn}
           onClick={handleSkip}
           disabled={!!selected || revealing || showMeaningRevealed}
         >
+          <SkipForward size={18} />
           Skip this word
         </button>
       </div>
-
-      <p className={styles.meta}>
-        Question {Math.min(questionNumber, total)} of {total}
-      </p>
     </div>
   );
 }

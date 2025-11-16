@@ -10,7 +10,7 @@ import NothingFound from "../../Components/Nothing/NothingFound";
 import { Sparkles } from "lucide-react";
 import styles from "./WritingPage.module.css";
 import SearchBar from "../../Components/Common/SearchBar"; // ✅ import SearchBar
-
+import sadCloud from "../../assets/sad_cloud.png";
 export default function WritingPage() {
   const navigate = useNavigate();
 
@@ -134,7 +134,7 @@ export default function WritingPage() {
               ) : (
                 <div className={styles.centerWrapper}>
                   <NothingFound
-                    imageSrc="/src/assets/sad_cloud.png"
+                    imageSrc= {sadCloud}
                     title="No writing exams found"
                     message="Try adjusting your search keywords."
                   />

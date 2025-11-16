@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import FormInput from "../../Components/Auth/InputField";
 import PasswordInputField from "../../Components/Auth/PasswordInputField";
 import Button from "../../Components/Auth/Button";
-import google from "../../assets/google.png";
 import "./Login.css";
 import { login, register, forgotPassword } from "../../Services/AuthApi";
 
@@ -174,18 +173,6 @@ const Login = () => {
       setInvalidFields(new Set());
       }
 
-      // Handle OAuth login success
-      const loginSuccess = params.get("login");
-      if (loginSuccess === "success" && params.get("email")) {
-        const user = { 
-          email: params.get("email"), 
-          username: params.get("username"), 
-          role: params.get("role") || "user" 
-        };
-        localStorage.setItem("user", JSON.stringify(user));
-        const routes = { admin: "/admin/users", moderator: "/moderator/dashboard" };
-        navigate(routes[user.role] || "/home");
-      }
     }, [navigate, mode]);
 
     // Sync container class with mode changes and clear popups
@@ -325,6 +312,13 @@ const Login = () => {
       setInvalidFields(new Set());
       setShowPasswordGuide(false);
       setShowEmailGuide(false);
+      
+      // Update URL to reflect the mode change
+      if (newMode === "login") {
+        navigate("/login", { replace: true });
+      } else {
+        navigate(`/login?mode=${newMode}`, { replace: true });
+      }
     };
 
     // Check password requirements
@@ -415,9 +409,18 @@ const Login = () => {
       if (showPasswordGuide && passwordInputRef.current && mode === "register") {
         const updatePosition = () => {
           const rect = passwordInputRef.current.getBoundingClientRect();
+          const popupWidth = 300; // Approximate popup width
+          const gap = 12;
+          let leftPosition = rect.left - popupWidth - gap;
+          
+          // Prevent going off-screen on the left
+          if (leftPosition < 10) {
+            leftPosition = 10;
+          }
+          
           setPopupPosition({
-            top: rect.bottom + 8,
-            left: rect.left
+            top: rect.top,
+            left: leftPosition
           });
         };
         
@@ -437,9 +440,18 @@ const Login = () => {
       if (showEmailGuide && emailInputRef.current) {
         const updatePosition = () => {
           const rect = emailInputRef.current.getBoundingClientRect();
+          const popupWidth = 300; // Approximate popup width
+          const gap = 12;
+          let leftPosition = rect.left - popupWidth - gap;
+          
+          // Prevent going off-screen on the left
+          if (leftPosition < 10) {
+            leftPosition = 10;
+          }
+          
           setEmailPopupPosition({
-            top: rect.bottom + 8,
-            left: rect.left
+            top: rect.top,
+            left: leftPosition
           });
         };
         
@@ -570,15 +582,6 @@ const Login = () => {
           <div className="form-container sign-up-container">
             <form onSubmit={handleSubmit} className="animated-form" noValidate>
               <h1>Create Account</h1>
-              <div className="social-container">
-                <button
-                  type="button"
-                  className="social google-btn"
-                >
-                  <img src={google} alt="Google" className="social-img" />
-                </button>
-              </div>
-              <span>or use your email for registration</span>
               
               {error && mode === "register" && <ErrorMessage message={error} icon={getErrorIcon(error)} />}
               {success && mode === "register" && <SuccessMessage message={success} />}
@@ -647,6 +650,14 @@ const Login = () => {
                   onBlur={handleBlur}
                   title="Please confirm your password"
                 />
+                {form.confirmPassword && 
+                 form.password && 
+                 form.password !== form.confirmPassword && (
+                  <div className="password-mismatch">
+                    <AlertCircle size={16} />
+                    <span>Passwords do not match</span>
+                  </div>
+                )}
               </div>
 
               <div className="button-wrapper">
@@ -672,15 +683,6 @@ const Login = () => {
               ) : (
                 <>
                   <h1>Sign in</h1>
-                  <div className="social-container">
-                    <button
-                      type="button"
-                      className="social google-btn"
-                    >
-                      <img src={google} alt="Google" className="social-img" />
-                    </button>
-                  </div>
-                  <span>or use your account</span>
                 </>
               )}
               

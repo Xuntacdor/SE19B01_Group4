@@ -10,7 +10,7 @@ import styles from "./ReadingExamPage.module.css";
 // ---------- Markdown config for the PASSAGE ----------
 marked.setOptions({
   gfm: true,
-  breaks: true, // single newlines -> <br>
+  breaks: true,
   mangle: false,
   headerIds: false,
 });
@@ -18,12 +18,108 @@ marked.setOptions({
 // Remove [H*id]...[/H] wrappers and render full Markdown (so headings, lists, breaks work)
 function passageMarkdownToHtml(raw) {
   if (!raw) return "";
-  const cleaned = String(raw).replace(
-    /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
-    (_match, _id, inner) => inner // keep inner text; drop the wrapper entirely
-  );
+    const cleaned = String(raw).replace(
+      /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
+      (_match, _id, inner) => inner
+    );
   return marked.parse(cleaned);
 }
+
+// ----------------- DOM Range serialization helpers -----------------
+/**
+ * Get path of a node relative to root, as array of child indexes.
+ */
+function getNodePath(root, node) {
+  const path = [];
+  let cur = node;
+  while (cur && cur !== root) {
+    const parent = cur.parentNode;
+    if (!parent) break;
+    let idx = 0;
+    for (let i = 0; i < parent.childNodes.length; i++) {
+      if (parent.childNodes[i] === cur) {
+        idx = i;
+        break;
+      }
+    }
+    path.unshift(idx);
+    cur = parent;
+  }
+  return path;
+}
+
+/**
+ * Get node from root using path (array of child indexes).
+ */
+function getNodeFromPath(root, path) {
+  let node = root;
+  for (let i = 0; i < path.length; i++) {
+    if (!node || !node.childNodes) return null;
+    const idx = path[i];
+    node = node.childNodes[idx];
+    if (!node) return null;
+  }
+  return node;
+}
+
+/**
+ * Serialize a Range into an object referencing node paths and offsets.
+ */
+function serializeRange(root, range) {
+  return {
+    startPath: getNodePath(root, range.startContainer),
+    startOffset: range.startOffset,
+    endPath: getNodePath(root, range.endContainer),
+    endOffset: range.endOffset,
+  };
+}
+
+/**
+ * Restore a Range from serialized data relative to root.
+ */
+function restoreRange(root, serialized) {
+  try {
+    const startNode = getNodeFromPath(root, serialized.startPath);
+    const endNode = getNodeFromPath(root, serialized.endPath);
+    if (!startNode || !endNode) return null;
+    const r = document.createRange();
+
+    // Normalize offsets to node type
+    const startMax =
+      startNode.nodeType === Node.TEXT_NODE
+        ? startNode.nodeValue.length
+        : startNode.childNodes.length;
+    const endMax =
+      endNode.nodeType === Node.TEXT_NODE
+        ? endNode.nodeValue.length
+        : endNode.childNodes.length;
+
+    r.setStart(startNode, Math.min(serialized.startOffset, startMax));
+    r.setEnd(endNode, Math.min(serialized.endOffset, endMax));
+    return r;
+  } catch (err) {
+    console.error("restoreRange failed", err);
+    return null;
+  }
+}
+
+/**
+ * Compare two node-path arrays lexicographically to compute order in the DOM.
+ * Returns -1, 0, 1
+ */
+function comparePaths(a, b) {
+  const la = a.length;
+  const lb = b.length;
+  const l = Math.max(la, lb);
+  for (let i = 0; i < l; i++) {
+    const va = a[i] ?? -1;
+    const vb = b[i] ?? -1;
+    if (va < vb) return -1;
+    if (va > vb) return 1;
+  }
+  return 0;
+}
+// ----------------- End helpers -----------------
 
 export default function ReadingExamPage() {
   const { state } = useLocation();
@@ -36,12 +132,20 @@ export default function ReadingExamPage() {
   const [timeLeft, setTimeLeft] = useState(duration ? duration * 60 : 0);
   const [answers, setAnswers] = useState({});
   const formRef = useRef(null);
+
   const [highlightMode, setHighlightMode] = useState(false);
+
+  /**
+   * highlights: array of {
+   *   id: string,
+   *   serializedRange: { startPath, startOffset, endPath, endOffset },
+   *   text: string
+   * }
+   */
   const [highlights, setHighlights] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
   const [pendingSelection, setPendingSelection] = useState(null);
   const passageContentRef = useRef(null);
-  const [useReadingLayout, setUseReadingLayout] = useState(false);
 
   // Countdown
   useEffect(() => {
@@ -160,12 +264,16 @@ export default function ReadingExamPage() {
     return numMarkers ? numMarkers.length : 0;
   };
 
-  // Highlight functionality
+  // Toggle highlight mode
   const toggleHighlightMode = () => {
     setHighlightMode((prev) => !prev);
     setContextMenu(null);
+    setPendingSelection(null);
+    const sel = window.getSelection();
+    if (sel) sel.removeAllRanges();
   };
 
+  // Handle selection (mouse-only)
   const handleTextSelection = (e) => {
     if (!highlightMode) return;
 
@@ -173,29 +281,18 @@ export default function ReadingExamPage() {
     if (!selection || selection.rangeCount === 0) return;
 
     const range = selection.getRangeAt(0);
-    const selectedText = selection.toString().trim();
+    if (range.collapsed) return;
 
-    if (!selectedText) return;
-
-    // Check if selection is within the passage content
-    const passageElement = passageContentRef.current;
-    if (
-      !passageElement ||
-      !passageElement.contains(range.commonAncestorContainer)
-    ) {
+    const passageRoot = passageContentRef.current;
+    if (!passageRoot || !passageRoot.contains(range.commonAncestorContainer)) {
       return;
     }
 
-    // Check if selection is already inside a highlight
+    // If selection intersects an existing highlight, show clear menu
     let node = range.commonAncestorContainer;
+    if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
     let highlightElement = null;
-
-    // Check if the selection is inside a highlighted element
-    if (node.nodeType === Node.TEXT_NODE) {
-      node = node.parentElement;
-    }
-
-    while (node && node !== passageElement) {
+    while (node && node !== passageRoot) {
       if (
         node.nodeType === Node.ELEMENT_NODE &&
         node.getAttribute &&
@@ -204,161 +301,245 @@ export default function ReadingExamPage() {
         highlightElement = node;
         break;
       }
-      node = node.parentElement || node.parentNode;
+      node = node.parentNode;
     }
 
-    // If already highlighted, show clear option
     if (highlightElement) {
       const highlightId = highlightElement.getAttribute("data-highlight-id");
       setContextMenu({
-        x: e.clientX || (e.touches && e.touches[0]?.clientX) || 0,
-        y: e.clientY || (e.touches && e.touches[0]?.clientY) || 0,
-        highlightId: highlightId,
+        x: e.clientX,
+        y: e.clientY,
+        highlightId,
         type: "existing",
       });
+      selection.removeAllRanges();
       return;
     }
 
-    // Store the selection for highlighting later
-    setPendingSelection({ text: selectedText });
+    // New selection: serialize range & store pending selection
+    try {
+      const serialized = serializeRange(passageRoot, range);
+      const text = selection.toString().trim();
 
-    // Show context menu with Highlight option
-    setContextMenu({
-      x: e.clientX || (e.touches && e.touches[0]?.clientX) || 0,
-      y: e.clientY || (e.touches && e.touches[0]?.clientY) || 0,
-      type: "new",
-    });
+      setPendingSelection({
+        serializedRange: serialized,
+        text,
+      });
 
-    // Don't clear selection yet - keep it visible
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        type: "new",
+      });
+    } catch (err) {
+      console.error("Selection serialization failed", err);
+    }
   };
 
+  // Apply highlight from pendingSelection
   const applyHighlight = () => {
     if (!pendingSelection) return;
+    const passageRoot = passageContentRef.current;
+    if (!passageRoot) return;
 
-    const selectedText = pendingSelection.text;
-
-    // Create a unique ID for this highlight
     const highlightId = `highlight-${Date.now()}-${Math.random()
       .toString(36)
       .substr(2, 9)}`;
 
-    // Store highlight data
     const highlightData = {
       id: highlightId,
-      text: selectedText,
+      serializedRange: pendingSelection.serializedRange,
+      text: pendingSelection.text,
     };
 
     setHighlights((prev) => {
-      // Check if this exact text is already highlighted
-      const exists = prev.some((h) => h.text === selectedText);
+      // Prevent duplicate identical serialized range
+      const exists = prev.some(
+        (h) =>
+          JSON.stringify(h.serializedRange) ===
+          JSON.stringify(highlightData.serializedRange)
+      );
       if (exists) return prev;
       return [...prev, highlightData];
     });
 
-    // Clear selection and pending selection
-    const selection = window.getSelection();
-    if (selection) {
-      selection.removeAllRanges();
-    }
+    const sel = window.getSelection();
+    if (sel) sel.removeAllRanges();
     setPendingSelection(null);
     setContextMenu(null);
   };
 
+  // Clear highlight
   const clearHighlight = (highlightId) => {
     setHighlights((prev) => prev.filter((h) => h.id !== highlightId));
     setContextMenu(null);
   };
 
-  // Apply highlights to the passage content - only highlight first occurrence of each text
-  const applyHighlightsToHtml = (html, highlightsList) => {
-    if (!highlightsList || highlightsList.length === 0) return html;
+  // Apply highlights to DOM whenever highlights or currentTask change
+  useEffect(() => {
+    const passageRoot = passageContentRef.current;
+    if (!passageRoot) return;
 
-    let processedHtml = html;
-
-    // Process each highlight - only highlight the first unhighlighted occurrence
-    highlightsList.forEach((highlight) => {
-      const textToHighlight = highlight.text.trim();
-
-      // Create a flexible regex that handles whitespace variations
-      // Escape special regex characters
-      const escapedText = textToHighlight.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        "\\$&"
-      );
-      // Replace all whitespace (spaces, newlines, tabs) with flexible whitespace matcher
-      const flexiblePattern = escapedText.replace(/\s+/g, "\\s+");
-
-      // Try to find the text with flexible whitespace matching
-      const regex = new RegExp(flexiblePattern, "gi");
-      let match;
-      let found = false;
-
-      while ((match = regex.exec(processedHtml)) !== null && !found) {
-        const matchIndex = match.index;
-        const beforeMatch = processedHtml.substring(0, matchIndex);
-
-        // Check if we're inside an HTML tag
-        const lastOpenTag = beforeMatch.lastIndexOf("<");
-        const lastCloseTag = beforeMatch.lastIndexOf(">");
-        if (lastOpenTag > lastCloseTag) {
-          continue; // Skip if inside a tag
-        }
-
-        // Check if we're already inside a highlight span
-        const lastHighlightOpen = beforeMatch.lastIndexOf(
-          `<span class="${styles.highlightedText}"`
-        );
-        const lastHighlightClose = beforeMatch.lastIndexOf("</span>");
-        if (lastHighlightOpen > lastHighlightClose) {
-          continue; // Skip if already highlighted
-        }
-
-        // Found a valid position - apply highlight
-        const before = processedHtml.substring(0, matchIndex);
-        const after = processedHtml.substring(matchIndex + match[0].length);
-        processedHtml =
-          before +
-          `<span class="${styles.highlightedText}" data-highlight-id="${highlight.id}">${match[0]}</span>` +
-          after;
-        found = true;
-        break; // Only highlight first occurrence
+    // Remove spans for highlights no longer present
+    const existingSpans = Array.from(
+      passageRoot.querySelectorAll(`span[data-highlight-id]`)
+    );
+    const validIds = new Set(highlights.map((h) => h.id));
+    existingSpans.forEach((sp) => {
+      const id = sp.getAttribute("data-highlight-id");
+      if (!validIds.has(id)) {
+        const parent = sp.parentNode;
+        while (sp.firstChild) parent.insertBefore(sp.firstChild, sp);
+        parent.removeChild(sp);
       }
     });
 
-    return processedHtml;
-  };
+    // Sort highlights by start path, apply from end to start so DOM changes don't shift later ranges
+    const sorted = [...highlights].sort((a, b) => {
+      const cmp = comparePaths(
+        a.serializedRange.startPath,
+        b.serializedRange.startPath
+      );
+      return cmp === 0
+        ? comparePaths(a.serializedRange.endPath, b.serializedRange.endPath)
+        : cmp;
+    }).reverse();
 
-  // Handle mouse up for text selection
+    sorted.forEach((h) => {
+      // skip if already applied
+      if (passageRoot.querySelector(`span[data-highlight-id="${h.id}"]`))
+        return;
+
+      const range = restoreRange(passageRoot, h.serializedRange);
+      if (!range) {
+        // fallback: try to find first text occurrence
+        if (h.text) {
+          try {
+            const plain = passageRoot.innerText || passageRoot.textContent || "";
+            const idx = plain.indexOf(h.text);
+            if (idx !== -1) {
+              let charCount = 0;
+              let startNode = null;
+              let startOffset = 0;
+              const walker = document.createTreeWalker(
+                passageRoot,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+              );
+              while (walker.nextNode()) {
+                const tn = walker.currentNode;
+                const nextCount = charCount + (tn.nodeValue?.length || 0);
+                if (idx >= charCount && idx < nextCount) {
+                  startNode = tn;
+                  startOffset = idx - charCount;
+                  break;
+                }
+                charCount = nextCount;
+              }
+              if (startNode) {
+                const r = document.createRange();
+                r.setStart(startNode, startOffset);
+                r.setEnd(
+                  startNode,
+                  Math.min(startNode.nodeValue.length, startOffset + h.text.length)
+                );
+                const frag = r.extractContents();
+                const span = document.createElement("span");
+                span.className = styles.highlightedText;
+                span.setAttribute("data-highlight-id", h.id);
+                span.appendChild(frag);
+                r.insertNode(span);
+              }
+            }
+          } catch (err) {
+            console.warn("Fallback highlight failed", err);
+          }
+        }
+        return;
+      }
+
+      if (range.collapsed) return;
+
+      // Skip if range already inside highlight
+      let ancestor = range.commonAncestorContainer;
+      if (ancestor.nodeType === Node.TEXT_NODE) ancestor = ancestor.parentElement;
+      if (ancestor?.closest(`span[data-highlight-id]`)) {
+        return;
+      }
+
+      try {
+        const extracted = range.extractContents();
+        const span = document.createElement("span");
+        span.className = styles.highlightedText;
+        span.setAttribute("data-highlight-id", h.id);
+        span.appendChild(extracted);
+        range.insertNode(span);
+      } catch (err) {
+        console.warn("extractContents failed; trying safer per-node wrap", err);
+        // Try a safer approach: wrap text nodes inside restored range individually
+        try {
+          const safeRange = restoreRange(passageRoot, h.serializedRange);
+          if (!safeRange) return;
+          const walker = document.createTreeWalker(
+            passageRoot,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+          );
+          const nodes = [];
+          while (walker.nextNode()) {
+            const tn = walker.currentNode;
+            const r2 = document.createRange();
+            r2.selectNodeContents(tn);
+            if (
+              r2.compareBoundaryPoints(Range.END_TO_START, safeRange) <= 0 &&
+              r2.compareBoundaryPoints(Range.START_TO_END, safeRange) >= 0
+            ) {
+              nodes.push(tn);
+            }
+          }
+          nodes.forEach((tn) => {
+            const parent = tn.parentNode;
+            const span = document.createElement("span");
+            span.className = styles.highlightedText;
+            span.setAttribute("data-highlight-id", h.id);
+            span.textContent = tn.nodeValue;
+            parent.replaceChild(span, tn);
+          });
+        } catch (err2) {
+          console.error("Failed to apply highlight on fallback", err2);
+        }
+      }
+    });
+  }, [highlights, currentTask]);
+
+  // Mouse-only selection handlers
   useEffect(() => {
     const handleMouseUp = (e) => {
       if (highlightMode) {
-        // Small delay to ensure selection is captured
-        setTimeout(() => {
-          handleTextSelection(e);
-        }, 10);
+        setTimeout(() => handleTextSelection(e), 10);
       }
     };
 
     if (highlightMode) {
       document.addEventListener("mouseup", handleMouseUp);
-      return () => document.removeEventListener("mouseup", handleMouseUp);
+      return () => {
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
     }
-  }, [highlightMode, highlights]);
+  }, [highlightMode]);
 
   // Close context menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (contextMenu) {
-        // Don't close if clicking on the context menu itself
         if (e.target.closest(`.${styles.contextMenu}`)) {
           return;
         }
-        // Close the context menu and clear pending selection if it was a new selection
         if (contextMenu.type === "new") {
           const selection = window.getSelection();
-          if (selection) {
-            selection.removeAllRanges();
-          }
+          selection.removeAllRanges();
           setPendingSelection(null);
         }
         setContextMenu(null);
@@ -366,7 +547,6 @@ export default function ReadingExamPage() {
     };
 
     if (contextMenu) {
-      // Use a small delay to avoid closing immediately when opening
       const timeoutId = setTimeout(() => {
         document.addEventListener("click", handleClickOutside);
       }, 100);
@@ -402,7 +582,7 @@ export default function ReadingExamPage() {
   const currentTaskData = (tasks || [])[currentTask];
   const questionCount = getQuestionCount(currentTaskData?.readingQuestion);
 
-  // ===== helper ONLY for the question bar =====
+  // Helper for question bar
   const isAnswered = (readingId, qNumber) => {
     const key = `${readingId}_q${qNumber}`;
     const val = answers[key];
@@ -438,28 +618,22 @@ export default function ReadingExamPage() {
               highlightMode ? styles.highlightMode : ""
             }`}
             onClick={(e) => {
-              // Check if clicked element or its parent has the highlight data attribute
-              const target = e.target;
-              const highlightElement = target.closest(`[data-highlight-id]`);
+              const highlightElement = e.target.closest(`[data-highlight-id]`);
               if (highlightElement) {
                 e.preventDefault();
                 e.stopPropagation();
-                const highlightId =
-                  highlightElement.getAttribute("data-highlight-id");
-                if (highlightId) {
-                  setContextMenu({
-                    x: e.clientX,
-                    y: e.clientY,
-                    highlightId: highlightId,
-                    type: "existing",
-                  });
-                }
+                const highlightId = highlightElement.getAttribute("data-highlight-id");
+                setContextMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  highlightId,
+                  type: "existing",
+                });
               }
             }}
             dangerouslySetInnerHTML={{
-              __html: applyHighlightsToHtml(
-                passageMarkdownToHtml(currentTaskData?.readingContent || ""),
-                highlights
+              __html: passageMarkdownToHtml(
+                currentTaskData?.readingContent || ""
               ),
             }}
           />
@@ -467,13 +641,12 @@ export default function ReadingExamPage() {
 
         {/* Right: Questions */}
         <div className={styles.rightPanel}>
-          {/* Dock fixes clipping & alignment */}
           <div className={styles.rightPanelDock}>
             <form ref={formRef} onChange={handleChange} onInput={handleChange}>
               {currentTaskData?.readingQuestion ? (
                 <ExamMarkdownRenderer
                   markdown={currentTaskData.readingQuestion}
-                  showAnswers={false} // explanations hidden on exam
+                  showAnswers={false}
                   skillId={currentTaskData.readingId}
                 />
               ) : (
@@ -498,7 +671,7 @@ export default function ReadingExamPage() {
         </div>
       </div>
 
-      {/* Bottom Nav — replaced with listening-like behavior */}
+      {/* Bottom Nav */}
       <div className={styles.bottomNavigation}>
         <div className={styles.navScrollContainer}>
           {(tasks || []).map((task, taskIndex) => {
