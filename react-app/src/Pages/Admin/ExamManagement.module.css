@@ -80,16 +80,21 @@
 }
 
 .table thead th {
-  background: #f8f9fa;
+  background: #2563EB;
   padding: 16px 20px;
   text-align: left;
   font-weight: 600;
   font-size: 14px;
-  color: #495057;
+  color: white;
   border-bottom: 2px solid #e9ecef;
   position: sticky;
   top: 0;
   z-index: 10;
+  text-transform: uppercase;
+}
+
+.table thead th:last-child {
+  text-align: center;
 }
 
 .table tbody td {
@@ -97,6 +102,14 @@
   font-size: 14px;
   color: #4b5563;
   border-bottom: 1px solid #e9ecef;
+}
+
+.table tbody td:last-child {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .table tbody tr:hover {
