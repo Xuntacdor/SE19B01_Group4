@@ -178,25 +178,6 @@ namespace WebAPI.Tests.Unit.Controllers
             ((string)response!.message).Should().Be("Invalid credentials");
         }
 
-        // // [Fact] // Commented out - failing test (authentication setup issues, Moq cannot mock non-overridable properties)
-        // // public void GoogleResponse_ReturnsBadRequest_WhenEmailNotReturned()
-        // // {
-        // //     // Arrange
-        // //     var httpContext = new DefaultHttpContext();
-        // //     httpContext.Request.Scheme = "https";
-        // //     httpContext.Request.Host = new HostString("localhost:5001");
-        // //     _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
-
-        // //     // Act
-        // //     var result = _controller.GoogleResponse();
-
-        // //     // Assert
-        // //     result.Should().BeOfType<BadRequestObjectResult>();
-        // //     var badRequestResult = result as BadRequestObjectResult;
-        // //     badRequestResult.Should().NotBeNull();
-        // //     badRequestResult!.StatusCode.Should().Be(400);
-        // //     badRequestResult.Value.Should().Be("Google OAuth callback parameters missing");
-        // // }
 
         // [Fact] // Commented out - failing test (authentication setup issues)
         // public void Login_ReturnsOk_WhenAuthenticationSuccessful()
@@ -324,12 +305,6 @@ namespace WebAPI.Tests.Unit.Controllers
         // }
 
         #endregion
-
-    
-
-       
-
-
 
         #region Me Tests
 

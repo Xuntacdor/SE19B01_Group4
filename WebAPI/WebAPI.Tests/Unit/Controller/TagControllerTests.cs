@@ -1,8 +1,8 @@
-using System;
-using System.Collections.Generic;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System;
+using System.Collections.Generic;
 using WebAPI.Controllers;
 using WebAPI.DTOs;
 using WebAPI.Services;
@@ -12,308 +12,442 @@ namespace WebAPI.Tests.Unit.Controller
 {
     public class TagControllerTests
     {
-        private readonly Mock<ITagService> _tagService;
+        private readonly Mock<ITagService> _tagServiceMock;
         private readonly TagController _controller;
 
         public TagControllerTests()
         {
-            _tagService = new Mock<ITagService>();
-            _controller = new TagController(_tagService.Object);
+            _tagServiceMock = new Mock<ITagService>();
+            _controller = new TagController(_tagServiceMock.Object);
         }
 
         // ============ GET ALL TAGS ============
 
         [Fact]
-        public async Task GetAllTags_ReturnsOk()
+        public void GetAllTags_WhenSuccessful_ReturnsOkWithTags()
         {
             var tags = new List<TagDTO>
             {
-                new TagDTO { TagId = 1, TagName = "IELTS" },
-                new TagDTO { TagId = 2, TagName = "Speaking" }
+                new TagDTO { TagId = 1, TagName = "General", CreatedAt = DateTime.UtcNow, PostCount = 5 },
+                new TagDTO { TagId = 2, TagName = "Question", CreatedAt = DateTime.UtcNow, PostCount = 3 }
             };
-            _tagService.Setup(s => s.GetAllTagsAsync()).ReturnsAsync(tags);
+            _tagServiceMock.Setup(s => s.GetAllTags()).Returns(tags);
 
-            var result = await _controller.GetAllTags();
+            var result = _controller.GetAllTags();
 
             result.Result.Should().BeOfType<OkObjectResult>();
-            var ok = result.Result as OkObjectResult;
-            ok!.Value.Should().BeEquivalentTo(tags);
+            var okResult = result.Result as OkObjectResult;
+            okResult!.Value.Should().BeEquivalentTo(tags);
         }
 
         [Fact]
-        public async Task GetAllTags_WhenException_ReturnsServerError()
+        public void GetAllTags_WhenEmpty_ReturnsOkWithEmptyList()
         {
-            _tagService.Setup(s => s.GetAllTagsAsync()).ThrowsAsync(new Exception("Database error"));
+            var tags = new List<TagDTO>();
+            _tagServiceMock.Setup(s => s.GetAllTags()).Returns(tags);
 
-            var result = await _controller.GetAllTags();
+            var result = _controller.GetAllTags();
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var returnedTags = okResult!.Value as List<TagDTO>;
+            returnedTags.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void GetAllTags_WhenException_ReturnsStatusCode500()
+        {
+            _tagServiceMock.Setup(s => s.GetAllTags()).Throws(new Exception("Database error"));
+
+            var result = _controller.GetAllTags();
 
             result.Result.Should().BeOfType<ObjectResult>();
-            var objResult = result.Result as ObjectResult;
-            objResult!.StatusCode.Should().Be(500);
+            var objectResult = result.Result as ObjectResult;
+            objectResult!.StatusCode.Should().Be(500);
         }
 
         // ============ GET TAG BY ID ============
 
         [Fact]
-        public async Task GetTagById_WhenFound_ReturnsOk()
+        public void GetTagById_WhenFound_ReturnsOkWithTag()
         {
-            var tag = new TagDTO { TagId = 1, TagName = "IELTS" };
-            _tagService.Setup(s => s.GetTagByIdAsync(1)).ReturnsAsync(tag);
+            var tag = new TagDTO { TagId = 1, TagName = "General", CreatedAt = DateTime.UtcNow, PostCount = 5 };
+            _tagServiceMock.Setup(s => s.GetTagById(1)).Returns(tag);
 
-            var result = await _controller.GetTagById(1);
+            var result = _controller.GetTagById(1);
 
             result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            okResult!.Value.Should().BeEquivalentTo(tag);
         }
 
         [Fact]
-        public async Task GetTagById_WhenNotFound_ReturnsNotFound()
+        public void GetTagById_WhenNotFound_ReturnsNotFound()
         {
-            _tagService.Setup(s => s.GetTagByIdAsync(999)).ReturnsAsync((TagDTO?)null);
+            _tagServiceMock.Setup(s => s.GetTagById(999)).Returns((TagDTO?)null);
 
-            var result = await _controller.GetTagById(999);
+            var result = _controller.GetTagById(999);
 
             result.Result.Should().BeOfType<NotFoundObjectResult>();
-            var notFound = result.Result as NotFoundObjectResult;
-            notFound!.Value.Should().NotBeNull();
+            var notFoundResult = result.Result as NotFoundObjectResult;
+            notFoundResult!.Value.Should().BeEquivalentTo(new { message = "Tag not found" });
         }
 
         [Fact]
-        public async Task GetTagById_WhenException_ReturnsServerError()
+        public void GetTagById_WhenException_ReturnsStatusCode500()
         {
-            _tagService.Setup(s => s.GetTagByIdAsync(1)).ThrowsAsync(new Exception("Error"));
+            _tagServiceMock.Setup(s => s.GetTagById(1)).Throws(new Exception("Database error"));
 
-            var result = await _controller.GetTagById(1);
+            var result = _controller.GetTagById(1);
 
             result.Result.Should().BeOfType<ObjectResult>();
-            var objResult = result.Result as ObjectResult;
-            objResult!.StatusCode.Should().Be(500);
+            var objectResult = result.Result as ObjectResult;
+            objectResult!.StatusCode.Should().Be(500);
         }
 
         // ============ CREATE TAG ============
 
         [Fact]
-        public async Task CreateTag_WhenTagNameEmpty_ReturnsBadRequest()
+        public void CreateTag_WhenValid_ReturnsCreatedAtAction()
         {
-            var dto = new CreateTagDTO { TagName = "" };
+            var createDto = new CreateTagDTO { TagName = "NewTag" };
+            var createdTag = new TagDTO { TagId = 1, TagName = "NewTag", CreatedAt = DateTime.UtcNow, PostCount = 0 };
 
-            var result = await _controller.CreateTag(dto);
+            _tagServiceMock.Setup(s => s.GetTagByName("NewTag")).Returns((TagDTO?)null);
+            _tagServiceMock.Setup(s => s.CreateTag(createDto)).Returns(createdTag);
 
-            result.Result.Should().BeOfType<BadRequestObjectResult>();
-            var badRequest = result.Result as BadRequestObjectResult;
-            badRequest!.Value.Should().NotBeNull();
-        }
-
-        [Fact]
-        public async Task CreateTag_WhenDuplicateTag_ReturnsConflict()
-        {
-            var dto = new CreateTagDTO { TagName = "IELTS" };
-            var existingTag = new TagDTO { TagId = 1, TagName = "IELTS" };
-            _tagService.Setup(s => s.GetTagByNameAsync("IELTS")).ReturnsAsync(existingTag);
-
-            var result = await _controller.CreateTag(dto);
-
-            result.Result.Should().BeOfType<ConflictObjectResult>();
-            var conflict = result.Result as ConflictObjectResult;
-            conflict!.Value.Should().NotBeNull();
-        }
-
-        [Fact]
-        public async Task CreateTag_WhenSuccessful_ReturnsCreated()
-        {
-            var dto = new CreateTagDTO { TagName = "NewTag" };
-            var created = new TagDTO { TagId = 1, TagName = "NewTag" };
-            _tagService.Setup(s => s.GetTagByNameAsync("NewTag")).ReturnsAsync((TagDTO?)null);
-            _tagService.Setup(s => s.CreateTagAsync(dto)).ReturnsAsync(created);
-
-            var result = await _controller.CreateTag(dto);
+            var result = _controller.CreateTag(createDto);
 
             result.Result.Should().BeOfType<CreatedAtActionResult>();
-            var createdAt = result.Result as CreatedAtActionResult;
-            createdAt!.ActionName.Should().Be(nameof(TagController.GetTagById));
-            createdAt.RouteValues!["id"].Should().Be(1);
+            var createdAtResult = result.Result as CreatedAtActionResult;
+            createdAtResult!.Value.Should().BeEquivalentTo(createdTag);
+            createdAtResult.ActionName.Should().Be(nameof(TagController.GetTagById));
         }
 
         [Fact]
-        public async Task CreateTag_WhenException_ReturnsServerError()
+        public void CreateTag_WhenTagNameIsEmpty_ReturnsBadRequest()
         {
-            var dto = new CreateTagDTO { TagName = "Tag" };
-            _tagService.Setup(s => s.GetTagByNameAsync("Tag")).ReturnsAsync((TagDTO?)null);
-            _tagService.Setup(s => s.CreateTagAsync(dto)).ThrowsAsync(new Exception("Error"));
+            var createDto = new CreateTagDTO { TagName = "" };
 
-            var result = await _controller.CreateTag(dto);
+            var result = _controller.CreateTag(createDto);
+
+            result.Result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result.Result as BadRequestObjectResult;
+            badRequestResult!.Value.Should().BeEquivalentTo(new { message = "Tag name is required" });
+        }
+
+        [Fact]
+        public void CreateTag_WhenTagNameIsWhitespace_ReturnsBadRequest()
+        {
+            var createDto = new CreateTagDTO { TagName = "   " };
+
+            var result = _controller.CreateTag(createDto);
+
+            result.Result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result.Result as BadRequestObjectResult;
+            badRequestResult!.Value.Should().BeEquivalentTo(new { message = "Tag name is required" });
+        }
+
+        [Fact]
+        public void CreateTag_WhenTagAlreadyExists_ReturnsConflict()
+        {
+            var createDto = new CreateTagDTO { TagName = "ExistingTag" };
+            var existingTag = new TagDTO { TagId = 1, TagName = "ExistingTag", CreatedAt = DateTime.UtcNow, PostCount = 0 };
+
+            _tagServiceMock.Setup(s => s.GetTagByName("ExistingTag")).Returns(existingTag);
+
+            var result = _controller.CreateTag(createDto);
+
+            result.Result.Should().BeOfType<ConflictObjectResult>();
+            var conflictResult = result.Result as ConflictObjectResult;
+            conflictResult!.Value.Should().BeEquivalentTo(new { message = "Tag already exists" });
+            _tagServiceMock.Verify(s => s.CreateTag(It.IsAny<CreateTagDTO>()), Times.Never);
+        }
+
+        [Fact]
+        public void CreateTag_WhenException_ReturnsStatusCode500()
+        {
+            var createDto = new CreateTagDTO { TagName = "NewTag" };
+            _tagServiceMock.Setup(s => s.GetTagByName("NewTag")).Returns((TagDTO?)null);
+            _tagServiceMock.Setup(s => s.CreateTag(createDto)).Throws(new Exception("Database error"));
+
+            var result = _controller.CreateTag(createDto);
 
             result.Result.Should().BeOfType<ObjectResult>();
-            var objResult = result.Result as ObjectResult;
-            objResult!.StatusCode.Should().Be(500);
+            var objectResult = result.Result as ObjectResult;
+            objectResult!.StatusCode.Should().Be(500);
         }
 
         // ============ UPDATE TAG ============
 
         [Fact]
-        public async Task UpdateTag_WhenTagNameEmpty_ReturnsBadRequest()
+        public void UpdateTag_WhenValid_ReturnsOkWithUpdatedTag()
         {
-            var dto = new UpdateTagDTO { TagName = "" };
+            var updateDto = new UpdateTagDTO { TagName = "UpdatedTag" };
+            var updatedTag = new TagDTO { TagId = 1, TagName = "UpdatedTag", CreatedAt = DateTime.UtcNow, PostCount = 0 };
 
-            var result = await _controller.UpdateTag(1, dto);
+            _tagServiceMock.Setup(s => s.GetTagByName("UpdatedTag")).Returns((TagDTO?)null);
+            _tagServiceMock.Setup(s => s.UpdateTag(1, updateDto)).Returns(updatedTag);
+
+            var result = _controller.UpdateTag(1, updateDto);
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            okResult!.Value.Should().BeEquivalentTo(updatedTag);
+        }
+
+        [Fact]
+        public void UpdateTag_WhenTagNameIsEmpty_ReturnsBadRequest()
+        {
+            var updateDto = new UpdateTagDTO { TagName = "" };
+
+            var result = _controller.UpdateTag(1, updateDto);
 
             result.Result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result.Result as BadRequestObjectResult;
+            badRequestResult!.Value.Should().BeEquivalentTo(new { message = "Tag name is required" });
         }
 
         [Fact]
-        public async Task UpdateTag_WhenDuplicateName_ReturnsConflict()
+        public void UpdateTag_WhenTagNameExistsForAnotherTag_ReturnsConflict()
         {
-            var dto = new UpdateTagDTO { TagName = "Existing" };
-            var existingTag = new TagDTO { TagId = 2, TagName = "Existing" };
-            _tagService.Setup(s => s.GetTagByNameAsync("Existing")).ReturnsAsync(existingTag);
+            var updateDto = new UpdateTagDTO { TagName = "ExistingTag" };
+            var existingTag = new TagDTO { TagId = 2, TagName = "ExistingTag", CreatedAt = DateTime.UtcNow, PostCount = 0 };
 
-            var result = await _controller.UpdateTag(1, dto);
+            _tagServiceMock.Setup(s => s.GetTagByName("ExistingTag")).Returns(existingTag);
+
+            var result = _controller.UpdateTag(1, updateDto);
 
             result.Result.Should().BeOfType<ConflictObjectResult>();
+            var conflictResult = result.Result as ConflictObjectResult;
+            conflictResult!.Value.Should().BeEquivalentTo(new { message = "Tag name already exists" });
+            _tagServiceMock.Verify(s => s.UpdateTag(It.IsAny<int>(), It.IsAny<UpdateTagDTO>()), Times.Never);
         }
 
         [Fact]
-        public async Task UpdateTag_WhenSuccessful_ReturnsOk()
+        public void UpdateTag_WhenTagNameExistsForSameTag_ReturnsOk()
         {
-            var dto = new UpdateTagDTO { TagName = "Updated" };
-            var updated = new TagDTO { TagId = 1, TagName = "Updated" };
-            _tagService.Setup(s => s.GetTagByNameAsync("Updated")).ReturnsAsync((TagDTO?)null);
-            _tagService.Setup(s => s.UpdateTagAsync(1, dto)).ReturnsAsync(updated);
+            var updateDto = new UpdateTagDTO { TagName = "SameTag" };
+            var sameTag = new TagDTO { TagId = 1, TagName = "SameTag", CreatedAt = DateTime.UtcNow, PostCount = 0 };
+            var updatedTag = new TagDTO { TagId = 1, TagName = "SameTag", CreatedAt = DateTime.UtcNow, PostCount = 0 };
 
-            var result = await _controller.UpdateTag(1, dto);
+            _tagServiceMock.Setup(s => s.GetTagByName("SameTag")).Returns(sameTag);
+            _tagServiceMock.Setup(s => s.UpdateTag(1, updateDto)).Returns(updatedTag);
+
+            var result = _controller.UpdateTag(1, updateDto);
 
             result.Result.Should().BeOfType<OkObjectResult>();
         }
 
         [Fact]
-        public async Task UpdateTag_WhenNotFound_ReturnsNotFound()
+        public void UpdateTag_WhenTagNotFound_ReturnsNotFound()
         {
-            var dto = new UpdateTagDTO { TagName = "Updated" };
-            _tagService.Setup(s => s.GetTagByNameAsync("Updated")).ReturnsAsync((TagDTO?)null);
-            _tagService.Setup(s => s.UpdateTagAsync(999, dto)).ReturnsAsync((TagDTO?)null);
+            var updateDto = new UpdateTagDTO { TagName = "UpdatedTag" };
+            _tagServiceMock.Setup(s => s.GetTagByName("UpdatedTag")).Returns((TagDTO?)null);
+            _tagServiceMock.Setup(s => s.UpdateTag(999, updateDto)).Returns((TagDTO?)null);
 
-            var result = await _controller.UpdateTag(999, dto);
+            var result = _controller.UpdateTag(999, updateDto);
 
             result.Result.Should().BeOfType<NotFoundObjectResult>();
+            var notFoundResult = result.Result as NotFoundObjectResult;
+            notFoundResult!.Value.Should().BeEquivalentTo(new { message = "Tag not found" });
         }
 
         [Fact]
-        public async Task UpdateTag_WhenException_ReturnsServerError()
+        public void UpdateTag_WhenException_ReturnsStatusCode500()
         {
-            var dto = new UpdateTagDTO { TagName = "Updated" };
-            _tagService.Setup(s => s.GetTagByNameAsync("Updated")).ReturnsAsync((TagDTO?)null);
-            _tagService.Setup(s => s.UpdateTagAsync(1, dto)).ThrowsAsync(new Exception("Error"));
+            var updateDto = new UpdateTagDTO { TagName = "UpdatedTag" };
+            _tagServiceMock.Setup(s => s.GetTagByName("UpdatedTag")).Returns((TagDTO?)null);
+            _tagServiceMock.Setup(s => s.UpdateTag(1, updateDto)).Throws(new Exception("Database error"));
 
-            var result = await _controller.UpdateTag(1, dto);
+            var result = _controller.UpdateTag(1, updateDto);
 
             result.Result.Should().BeOfType<ObjectResult>();
-            var objResult = result.Result as ObjectResult;
-            objResult!.StatusCode.Should().Be(500);
+            var objectResult = result.Result as ObjectResult;
+            objectResult!.StatusCode.Should().Be(500);
         }
 
         // ============ DELETE TAG ============
 
         [Fact]
-        public async Task DeleteTag_WhenSuccessful_ReturnsOk()
+        public void DeleteTag_WhenSuccessful_ReturnsOk()
         {
-            _tagService.Setup(s => s.DeleteTagAsync(1)).ReturnsAsync(true);
+            _tagServiceMock.Setup(s => s.DeleteTag(1)).Returns(true);
 
-            var result = await _controller.DeleteTag(1);
+            var result = _controller.DeleteTag(1);
 
             result.Should().BeOfType<OkObjectResult>();
-            var ok = result as OkObjectResult;
-            ok.Should().NotBeNull();
+            var okResult = result as OkObjectResult;
+            okResult!.Value.Should().BeEquivalentTo(new { message = "Tag deleted successfully" });
         }
 
         [Fact]
-        public async Task DeleteTag_WhenNotFound_ReturnsNotFound()
+        public void DeleteTag_WhenTagNotFound_ReturnsNotFound()
         {
-            _tagService.Setup(s => s.DeleteTagAsync(999)).ReturnsAsync(false);
+            _tagServiceMock.Setup(s => s.DeleteTag(999)).Returns(false);
 
-            var result = await _controller.DeleteTag(999);
+            var result = _controller.DeleteTag(999);
 
             result.Should().BeOfType<NotFoundObjectResult>();
-            var notFound = result as NotFoundObjectResult;
-            notFound!.Value.Should().NotBeNull();
+            var notFoundResult = result as NotFoundObjectResult;
+            notFoundResult!.Value.Should().BeEquivalentTo(new { message = "Tag not found" });
         }
 
         [Fact]
-        public async Task DeleteTag_WhenException_ReturnsServerError()
+        public void DeleteTag_WhenException_ReturnsStatusCode500()
         {
-            _tagService.Setup(s => s.DeleteTagAsync(1)).ThrowsAsync(new Exception("Error"));
+            _tagServiceMock.Setup(s => s.DeleteTag(1)).Throws(new Exception("Database error"));
 
-            var result = await _controller.DeleteTag(1);
+            var result = _controller.DeleteTag(1);
 
             result.Should().BeOfType<ObjectResult>();
-            var objResult = result as ObjectResult;
-            objResult!.StatusCode.Should().Be(500);
+            var objectResult = result as ObjectResult;
+            objectResult!.StatusCode.Should().Be(500);
         }
 
         // ============ SEARCH TAGS ============
 
         [Fact]
-        public async Task SearchTags_WhenQueryEmpty_ReturnsEmptyList()
+        public void SearchTags_WhenQueryProvided_ReturnsOkWithMatchingTags()
         {
-            var result = await _controller.SearchTags("");
+            var tags = new List<TagDTO>
+            {
+                new TagDTO { TagId = 1, TagName = "General", CreatedAt = DateTime.UtcNow, PostCount = 5 },
+                new TagDTO { TagId = 2, TagName = "General Knowledge", CreatedAt = DateTime.UtcNow, PostCount = 3 }
+            };
+            _tagServiceMock.Setup(s => s.SearchTags("general")).Returns(tags);
+
+            var result = _controller.SearchTags("general");
 
             result.Result.Should().BeOfType<OkObjectResult>();
-            var ok = result.Result as OkObjectResult;
-            ok!.Value.Should().BeAssignableTo<IEnumerable<TagDTO>>();
+            var okResult = result.Result as OkObjectResult;
+            okResult!.Value.Should().BeEquivalentTo(tags);
         }
 
         [Fact]
-        public async Task SearchTags_WhenValidQuery_ReturnsTags()
+        public void SearchTags_WhenQueryIsEmpty_ReturnsOkWithEmptyList()
         {
-            var tags = new List<TagDTO> { new TagDTO { TagId = 1, TagName = "IELTS" } };
-            _tagService.Setup(s => s.SearchTagsAsync("IELTS")).ReturnsAsync(tags);
-
-            var result = await _controller.SearchTags("IELTS");
+            var result = _controller.SearchTags("");
 
             result.Result.Should().BeOfType<OkObjectResult>();
-            var ok = result.Result as OkObjectResult;
-            ok!.Value.Should().BeEquivalentTo(tags);
+            var okResult = result.Result as OkObjectResult;
+            var returnedTags = okResult!.Value as List<TagDTO>;
+            returnedTags.Should().BeEmpty();
+            _tagServiceMock.Verify(s => s.SearchTags(It.IsAny<string>()), Times.Never);
         }
 
         [Fact]
-        public async Task SearchTags_WhenException_ReturnsServerError()
+        public void SearchTags_WhenQueryIsWhitespace_ReturnsOkWithEmptyList()
         {
-            _tagService.Setup(s => s.SearchTagsAsync("test")).ThrowsAsync(new Exception("Error"));
+            var result = _controller.SearchTags("   ");
 
-            var result = await _controller.SearchTags("test");
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var returnedTags = okResult!.Value as List<TagDTO>;
+            returnedTags.Should().BeEmpty();
+            _tagServiceMock.Verify(s => s.SearchTags(It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public void SearchTags_WhenNoMatches_ReturnsOkWithEmptyList()
+        {
+            var tags = new List<TagDTO>();
+            _tagServiceMock.Setup(s => s.SearchTags("nonexistent")).Returns(tags);
+
+            var result = _controller.SearchTags("nonexistent");
+
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            var returnedTags = okResult!.Value as List<TagDTO>;
+            returnedTags.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void SearchTags_WhenException_ReturnsStatusCode500()
+        {
+            _tagServiceMock.Setup(s => s.SearchTags("test")).Throws(new Exception("Database error"));
+
+            var result = _controller.SearchTags("test");
 
             result.Result.Should().BeOfType<ObjectResult>();
-            var objResult = result.Result as ObjectResult;
-            objResult!.StatusCode.Should().Be(500);
+            var objectResult = result.Result as ObjectResult;
+            objectResult!.StatusCode.Should().Be(500);
+        }
+
+        // ============ VERIFICATION TESTS ============
+
+        [Fact]
+        public void GetAllTags_VerifiesServiceCalledOnce()
+        {
+            var tags = new List<TagDTO>();
+            _tagServiceMock.Setup(s => s.GetAllTags()).Returns(tags);
+
+            _controller.GetAllTags();
+
+            _tagServiceMock.Verify(s => s.GetAllTags(), Times.Once);
         }
 
         [Fact]
-        public async Task SearchTags_WhenQueryWhitespace_ReturnsEmptyList()
+        public void GetTagById_VerifiesServiceCalledOnce()
         {
-            var result = await _controller.SearchTags("   ");
+            var tag = new TagDTO { TagId = 1, TagName = "Test", CreatedAt = DateTime.UtcNow, PostCount = 0 };
+            _tagServiceMock.Setup(s => s.GetTagById(1)).Returns(tag);
 
-            result.Result.Should().BeOfType<OkObjectResult>();
+            _controller.GetTagById(1);
+
+            _tagServiceMock.Verify(s => s.GetTagById(1), Times.Once);
+        }
+
+        [Fact]
+        public void CreateTag_VerifiesServiceMethodsCalled()
+        {
+            var createDto = new CreateTagDTO { TagName = "NewTag" };
+            var createdTag = new TagDTO { TagId = 1, TagName = "NewTag", CreatedAt = DateTime.UtcNow, PostCount = 0 };
+
+            _tagServiceMock.Setup(s => s.GetTagByName("NewTag")).Returns((TagDTO?)null);
+            _tagServiceMock.Setup(s => s.CreateTag(createDto)).Returns(createdTag);
+
+            _controller.CreateTag(createDto);
+
+            _tagServiceMock.Verify(s => s.GetTagByName("NewTag"), Times.Once);
+            _tagServiceMock.Verify(s => s.CreateTag(createDto), Times.Once);
+        }
+
+        [Fact]
+        public void UpdateTag_VerifiesServiceMethodsCalled()
+        {
+            var updateDto = new UpdateTagDTO { TagName = "UpdatedTag" };
+            var updatedTag = new TagDTO { TagId = 1, TagName = "UpdatedTag", CreatedAt = DateTime.UtcNow, PostCount = 0 };
+
+            _tagServiceMock.Setup(s => s.GetTagByName("UpdatedTag")).Returns((TagDTO?)null);
+            _tagServiceMock.Setup(s => s.UpdateTag(1, updateDto)).Returns(updatedTag);
+
+            _controller.UpdateTag(1, updateDto);
+
+            _tagServiceMock.Verify(s => s.GetTagByName("UpdatedTag"), Times.Once);
+            _tagServiceMock.Verify(s => s.UpdateTag(1, updateDto), Times.Once);
+        }
+
+        [Fact]
+        public void DeleteTag_VerifiesServiceCalledOnce()
+        {
+            _tagServiceMock.Setup(s => s.DeleteTag(1)).Returns(true);
+
+            _controller.DeleteTag(1);
+
+            _tagServiceMock.Verify(s => s.DeleteTag(1), Times.Once);
+        }
+
+        [Fact]
+        public void SearchTags_VerifiesServiceCalledOnce()
+        {
+            var tags = new List<TagDTO>();
+            _tagServiceMock.Setup(s => s.SearchTags("test")).Returns(tags);
+
+            _controller.SearchTags("test");
+
+            _tagServiceMock.Verify(s => s.SearchTags("test"), Times.Once);
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
