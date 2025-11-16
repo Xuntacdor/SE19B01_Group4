@@ -141,29 +141,41 @@ Essay Answer:
             {
                 var chatClient = _client.GetChatClient(_chatModel);
                 string prompt = $@"
-You are an **IELTS Speaking coach** and English linguist.
-Given an IELTS Speaking question, produce JSON that includes:
-
-1️. A short, natural **sample answer** (Band 7–8 style).
-2️. A list of **topic-related vocabulary** divided by level.
-
-Return **STRICT JSON ONLY**, following this exact structure:
+You are an IELTS Speaking coach and linguist.
+Given an IELTS Speaking question, return STRICT JSON ONLY using this exact schema:
 
 {{
-  ""question"": ""original question"",
-  ""sample_answer"": ""2–4 sentences model answer in natural IELTS English."",
-  ""vocabulary_by_level"": {{
-    ""basic"": [
-      ""5–10 simple common words relevant to the topic""
+  """"question"""": """"original question"""",
+  """"sample_answer"""": """"2–4 sentences model answer in natural IELTS English."""",
+  """"vocabulary_by_level"""": {{
+    """"basic"""": [
+      {{
+        """"term"""": """"word"""",
+        """"vn"""": """"nghĩa tiếng Việt""""
+      }}
     ],
-    ""intermediate"": [
-      ""5–10 moderately advanced words or short phrases""
+    """"intermediate"""": [
+      {{
+        """"term"""": """"word"""",
+        """"vn"""": """"nghĩa tiếng Việt""""
+      }}
     ],
-    ""advanced"": [
-      ""5–10 high-level or idiomatic expressions""
+    """"advanced"""": [
+      {{
+        """"term"""": """"word"""",
+        """"vn"""": """"nghĩa tiếng Việt""""
+      }}
     ]
   }}
 }}
+
+IMPORTANT RULES:
+- DO NOT change key names.
+- For each level (basic/intermediate/advanced), return 5–10 items.
+- Each item must be an object: {{ """"term"""": """"..."""", """"vn"""": """"..."""" }}.
+- """"term"""" must be an English word/phrase.
+- """"vn"""" must be the correct Vietnamese meaning.
+- DO NOT return any comments or markdown.
 
 IELTS Speaking Question:
 {question}
