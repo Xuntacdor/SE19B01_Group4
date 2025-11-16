@@ -216,3 +216,25 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+.tableWrapper {
+  max-height: 400px; /* hoặc chiều cao bạn muốn */
+  overflow-y: auto; /* thanh trượt dọc */
+  overflow-x: auto; /* thanh trượt ngang nếu bảng rộng */
+  border-radius: 12px;
+  scrollbar-width: thin; /* Firefox */
+}
+
+/* Webkit scrollbar (Chrome, Edge) */
+.tableWrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb {
+  background: #d6b48a;
+  border-radius: 6px;
+}
+
+.tableWrapper::-webkit-scrollbar-track {
+  background: #f3e6d7;
+}

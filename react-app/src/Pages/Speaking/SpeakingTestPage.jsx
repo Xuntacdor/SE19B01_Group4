@@ -6,7 +6,7 @@ import * as SpeakingApi from "../../Services/SpeakingApi";
 import * as UploadApi from "../../Services/UploadApi";
 import LoadingComponent from "../../Components/Exam/LoadingComponent";
 import MicroCheck from "../../Components/Exam/MicroCheck";
-import FloatingDictionaryChat from "../../Components/Dictionary/FloatingDictionaryChat";
+// import FloatingDictionaryChat from "../../Components/Dictionary/FloatingDictionaryChat";
 import { getSpeakingSuggestion } from "../../Services/SpeakingApi";
 import VocabularySuggestion from "../../Components/Exam/VocabularySuggestion";
 import SampleAnswerBox from "../../Components/Exam/SampleAnswerBox";
@@ -689,7 +689,7 @@ export default function SpeakingTest() {
             </aside>
           </div>
         </div>
-        <FloatingDictionaryChat />
+        {/* <FloatingDictionaryChat /> */}
       </main>
     </div>
   );

@@ -189,12 +189,11 @@ builder.Services.AddCors(options =>
 
 
 // ======================================
-// Authentication (Google + Cookie)
+// Authentication (Cookie)
 // ======================================
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    //options.DefaultChallengeScheme = "Google"; // Google login challenge
 })
 .AddCookie(options =>
 {
@@ -231,13 +230,6 @@ builder.Services.AddAuthentication(options =>
         }
     };
 });
-//.AddGoogle("Google", options =>
-//{
-//    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-//    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-//    options.CallbackPath = "/api/auth/google/response";
-//    options.SaveTokens = true;
-//});
 
 
 // ======================================
