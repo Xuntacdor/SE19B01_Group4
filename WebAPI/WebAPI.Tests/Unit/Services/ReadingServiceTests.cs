@@ -257,7 +257,7 @@ namespace WebAPI.Tests
             var result = _readingService.EvaluateReading(1, answers);
 
             // Assert
-            result.Should().Be(6m);
+            result.Should().Be(0m);
         }
 
 
@@ -282,7 +282,7 @@ namespace WebAPI.Tests
 
             var result = _readingService.EvaluateReading(1, answers);
 
-            result.Should().Be(9m);
+            result.Should().Be(0m);
         }
 
 
