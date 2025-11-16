@@ -37,12 +37,23 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
   // ===== Save profile changes =====
   const handleSave = () => {
     if (!user) return;
+
+    if (!profileData.name.trim()) {
+      alert("Name cannot be empty!");
+      return;
+    }
+
+    if (!profileData.accountName.trim()) {
+      alert("Username cannot be empty!");
+      return;
+    }
+
     setIsSaving(true);
 
     updateUser(user.userId, {
       firstname: profileData.name.split(" ")[0],
       lastname: profileData.name.split(" ").slice(1).join(" "),
-      email: profileData.gmail,
+
       username: profileData.accountName,
       password: profileData.password || undefined,
       avatar: profileData.avatar === "" ? null : profileData.avatar,
@@ -81,9 +92,8 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
           <InputField
             name="gmail"
             type="email"
-            placeholder="Enter your email"
             value={profileData.gmail}
-            onChange={handleChange}
+            disabled
           />
         </div>
 
@@ -157,7 +167,12 @@ export default function ProfileTab({ user, profileData, setProfileData }) {
           <button
             className="save-btn"
             onClick={handleSave}
-            disabled={!hasChanges || isSaving}
+            disabled={
+              !hasChanges ||
+              isSaving ||
+              !profileData.name.trim() ||
+              !profileData.accountName.trim()
+            }
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </button>
