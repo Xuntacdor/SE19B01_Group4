@@ -120,5 +120,16 @@ namespace WebAPI.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+        [HttpGet("feedback/attempt/{attemptId}")]
+        [Authorize(Roles = "user,admin")]
+        public IActionResult GetFeedbackByAttempt(int attemptId)
+        {
+            var feedback = _feedbackService.GetByAttemptId(attemptId);
+
+            if (feedback == null)
+                return NotFound(new { message = "No feedback found for this attempt." });
+
+            return Ok(feedback);
+        }
     }
 }

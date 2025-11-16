@@ -129,11 +129,11 @@ namespace WebAPI.Services
             return JsonDocument.Parse(JsonSerializer.Serialize(response));
         }
 
-
         private void SaveFeedback(int examId, int writingId, JsonDocument feedback, int userId, string answerText)
         {
             try
             {
+                // Lấy attempt hiện tại (nếu có)
                 var attemptList = _examService.GetExamAttemptsByUser(userId);
                 var attemptSummary = attemptList.FirstOrDefault(a => a.ExamId == examId);
 
@@ -141,10 +141,11 @@ namespace WebAPI.Services
 
                 if (attemptSummary == null)
                 {
+                    // Nếu chưa có attempt → tạo mới
                     var dto = new SubmitAttemptDto
                     {
                         ExamId = examId,
-                        AnswerText = answerText,
+                        AnswerText = "", // 🔥 ban đầu rỗng
                         StartedAt = DateTime.UtcNow
                     };
 
@@ -152,17 +153,41 @@ namespace WebAPI.Services
                 }
                 else
                 {
+                    // Nếu attempt tồn tại → luôn ghi đè toàn bộ
                     attempt = _examService.GetAttemptById(attemptSummary.AttemptId)
                               ?? throw new Exception("ExamAttempt not found in database.");
-                    if (string.IsNullOrEmpty(attempt.AnswerText))
-                    {
-                        attempt.AnswerText = answerText;
-                        _examService.Save();
-                    }
                 }
+
+                /*
+                    🔥 REPLACE TOÀN BỘ ANSWER TEXT CHO MỖI VÒNG CHẤM FULL
+                    Mình không append ở đây.
+                    GradeFull sẽ gọi hàm này 2 lần (task1, task2).
+                    Bài nào gọi sau sẽ đè bài trước → TAO KHÔNG MUỐN THẾ.
+
+                    => Ghi đè logic phải đặt ở GRADEFULL, không đặt ở đây.
+                */
+
+                // --------- CHỈ GHI ĐÈ THEO TASK CỤ THỂ ----------
+                var newTaskBlock = $"--- TASK {writingId} ---\n{answerText}";
+
+                // Nếu đây là task 1 (displayOrder = 1) → reset toàn bộ answerText
+                // để chuẩn bị ghi lại từ đầu
+                if (writingId == 10 || writingId == 1) // tuỳ ID task 1 của m
+                {
+                    attempt.AnswerText = newTaskBlock;
+                }
+                else
+                {
+                    // Task 2 → append sau khi task 1 đã reset
+                    attempt.AnswerText += "\n\n" + newTaskBlock;
+                }
+
+                _examService.Save();
+
+                // =============================== FEEDBACK ===============================
                 var band = feedback.RootElement.GetProperty("band_estimate");
-                var existing = _feedbackRepo.GetAll()
-                    .FirstOrDefault(f => f.AttemptId == attempt.AttemptId && f.WritingId == writingId);
+                var existing = _feedbackRepo.GetByAttemptAndWriting(attempt.AttemptId, writingId);
+
                 if (existing != null)
                 {
                     existing.TaskAchievement = band.GetProperty("task_achievement").GetDecimal();
@@ -173,6 +198,7 @@ namespace WebAPI.Services
                     existing.GrammarVocabJson = feedback.RootElement.GetProperty("grammar_vocab").GetRawText();
                     existing.FeedbackSections = feedback.RootElement.GetProperty("overall_feedback").GetRawText();
                     existing.CreatedAt = DateTime.UtcNow;
+
                     _feedbackRepo.Update(existing);
                 }
                 else
@@ -193,6 +219,7 @@ namespace WebAPI.Services
 
                     _feedbackRepo.Add(entity);
                 }
+
                 _feedbackRepo.SaveChanges();
             }
             catch (Exception ex)

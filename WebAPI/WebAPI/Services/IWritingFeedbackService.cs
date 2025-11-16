@@ -14,5 +14,7 @@ namespace WebAPI.Services
         /// Lấy 1 feedback cụ thể theo ID.
         /// </summary>
         WritingFeedback? GetById(int id);
+        WritingFeedback? GetByAttemptId(int attemptId);           
+
     }
 }

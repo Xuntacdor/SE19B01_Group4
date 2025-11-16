@@ -14,7 +14,7 @@
     public class WritingGradeRequestDTO
     {
         public int ExamId { get; set; }
-        public string Mode { get; set; } = "single"; // "single" hoặc "full"
+        public string Mode { get; set; } = "single"; 
         public List<WritingAnswerDTO> Answers { get; set; } = new();
     }
 

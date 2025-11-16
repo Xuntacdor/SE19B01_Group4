@@ -217,9 +217,8 @@ export default function DashboardUser() {
                 return (
                   <div
                     key={day}
-                    className={`${styles.dayCell} ${
-                      submitted ? styles.submittedDay : ""
-                    }`}
+                    className={`${styles.dayCell} ${submitted ? styles.submittedDay : ""
+                      }`}
                   >
                     {day}
                   </div>
@@ -431,9 +430,8 @@ export default function DashboardUser() {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`${styles.pageButton} ${
-                      currentPage === page ? styles.activePage : ""
-                    }`}
+                    className={`${styles.pageButton} ${currentPage === page ? styles.activePage : ""
+                      }`}
                   >
                     {page}
                   </button>

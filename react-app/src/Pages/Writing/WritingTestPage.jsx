@@ -17,37 +17,51 @@ export default function WritingTest() {
   const [submitting, setSubmitting] = useState(false);
   const [started, setStarted] = useState(false);
 
-  // If no state → show back page
-  if (!state)
-    return (
-      <AppLayout title="Writing Test" sidebar={<GeneralSidebar />}>
-        <div className={styles.center}>
-          <h2>No exam selected</h2>
-          <button onClick={() => navigate(-1)} className={styles.backBtn}>
-            ← Back
-          </button>
-        </div>
-      </AppLayout>
-    );
-
-  const { exam, tasks, task, mode } = state;
+  // state có thể undefined, nên destructure an toàn
+  const { exam, tasks = [], task, mode } = state || {};
+  const STORAGE_KEY = exam
+    ? `writing_answers_exam_${exam.examId}`
+    : "writing_answers_temp";
 
   // ===========================================
   // 1. RESTORE ANSWERS WHEN PAGE LOADS
   // ===========================================
   useEffect(() => {
-    const saved = localStorage.getItem("writing_answers");
+    const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         setAnswers(JSON.parse(saved));
-      } catch {}
+      } catch {
+        // ignore
+      }
     }
-  }, []);
+  }, [STORAGE_KEY]);
+
+  // ===========================================
+  // 1.1 ENSURE ALL TASKS HAVE A KEY TRONG answers
+  // (để Task 2 không bị mất)
+  // ===========================================
+  useEffect(() => {
+    if (!tasks || tasks.length === 0) return;
+
+    setAnswers((prev) => {
+      const updated = { ...prev };
+      tasks.forEach((t) => {
+        if (updated[t.writingId] === undefined) {
+          updated[t.writingId] = "";
+        }
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, [tasks, STORAGE_KEY]);
 
   // ===========================================
   // 2. SET TIMER
   // ===========================================
   useEffect(() => {
+    if (!mode) return;
+
     if (mode === "full") {
       setTimeLeft(60 * 60);
       setStarted(true);
@@ -86,7 +100,7 @@ export default function WritingTest() {
       ? tasks?.[currentIndex]?.writingId
       : task?.writingId || tasks?.[0]?.writingId;
 
-  const currentAnswer = answers[currentId] || "";
+  const currentAnswer = currentId ? answers[currentId] || "" : "";
 
   // ===========================================
   // 4. WORD COUNT LOGIC
@@ -105,13 +119,15 @@ export default function WritingTest() {
   // ===========================================
   const handleChange = (e) => {
     const text = e.target.value;
+    if (!currentId) return;
+
     const updated = {
       ...answers,
       [currentId]: text,
     };
 
     setAnswers(updated);
-    localStorage.setItem("writing_answers", JSON.stringify(updated));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
   // Next / Prev task (full mode)
@@ -138,21 +154,34 @@ export default function WritingTest() {
         return;
       }
 
+      const usedTasks = mode === "full" ? tasks : [task];
+
+
+      const mergedAnswer =
+        usedTasks
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+          .map((t) => {
+            const text = answers[t.writingId] || "";
+            return `--- TASK ${t.displayOrder} ---\n${text.trim()}`;
+          })
+          .join("\n\n");
+
       const gradeData = {
         examId: exam.examId,
         mode,
-        answers: (mode === "full" ? tasks : [task]).map((t) => ({
+        answers: usedTasks.map((t) => ({
           writingId: t.writingId,
           displayOrder: t.displayOrder,
           answerText: answers[t.writingId] || "",
-          imageUrl: t.displayOrder === 1 ? t.imageUrl || null : null,
+          imageUrl: t.displayOrder === 1 ? t.imageUrl : null
         })),
+        answerText: mergedAnswer
       };
 
       await WritingApi.gradeWriting(gradeData);
 
-      // clear autosave
-      localStorage.removeItem("writing_answers");
+      // clear autosave cho exam này
+      localStorage.removeItem(STORAGE_KEY);
 
       navigate("/writing/result", {
         state: {
@@ -170,10 +199,10 @@ export default function WritingTest() {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, exam.examId, mode, tasks, task, answers, navigate]);
+  }, [submitting, exam, mode, tasks, task, answers, navigate, STORAGE_KEY]);
 
   // ===========================================
-  // 7. AUTO-SUBMIT WHEN TIME EXPIRES (FIXED)
+  // 7. AUTO-SUBMIT WHEN TIME EXPIRES
   // ===========================================
   useEffect(() => {
     if (!started) return; // prevent instant submit
@@ -182,6 +211,23 @@ export default function WritingTest() {
     }
   }, [timeLeft, submitting, started, handleSubmit]);
 
+
+  if (!state) {
+    return (
+      <AppLayout title="Writing Test" sidebar={<GeneralSidebar />}>
+        <div className={styles.center}>
+          <h2>No exam selected</h2>
+          <button onClick={() => navigate(-1)} className={styles.backBtn}>
+            ← Back
+          </button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // ===========================================
+  // 9. RENDER
+  // ===========================================
   return (
     <AppLayout title="Writing Test" sidebar={<GeneralSidebar />}>
       <div className={styles.container}>
@@ -200,9 +246,8 @@ export default function WritingTest() {
             <div className={styles.answerHeader}>
               <h4>Your Answer:</h4>
               <div
-                className={`${styles.wordCount} ${
-                  isEnough ? styles.wordOK : styles.wordLow
-                }`}
+                className={`${styles.wordCount} ${isEnough ? styles.wordOK : styles.wordLow
+                  }`}
               >
                 Words: {wordCount} / {wordLimit}
               </div>

@@ -22,5 +22,9 @@ namespace WebAPI.Services
         {
             return _repo.GetById(id);
         }
+        public WritingFeedback? GetByAttemptId(int attemptId)
+        {
+            return _repo.GetByAttemptId(attemptId);
+        }
     }
 }

@@ -66,5 +66,11 @@ namespace WebAPI.Repositories
         {
             _db.SaveChanges();
         }
+        public WritingFeedback? GetByAttemptId(int attemptId)
+        {
+            return _db.WritingFeedback
+                .AsNoTracking()
+                .FirstOrDefault(f => f.AttemptId == attemptId);
+        }
     }
 }

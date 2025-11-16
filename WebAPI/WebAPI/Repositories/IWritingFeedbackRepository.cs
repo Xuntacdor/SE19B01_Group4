@@ -13,6 +13,6 @@ namespace WebAPI.Repositories
         void SaveChanges();
         List<WritingFeedback> GetAll();
         WritingFeedback? GetByAttemptAndWriting(long attemptId, int writingId);
-
+        WritingFeedback? GetByAttemptId(int attemptId);
     }
 }

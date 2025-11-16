@@ -1,8 +1,9 @@
-﻿using WebAPI.Data;
-using WebAPI.Models;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using WebAPI.Data;
+using WebAPI.Models;
 
 namespace WebAPI.Repositories
 {
@@ -52,6 +53,12 @@ namespace WebAPI.Repositories
                 attempt.AnswerText += "\n\n---\n[AI Feedback JSON]\n" + feedbackJson.RootElement.ToString();
                 _db.SaveChanges();
             }
+        }
+        public WritingFeedback? GetByAttemptId(int attemptId)
+        {
+            return _db.WritingFeedback
+                .AsNoTracking()
+                .FirstOrDefault(f => f.AttemptId == attemptId);
         }
     }
 }
