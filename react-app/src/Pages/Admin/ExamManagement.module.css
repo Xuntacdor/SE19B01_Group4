@@ -15,6 +15,53 @@
 }
 
 /* ================================
+    FILTER + SEARCH BAR
+================================ */
+
+.filterWrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+/* Make search box bigger */
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 320px;       /* bigger search box */
+  height: 40px;       /* taller */
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 6px;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  height: 100%;
+  width: 100%;
+  font-size: 14px;
+  color: #374151;
+  background: transparent;
+}
+
+/* Smaller dropdown filter */
+.filterDropdown {
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  height: 34px;        /* slightly smaller */
+  width: 150px;        /* smaller width */
+}
+
+/* ================================
     TABLE + SCROLL AREA
 ================================ */
 
