@@ -9,7 +9,7 @@ import ExamSkillModal from "../../Components/Exam/ExamPopup";
 import styles from "./ReadingPage.module.css";
 import NothingFound from "../../Components/Nothing/NothingFound";
 import SearchBar from "../../Components/Common/SearchBar"; // ✅ import SearchBar
-
+import sadCloud from "../../assets/sad_cloud.png";
 export default function ReadingPage() {
   const navigate = useNavigate();
 
@@ -135,7 +135,7 @@ export default function ReadingPage() {
               ) : (
                 <div className={styles.centerWrapper}>
                   <NothingFound
-                    imageSrc="/src/assets/sad_cloud.png"
+                    imageSrc=   {sadCloud}
                     title="No reading exams found"
                     message="Try adjusting your search keywords."
                   />

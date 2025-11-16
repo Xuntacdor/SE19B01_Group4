@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import PostItem from "./PostItem";
 import NothingFound from "../Nothing/NothingFound";
-
+import sadCloud from "../../assets/sad_cloud.png";
 export default function PostList({ 
   posts, 
   loading, 
@@ -72,7 +72,7 @@ export default function PostList({
   if (posts.length === 0 && !loading) {
     return (
       <NothingFound
-        imageSrc="/src/assets/sad_cloud.png"
+        imageSrc= {sadCloud}
         title="No posts found"
         message="Be the first to start a discussion."
         actionLabel="Create a post"
