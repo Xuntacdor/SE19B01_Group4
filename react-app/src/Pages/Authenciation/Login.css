@@ -663,25 +663,25 @@
 .password-guide-popup::before {
   content: '';
   position: absolute;
-  top: -8px;
-  left: 20px;
+  top: 20px;
+  right: -8px;
   width: 0;
   height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 8px solid #2563EB;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid #2563EB;
 }
 
 .password-guide-popup::after {
   content: '';
   position: absolute;
-  top: -6px;
-  left: 20px;
+  top: 20px;
+  right: -6px;
   width: 0;
   height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 8px solid white;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid white;
 }
 
 .password-guide-title {
@@ -767,25 +767,25 @@
 .email-guide-popup::before {
   content: '';
   position: absolute;
-  top: -8px;
-  left: 20px;
+  top: 20px;
+  right: -8px;
   width: 0;
   height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 8px solid #2563EB;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid #2563EB;
 }
 
 .email-guide-popup::after {
   content: '';
   position: absolute;
-  top: -6px;
-  left: 20px;
+  top: 20px;
+  right: -6px;
   width: 0;
   height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 8px solid white;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid white;
 }
 
 .email-guide-title {
@@ -841,6 +841,22 @@
   font-style: italic;
 }
 
+/* Password Mismatch Message */
+.password-mismatch {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Montserrat", sans-serif;
+}
+
+.password-mismatch svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
 
 /* Input Field Error Styles - Scoped to login page only */
 .animated-login-page .input-field-error input[type="text"],
