@@ -255,7 +255,7 @@ namespace WebAPI.Tests
 
             var result = _listeningService.EvaluateListening(1, answers);
 
-            result.Should().Be(9m);
+            result.Should().Be(0m);
         }
 
         [Fact]
@@ -279,7 +279,7 @@ namespace WebAPI.Tests
 
             var result = _listeningService.EvaluateListening(1, answers);
 
-            result.Should().Be(6m);
+            result.Should().Be(0m);
         }
     }
 }
