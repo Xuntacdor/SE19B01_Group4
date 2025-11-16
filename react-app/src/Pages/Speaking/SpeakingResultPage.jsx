@@ -113,7 +113,22 @@ export default function SpeakingResultPage() {
     );
   }
 
-  const finalOverall = feedback.finalOverall ?? feedback.averageOverall ?? "-";
+  function roundIELTS(score) {
+    if (score == null || isNaN(score)) return "-";
+
+    if (score < 6.5) return "6.0";
+    if (score === 6.5) return "6.5";
+    return "7.0";
+  }
+
+  const finalOverall = feedback.averageOverall
+    ? roundIELTS(Number(feedback.averageOverall))
+    : feedback.feedbacks?.length
+    ? roundIELTS(
+        feedback.feedbacks.reduce((total, f) => total + (f.overall ?? 0), 0) /
+          feedback.feedbacks.length
+      )
+    : "-";
 
   // ============================
   // MAIN RESULT UI
