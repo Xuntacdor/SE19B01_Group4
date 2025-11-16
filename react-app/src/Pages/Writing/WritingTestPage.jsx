@@ -32,7 +32,7 @@ export default function WritingTest() {
   const { exam, tasks, task, mode } = state;
 
   // ===========================================
-  // ✅ 1. RESTORE ANSWERS WHEN PAGE LOADS
+  // 1. RESTORE ANSWERS WHEN PAGE LOADS
   // ===========================================
   useEffect(() => {
     const saved = localStorage.getItem("writing_answers");
@@ -44,7 +44,7 @@ export default function WritingTest() {
   }, []);
 
   // ===========================================
-  // Timer logic
+  // Set timer based on mode
   // ===========================================
   useEffect(() => {
     if (mode === "full") setTimeLeft(60 * 60);
@@ -52,11 +52,21 @@ export default function WritingTest() {
     else if (task?.displayOrder === 2) setTimeLeft(40 * 60);
   }, [mode, task]);
 
+  // Countdown
   useEffect(() => {
     if (timeLeft <= 0) return;
     const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft]);
+
+  // ===========================================
+  // ⏳ AUTO-SUBMIT WHEN TIME EXPIRES
+  // ===========================================
+  useEffect(() => {
+    if (timeLeft === 0 && !submitting) {
+      handleSubmit();
+    }
+  }, [timeLeft, submitting]);
 
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
@@ -80,25 +90,23 @@ export default function WritingTest() {
   const isEnough = wordCount >= wordLimit;
 
   // ===========================================
-  // ✅ 2. AUTOSAVE ANSWERS TO LOCALSTORAGE
+  // Save answers to localStorage
   // ===========================================
   const handleChange = (e) => {
     const text = e.target.value;
-
     const updated = {
       ...answers,
       [currentId]: text,
     };
 
     setAnswers(updated);
-
-    // ✔ Save all answers on each keypress
     localStorage.setItem("writing_answers", JSON.stringify(updated));
   };
 
   const handleNext = () => {
     if (currentIndex < tasks.length - 1) setCurrentIndex((i) => i + 1);
   };
+
   const handlePrev = () => {
     if (currentIndex > 0) setCurrentIndex((i) => i - 1);
   };
@@ -129,9 +137,7 @@ export default function WritingTest() {
 
       await WritingApi.gradeWriting(gradeData);
 
-      // ===========================================
-      // ✅ 3. CLEAR AUTOSAVE AFTER SUBMIT
-      // ===========================================
+      // Clear autosave after submit
       localStorage.removeItem("writing_answers");
 
       navigate("/writing/result", {
@@ -165,7 +171,7 @@ export default function WritingTest() {
         </div>
 
         <div className={styles.splitLayout}>
-          {/* ================= LEFT SIDE ================= */}
+          {/* LEFT SIDE */}
           <div className={styles.leftPane}>
             <div className={styles.answerHeader}>
               <h4>Your Answer:</h4>
@@ -200,7 +206,7 @@ export default function WritingTest() {
             </div>
           </div>
 
-          {/* ================= RIGHT SIDE ================= */}
+          {/* RIGHT SIDE */}
           <div className={styles.rightPane}>
             <div className={styles.taskBlock}>
               <h3>Task {currentTask?.displayOrder}</h3>
