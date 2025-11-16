@@ -11,6 +11,8 @@ import * as speakingService from "../../Services/SpeakingApi";
 import Sidebar from "../../Components/Admin/AdminNavbar.jsx";
 import ExamSkillModal from "../../Components/Admin/ExamPopup.jsx";
 import CreateExamPopup from "../../Components/Admin/CreateExamPopup.jsx";
+import DeleteConfirmPopup from "../../Components/Common/DeleteConfirmPopup.jsx";
+
 import AppLayout from "../../Components/Layout/AppLayout";
 
 import { FileBadge, Search } from "lucide-react";
@@ -22,10 +24,15 @@ export default function ExamManagement() {
   const [exams, setExams] = useState([]);
   const [skills, setSkills] = useState([]);
   const [search, setSearch] = useState("");
+  const [skillFilter, setSkillFilter] = useState("All");
 
   const [selectedExam, setSelectedExam] = useState(null);
   const [showSkillModal, setShowSkillModal] = useState(false);
   const [showCreatePopup, setShowCreatePopup] = useState(false);
+
+  // DELETE POPUP
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [examToDelete, setExamToDelete] = useState(null);
 
   const serviceMap = {
     Reading: readingService,
@@ -62,16 +69,19 @@ export default function ExamManagement() {
     }
   };
 
-  const filtered = exams.filter((e) =>
-    e.examName.toLowerCase().includes(search.toLowerCase())
-  );
+  // FILTER
+  const filtered = exams.filter((e) => {
+    const matchesSearch = e.examName.toLowerCase().includes(search.toLowerCase());
+    const matchesSkill =
+      skillFilter === "All" ? true : e.examType === skillFilter;
+    return matchesSearch && matchesSkill;
+  });
 
   return (
     <AppLayout sidebar={<Sidebar />} title="Exam Management">
-      {/* NO CONTAINER — same as UserManagement */}
       <div className={styles.page}>
 
-        {/* HEADER (BIG TEXT RESTORED) */}
+        {/* HEADER */}
         <div className="user-management-header">
           <div className="header-content">
             <FileBadge size={28} />
@@ -87,8 +97,9 @@ export default function ExamManagement() {
           </button>
         </div>
 
-        {/* SEARCH BAR */}
-        <div className="search-section">
+        {/* SEARCH + FILTER */}
+        <div className={styles.filterWrapper}>
+
           <div className="search-container">
             <Search size={20} />
             <input
@@ -99,6 +110,19 @@ export default function ExamManagement() {
               className="search-input"
             />
           </div>
+
+          <select
+            value={skillFilter}
+            onChange={(e) => setSkillFilter(e.target.value)}
+            className={styles.filterDropdown}
+          >
+            <option value="All">All Skills</option>
+            <option value="Reading">Reading</option>
+            <option value="Listening">Listening</option>
+            <option value="Writing">Writing</option>
+            <option value="Speaking">Speaking</option>
+          </select>
+
         </div>
 
         {/* TABLE */}
@@ -123,6 +147,7 @@ export default function ExamManagement() {
                       <td>{exam.examName}</td>
                       <td>{exam.examType}</td>
                       <td>{formatTimeVietnam(exam.createdAt)}</td>
+
                       <td>
                         <button
                           className={styles.btnManage}
@@ -130,11 +155,13 @@ export default function ExamManagement() {
                         >
                           Manage
                         </button>
+
                         <button
                           className={styles.btnDelete}
-                          onClick={() =>
-                            examService.remove(exam.examId).then(loadExams)
-                          }
+                          onClick={() => {
+                            setExamToDelete(exam);
+                            setShowDeletePopup(true);
+                          }}
                         >
                           Delete
                         </button>
@@ -184,6 +211,24 @@ export default function ExamManagement() {
             loadExams();
           }}
         />
+
+        {/* DELETE CONFIRM POPUP */}
+        <DeleteConfirmPopup
+          show={showDeletePopup}
+          title="Delete Exam"
+          message={
+            examToDelete
+              ? `Are you sure you want to delete exam "${examToDelete.examName}"?`
+              : ""
+          }
+          onCancel={() => setShowDeletePopup(false)}
+          onConfirm={async () => {
+            await examService.remove(examToDelete.examId);
+            setShowDeletePopup(false);
+            loadExams();
+          }}
+        />
+
       </div>
     </AppLayout>
   );
