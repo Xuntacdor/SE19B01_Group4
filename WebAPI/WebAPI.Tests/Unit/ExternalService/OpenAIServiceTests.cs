@@ -62,9 +62,70 @@ namespace WebAPI.Tests.Unit.ExternalServices
             result.RootElement.ToString().Should().ContainAny("band_estimate", "ai_analysis", "error");
         }
 
+        [Fact]
+        public void GetSpeakingSuggestion_ShouldReturnJson_FromLocalAI()
+        {
+            var client = new OpenAIClient(
+                new ApiKeyCredential("dummy"),
+                new OpenAIClientOptions { Endpoint = new Uri("http://localhost:1234/v1") });
+
+            var service = new OpenAIService(client, _loggerMock.Object, _options);
+
+            var result = service.GetSpeakingSuggestion("What is your hobby?");
+
+            result.Should().NotBeNull();
+
+            var text = result.RootElement.ToString();
+            text.Should().ContainAny("vocabulary_by_level", "sample_answer", "error");
+        }
+
+        [Fact]
+        public void LookupWordAI_ShouldReturnValidJson_FromLocalAI()
+        {
+            var client = new OpenAIClient(
+                new ApiKeyCredential("dummy"),
+                new OpenAIClientOptions { Endpoint = new Uri("http://localhost:1234/v1") });
+
+            var service = new OpenAIService(client, _loggerMock.Object, _options);
+
+            var result = service.LookupWordAI("beautiful");
+
+            var text = result.RootElement.ToString();
+            text.Should().ContainAny("term", "vietnameseTranslation", "englishTranslation", "error");
+        }
+        [Fact]
+        public void AnalyzeContent_ShouldReturnValidJson_FromLocalAI()
+        {
+            var client = new OpenAIClient(
+                new ApiKeyCredential("dummy"),
+                new OpenAIClientOptions { Endpoint = new Uri("http://localhost:1234/v1") });
+
+            var service = new OpenAIService(client, _loggerMock.Object, _options);
+
+            var result = service.AnalyzeContent(
+                "Hello world",
+                "This is a normal comment without bad words.",
+                "comment"
+            );
+
+            var text = result.RootElement.ToString();
+            text.Should().ContainAny("is_meaningful", "summary", "inappropriate_words", "error");
+        }
+        [Fact]
+        public void GradeWriting_ShouldReturnError_WhenLocalAIUnavailable()
+        {
+            var client = new OpenAIClient(
+                new ApiKeyCredential("dummy"),
+                new OpenAIClientOptions { Endpoint = new Uri("http://localhost:9999/notexists") });
+
+            var service = new OpenAIService(client, _loggerMock.Object, _options);
+
+            var result = service.GradeWriting("Q", "A");
+
+            result.RootElement.TryGetProperty("error", out _).Should().BeTrue();
+        }
 
 
-      
 
     }
 }
