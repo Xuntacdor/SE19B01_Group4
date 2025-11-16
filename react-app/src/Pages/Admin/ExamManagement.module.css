@@ -1,379 +1,85 @@
-/* ========================================
-   EXAM MANAGEMENT — MODERN ADMIN STYLE
-======================================== */
+/* ================================
+   MATCH USER MANAGEMENT EXACTLY
+================================ */
 
 .page {
-  min-height: 100vh;
+  padding: 30px;
   background: #f8fafc;
-  padding: 48px 28px;
-  display: flex;
-  justify-content: center;
-  font-family: "Dongle", sans-serif;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
+/* container removed entirely */
 .container {
-  width: 100%;
-  max-width: 1200px;
-  background: white;
-  padding: 40px 48px;
-  border-radius: 16px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  display: contents;
 }
 
-/* Title */
-.title {
-  text-align: center;
-  font-size: 48px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 36px;
-}
+/* ================================
+    TABLE + SCROLL AREA
+================================ */
 
-/* -------------------------
-      FORM AREA
-------------------------- */
-
-.form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  margin-bottom: 24px;
-}
-
-.form input,
-.form select {
-  flex: 1;
-  min-width: 240px;
-  padding: 12px 16px;
+.scrollWrapper {
+  max-height: 460px;
+  overflow-y: auto;
   border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  background: white;
-  font-size: 22px;
-  transition: 0.2s;
+  border: 1px solid #e1e5e9;
+  background: #fff;
+  overflow-x: hidden;
 }
-
-.form input:focus,
-.form select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
-}
-
-.submitBtn {
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 28px;
-  font-size: 26px;
-  cursor: pointer;
-  transition: 0.2s ease;
-  height: fit-content;
-}
-
-.submitBtn:hover {
-  background: #1e40af;
-  transform: translateY(-2px);
-}
-
-/* -------------------------
-      STATUS TEXT
-------------------------- */
-
-.status {
-  margin-top: 10px;
-  font-size: 26px;
-  color: #374151;
-}
-
-/* -------------------------
-      TABLE
-------------------------- */
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
 }
 
-.table th {
-  background: #f3f4f6;
-  padding: 14px 12px;
+.table thead th {
+  background: #f8f9fa;
+  padding: 16px 20px;
   text-align: left;
-  font-size: 26px;
-  font-weight: 700;
-  color: #374151;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.table td {
-  padding: 16px 12px;
-  font-size: 24px;
-  color: #4b5563;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.table tr:hover td {
-  background: #f9fafb;
-}
-
-/* ACTION BUTTONS */
-
-.editBtn {
-  background: #facc15;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 10px;
-  font-size: 24px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.editBtn:hover {
-  background: #eab308;
-}
-
-.deleteBtn {
-  margin-left: 10px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 10px;
-  font-size: 24px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.deleteBtn:hover {
-  background: #dc2626;
-}
-
-/* Empty Row */
-.empty {
-  text-align: center;
-  padding: 22px;
-  color: #6b7280;
-  font-size: 24px;
-}
-
-/* ==========================================
-     IMAGE UPLOAD SECTION (RESTORED + MODERN)
-========================================== */
-
-.imageUploadBox {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.imageUploadBtn {
-  padding: 10px 16px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 22px;
-  cursor: pointer;
-  transition: 0.2s ease;
-  width: 100%;
-  text-align: center;
-}
-
-.imageUploadBtn:hover {
-  background: #1e40af;
-  transform: translateY(-2px);
-}
-
-.imageUploadBtn:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
-
-.imagePreviewWrapper {
-  display: flex;
-  gap: 14px;
-  padding: 12px;
-  background: #f3f4f6;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  width: fit-content;
-}
-
-.imagePreview {
-  width: 200px;
-  height: 130px;
-  object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid #d1d5db;
-}
-
-.imageRemoveBtn {
-  padding: 6px 14px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 20px;
-  cursor: pointer;
-  height: fit-content;
-  transition: 0.2s;
-}
-
-.imageRemoveBtn:hover {
-  background: #dc2626;
-  transform: translateY(-2px);
-}
-
-/* RESPONSIVE */
-
-@media (max-width: 768px) {
-  .container {
-    padding: 24px;
-  }
-
-  .form {
-    flex-direction: column;
-  }
-
-  .submitBtn {
-    width: 100%;
-  }
-}
-
-/* Fix container overflow — allow full scroll */
-.page {
-  overflow-y: auto !important;
-}
-
-/* Ensure the content box grows normally */
-.container {
-  height: auto !important;
-  overflow: visible !important;
-}
-
-
-.searchBar input {
-  padding: 10px 16px;
-  font-size: 22px;
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  background: white;
-  width: 260px;
-}
-
-/* Scrollable table panel */
-.scrollArea {
-  max-height: 450px;      /* adjust height if needed */
-  overflow-y: auto;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-}
-
-/* Prevent container overflow */
-.page {
-  overflow-y: auto !important;
-}
-
-.container {
-  height: auto !important;
-  overflow: visible !important;
-}
-
-.admin-main {
-  overflow-y: auto !important;
-  height: auto !important;
-  min-height: 100vh !important;
-}
-
-
-/* Sticky table header */
-.scrollWrapper table thead th {
+  font-weight: 600;
+  font-size: 14px;
+  color: #495057;
+  border-bottom: 2px solid #e9ecef;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-/* Fix clipping of table inside scroll */
-.scrollWrapper table {
-  width: 100%;
-  border-collapse: separate !important;
-  border-spacing: 0;
+.table tbody td {
+  padding: 16px 20px;
+  font-size: 14px;
+  color: #4b5563;
+  border-bottom: 1px solid #e9ecef;
 }
 
-/* Prevent sidebar layout from clipping content */
-.admin-main {
-  overflow-y: auto !important;
-  height: auto !important;
-  min-height: 100vh !important;
+.table tbody tr:hover {
+  background: #f8f9fa;
 }
 
-.page {
-  overflow-y: auto !important;
-  height: auto !important;
+.empty {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
 }
 
-.container {
-  overflow: visible !important;
-  height: auto !important;
+/* ================================
+    ACTION BUTTONS
+================================ */
+
+.btnManage {
+  background: #007bff;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: none;
 }
 
-/* SECTION TITLES */
-.sectionTitle {
-  font-size: 36px;
-  font-weight: 700;
-  margin-bottom: 18px;
-  color: #1f2937;
-}
-
-/* CLEAN FORM ROW */
-.formRow {
-  display: flex;
-  align-items: flex-end;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-/* Input layout */
-.inputGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 220px;
-  flex: 1;
-}
-
-/* Top layout for exam list */
-.listHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-/* Search + Filter layout */
-.controlsRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Better search bar alignment */
-.searchBar {
-  padding: 10px 16px;
-  font-size: 22px;
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  background: white;
-  width: 240px;
-}
-
-/* Scroll wrapper (sticky header already done) */
-.scrollWrapper {
-  max-height: 450px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: white;
-  position: relative;
+.btnDelete {
+  background: #dc3545;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: none;
 }
