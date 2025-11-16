@@ -99,12 +99,9 @@ export default function DashboardUser() {
       const rows = await Promise.all(
         attempts.map(async (a) => {
           let score = "-";
-          function roundSpeaking(score) {
+          function roundIELTS(score) {
             if (score == null || isNaN(score)) return "-";
-
-            if (score < 6.5) return "6.0";
-            if (score === 6.5) return "6.5";
-            return "7.0";
+            return Math.round(score * 2) / 2; // round to nearest 0.5
           }
 
           try {

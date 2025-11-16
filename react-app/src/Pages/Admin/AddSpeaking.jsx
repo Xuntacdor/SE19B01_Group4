@@ -142,47 +142,45 @@ export default function AddSpeaking() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.examId) {
-      setStatus({
-        icon: <XCircle color="red" size={16} />,
-        message: "Exam ID is missing.",
-      });
-      return;
-    }
+    const isEditing = Boolean(skill);
 
-    if (form.questions.some((q) => !q.trim())) {
-      setStatus({
-        icon: <XCircle color="red" size={16} />,
-        message: "Please fill all question fields.",
-      });
-      return;
-    }
-
-    setStatus({ icon: <Upload size={16} />, message: "Adding questions..." });
+    const payload = {
+      examId: form.examId,
+      speakingQuestion: form.questions[0],
+      speakingType: form.speakingType,
+      displayOrder: parseInt(form.displayOrder),
+    };
 
     try {
-      // Gửi từng câu hỏi lên backend (mỗi câu là 1 record Speaking)
+      if (isEditing) {
+        // UPDATE 1 CÂU
+        await SpeakingApi.update(skill.speakingId, payload);
+        setStatus({
+          icon: <CheckCircle color="green" size={16} />,
+          message: "Speaking updated successfully!",
+        });
+        setTimeout(() => navigate(-1), 1200);
+        return;
+      }
+
+      // ADD NHIỀU CÂU (DEFAULT)
       for (let i = 0; i < form.questions.length; i++) {
-        const payload = {
-          examId: form.examId,
+        await SpeakingApi.add({
+          ...payload,
           speakingQuestion: form.questions[i],
-          speakingType: form.speakingType,
-          displayOrder: parseInt(form.displayOrder) + i, // tăng dần theo thứ tự câu
-        };
-        await SpeakingApi.add(payload);
+          displayOrder: payload.displayOrder + i,
+        });
       }
 
       setStatus({
         icon: <CheckCircle color="green" size={16} />,
         message: "All questions added successfully!",
       });
-
       setTimeout(() => navigate(-1), 1200);
     } catch (err) {
-      console.error(err);
       setStatus({
         icon: <XCircle color="red" size={16} />,
-        message: "Failed to add speaking questions.",
+        message: "Failed to process request.",
       });
     }
   };
