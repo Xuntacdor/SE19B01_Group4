@@ -141,7 +141,7 @@ export default function ExamManagement() {
 
               <tbody>
                 {filtered.length ? (
-                  filtered.map((exam) => (
+                  filtered.reverse().map((exam) => (
                     <tr key={exam.examId}>
                       <td>#{exam.examId}</td>
                       <td>{exam.examName}</td>

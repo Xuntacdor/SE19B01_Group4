@@ -148,7 +148,6 @@ export default function UserManagement() {
           <table className="users-table">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>User</th>
                 <th>Email</th>
                 <th>Role</th>
@@ -158,7 +157,6 @@ export default function UserManagement() {
             <tbody>
               {filteredUsers.map((user) => (
                 <tr key={user.userId}>
-                  <td>#{user.userId}</td>
                   <td>
                     <div className="user-info">
                       {user.avatar ? (

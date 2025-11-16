@@ -14,19 +14,41 @@ body{
 .dictionary-table {
   width: 100%;
   border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .dictionary-table th,
 .dictionary-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
+  border: 1px solid #e9ecef;
+  padding: 16px 20px;
   text-align: left;
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .dictionary-table th {
-  background: #f2f2f2;
+  background: #2563EB;
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 13px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.dictionary-table tbody tr {
+  background: #fff;
+  transition: background-color 0.2s ease;
+}
+
+.dictionary-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.dictionary-table td {
+  color: #1a1a1a;
+  vertical-align: middle;
 }
 
 .status {
@@ -59,32 +81,44 @@ body{
 }
 
 .tab {
-  padding: 6px 12px;
+  padding: 8px 16px;
   border: none;
   background: #f1f1f1;
+  color: #495057;
   cursor: pointer;
-  border-radius: 6px;
-  font-size: 15px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
 
+.tab:hover {
+  background: #e9ecef;
 }
 
 .tab.active {
-  background: orange;
+  background: #2563EB;
   color: #fff;
-  font-weight: bold;
-  font-size: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
 
+.tab.active:hover {
+  background: #1E40AF;
 }
 
 .tab.create {
-  background: #28a745;
+  background: #2563EB;
   color: white;
-  font-weight: bold;
-  font-size: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 .tab.create:hover {
-  background: #218838;
+  background: #1E40AF;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 
 .tab-wrapper {
