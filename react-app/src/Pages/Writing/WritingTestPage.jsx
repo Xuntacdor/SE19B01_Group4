@@ -6,6 +6,7 @@ import * as WritingApi from "../../Services/WritingApi";
 import LoadingComponent from "../../Components/Exam/LoadingComponent";
 import styles from "./WritingTestPage.module.css";
 import FloatDictionrary from "../../Components/Dictionary/FloatingDictionaryChat";
+
 export default function WritingTest() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function WritingTest() {
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  // If no state → show back page
   if (!state)
     return (
       <AppLayout title="Writing Test" sidebar={<GeneralSidebar />}>
@@ -29,7 +31,21 @@ export default function WritingTest() {
 
   const { exam, tasks, task, mode } = state;
 
+  // ===========================================
+  // ✅ 1. RESTORE ANSWERS WHEN PAGE LOADS
+  // ===========================================
+  useEffect(() => {
+    const saved = localStorage.getItem("writing_answers");
+    if (saved) {
+      try {
+        setAnswers(JSON.parse(saved));
+      } catch {}
+    }
+  }, []);
+
+  // ===========================================
   // Timer logic
+  // ===========================================
   useEffect(() => {
     if (mode === "full") setTimeLeft(60 * 60);
     else if (task?.displayOrder === 1) setTimeLeft(20 * 60);
@@ -63,12 +79,21 @@ export default function WritingTest() {
   const wordLimit = currentTask?.displayOrder === 1 ? 150 : 250;
   const isEnough = wordCount >= wordLimit;
 
+  // ===========================================
+  // ✅ 2. AUTOSAVE ANSWERS TO LOCALSTORAGE
+  // ===========================================
   const handleChange = (e) => {
     const text = e.target.value;
-    setAnswers((prev) => ({
-      ...prev,
+
+    const updated = {
+      ...answers,
       [currentId]: text,
-    }));
+    };
+
+    setAnswers(updated);
+
+    // ✔ Save all answers on each keypress
+    localStorage.setItem("writing_answers", JSON.stringify(updated));
   };
 
   const handleNext = () => {
@@ -78,10 +103,13 @@ export default function WritingTest() {
     if (currentIndex > 0) setCurrentIndex((i) => i - 1);
   };
 
-  // ✅ Modified submit handler
+  // ===========================================
+  // Submit handler
+  // ===========================================
   const handleSubmit = async () => {
     try {
-      setSubmitting(true); // show loading
+      setSubmitting(true);
+
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user) {
         alert("Please log in to submit your test.");
@@ -99,10 +127,13 @@ export default function WritingTest() {
         })),
       };
 
-      // Send essay for grading
       await WritingApi.gradeWriting(gradeData);
 
-      // Navigate to result page
+      // ===========================================
+      // ✅ 3. CLEAR AUTOSAVE AFTER SUBMIT
+      // ===========================================
+      localStorage.removeItem("writing_answers");
+
       navigate("/writing/result", {
         state: {
           examId: exam.examId,
@@ -134,6 +165,7 @@ export default function WritingTest() {
         </div>
 
         <div className={styles.splitLayout}>
+          {/* ================= LEFT SIDE ================= */}
           <div className={styles.leftPane}>
             <div className={styles.answerHeader}>
               <h4>Your Answer:</h4>
@@ -161,12 +193,14 @@ export default function WritingTest() {
               >
                 Submit
               </button>
+
               <button className={styles.backBtn} onClick={() => navigate(-1)}>
                 ← Back
               </button>
             </div>
           </div>
 
+          {/* ================= RIGHT SIDE ================= */}
           <div className={styles.rightPane}>
             <div className={styles.taskBlock}>
               <h3>Task {currentTask?.displayOrder}</h3>
@@ -197,7 +231,8 @@ export default function WritingTest() {
           </div>
         </div>
       </div>
-       <FloatDictionrary />     
+
+      <FloatDictionrary />
       {submitting && <LoadingComponent text="Submitting your essay..." />}
     </AppLayout>
   );
