@@ -402,14 +402,24 @@
   text-align: left;
 }
 
-.users-table td {
+.users-section .users-table td {
   text-align: center;
 }
 
-.users-table td:first-child {
+.users-section .users-table td:first-child {
   text-align: left;
   width: auto;
   min-width: 200px;
+}
+
+/* Ensure all columns except first (User) are center-aligned - Moderator specific */
+.users-section .users-table td:nth-child(2),
+.users-section .users-table td:nth-child(3),
+.users-section .users-table td:nth-child(4),
+.users-section .users-table td:nth-child(5),
+.users-section .users-table td:nth-child(6),
+.users-section .users-table td:nth-child(7) {
+  text-align: center !important;
 }
 
 .users-table .user-info {
