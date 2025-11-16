@@ -1,59 +1,38 @@
-.notification-popup {
-  position: relative;
+.notification-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 
 .notification-content {
-  padding: 24px 0;
+  padding: 8px 0;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
-.notification-icon-large {
+.notification-icon-container {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background-color: #f8f9fa;
   margin: 0 auto 20px auto;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.notification-icon {
   flex-shrink: 0;
 }
 
-.notification-icon.success {
-  color: #10b981;
-}
-
-.notification-icon.error {
-  color: #ef4444;
-}
-
-.notification-icon.warning {
-  color: #f59e0b;
-}
-
-.notification-icon.info {
-  color: #3b82f6;
-}
-
-/* Icon container background colors */
-.notification-icon-large.success-bg {
-  background-color: #d1fae5;
-}
-
-.notification-icon-large.error-bg {
-  background-color: #fee2e2;
-}
-
-.notification-icon-large.warning-bg {
-  background-color: #fef3c7;
-}
-
-.notification-icon-large.info-bg {
-  background-color: #dbeafe;
+.notification-icon-container svg {
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
 }
 
 .notification-title {
@@ -61,7 +40,7 @@
   font-size: 20px;
   font-weight: 600;
   color: #212529;
-  text-align: center !important;
+  text-align: center;
   letter-spacing: 0.2px;
   display: block;
   width: 100%;
@@ -72,58 +51,49 @@
   font-size: 15px;
   color: #6b7280;
   line-height: 1.6;
-  padding: 0 12px;
-  text-align: center !important;
+  padding: 0;
+  text-align: center;
   display: block;
   width: 100%;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .notification-footer {
-  padding-top: 20px;
+  padding-top: 24px;
+  margin-top: 8px;
   display: flex;
   justify-content: center;
   border-top: 1px solid #e9ecef;
+  flex-shrink: 0;
 }
 
 .notification-btn {
-  background: #8D931F;
+  background: #2563EB;
   color: white;
   border: none;
-  padding: 9px 20px;
+  padding: 10px 24px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 70px;
+  min-width: 80px;
   letter-spacing: 0.3px;
-  box-shadow: 0 2px 8px rgba(141, 147, 31, 0.25);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 .notification-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(141, 147, 31, 0.35);
-  background: #7a7f1a;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  background: #1E40AF;
+  color: white;
 }
 
 .notification-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(141, 147, 31, 0.25);
-}
-
-/* Error variant button (for rejections/restrictions) */
-.notification-btn.error {
-  background: #dc3545;
-  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
-}
-
-.notification-btn.error:hover {
-  background: #c82333;
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.35);
-}
-
-.notification-btn.error:active {
-  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  color: white;
 }
 
 /* Responsive */

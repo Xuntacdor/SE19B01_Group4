@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  background: #fae8d4;
+  background: #f8fafc;
   padding: 32px;
   font-family: "Inter", sans-serif;
 }
@@ -18,7 +18,7 @@
 }
 
 .title {
-  color: #3b2f2a;
+  color: #1a1a1a;
   font-size: 26px;
   font-weight: 700;
   margin: 0;
@@ -36,11 +36,11 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  background: #fafcf7;
-  border: 1px solid #e8e8e2;
-  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e1e5e9;
+  border-radius: 12px;
   padding: 10px 18px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   height: 56px;
   min-width: 550px;
 }
@@ -53,7 +53,7 @@
 
 .filterLabel {
   font-weight: 600;
-  color: #2c2723;
+  color: #495057;
   font-size: 16px;
   white-space: nowrap;
   line-height: 1;
@@ -61,16 +61,23 @@
 
 .dateInput,
 .select {
-  border: 1px solid #d7d7d7;
+  border: 2px solid #e1e5e9;
   background: #fff;
   font-size: 16px;
-  color: #2c2723;
+  color: #1a1a1a;
   border-radius: 8px;
   height: 36px;
   line-height: 36px;
   padding: 0 10px;
   outline: none;
   box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.dateInput:focus,
+.select:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .select {
@@ -84,21 +91,26 @@
 .reset {
   background: none;
   border: none;
-  color: #d15c1a;
+  color: #2563EB;
   font-weight: 600;
   font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
+  transition: color 0.2s ease;
+}
+
+.reset:hover {
+  color: #1E40AF;
 }
 
 .exportGroup {
-  background: #fafcf7;
-  border: 1px solid #e8e8e2;
-  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e1e5e9;
+  border-radius: 12px;
   padding: 12px 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   height: 56px;
@@ -107,17 +119,23 @@
 .exportButton {
   border: none;
   background: transparent;
-  color: #2c2723;
+  color: #495057;
   font-weight: 600;
   font-size: 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
+  transition: color 0.2s ease;
 }
+
+.exportButton:hover {
+  color: #2563EB;
+}
+
 .manageVipBtn {
   border: none;
-  background: #d27742;
+  background: #2563EB;
   color: #fff;
   font-weight: 600;
   font-size: 15px;
@@ -126,23 +144,25 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
-  border-radius: 10px;
+  padding: 10px 16px;
+  border-radius: 8px;
   text-decoration: none;
-  transition: 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 .manageVipBtn:hover {
-  background: #b15e2d;
+  background: #1E40AF;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 
 .card {
   background: #fff;
-  border: 1px solid #eed6bd;
+  border: 1px solid #e9ecef;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-top: 20px;
 }
 
@@ -153,36 +173,43 @@
 
 .th {
   text-align: left;
-  padding: 12px;
-  background: #fff8f1;
-  border-bottom: 1px solid #f0dfcc;
-  color: #4a3a33;
-  font-weight: 700;
+  padding: 16px 20px;
+  background: #2563EB;
+  border-bottom: 2px solid #e9ecef;
+  color: white;
+  font-weight: 600;
   text-transform: uppercase;
-  font-size: 13px;
-}
-
-.td {
-  padding: 12px;
-  border-bottom: 1px solid #f7eadc;
-  color: #3b2f2a;
   font-size: 14px;
 }
 
+.td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e9ecef;
+  color: #1a1a1a;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
 .rowLink {
-  color: #9a5c2c;
+  color: #2563EB;
   text-decoration: none;
   font-weight: 600;
+  transition: color 0.2s ease;
 }
 
 .rowLink:hover {
+  color: #1E40AF;
   text-decoration: underline;
 }
 
 .empty {
   padding: 24px;
   text-align: center;
-  color: #866e62;
+  color: #6c757d;
 }
 
 .navFooter {
@@ -193,22 +220,24 @@
 }
 
 .navBtn {
-  background: #fafcf7;
-  border: 1px solid #e8e8e2;
+  background: #fff;
+  border: 1px solid #e1e5e9;
   border-radius: 8px;
-  padding: 8px 16px;
+  padding: 10px 16px;
   font-size: 15px;
   font-weight: 600;
-  color: #3b2f2a;
+  color: #495057;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: all 0.2s ease;
 }
 
-.navBtn:hover {
-  background: #f6d7b7;
-  border-color: #e7c9a8;
+.navBtn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #2563EB;
+  color: #2563EB;
   transform: translateY(-1px);
 }
 
@@ -216,12 +245,13 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
 .tableWrapper {
-  max-height: 400px; /* hoặc chiều cao bạn muốn */
-  overflow-y: auto; /* thanh trượt dọc */
-  overflow-x: auto; /* thanh trượt ngang nếu bảng rộng */
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: auto;
   border-radius: 12px;
-  scrollbar-width: thin; /* Firefox */
+  scrollbar-width: thin;
 }
 
 /* Webkit scrollbar (Chrome, Edge) */
@@ -231,10 +261,10 @@
 }
 
 .tableWrapper::-webkit-scrollbar-thumb {
-  background: #d6b48a;
+  background: #cbd5e1;
   border-radius: 6px;
 }
 
 .tableWrapper::-webkit-scrollbar-track {
-  background: #f3e6d7;
+  background: #f1f5f9;
 }
