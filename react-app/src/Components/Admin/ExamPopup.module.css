@@ -1,140 +1,172 @@
-/* src/Components/Admin/ExamPopup.module.css */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+/* ================================
+   POPUP LAYOUT — PROFESSIONAL UI
+================================ */
+
+.formCol {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 18px;
+  padding: 10px 4px;
+}
+
+.formCol label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #374151;
+}
+
+.formCol input,
+.formCol select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+  background: #fff;
+}
+
+.formCol input:focus,
+.formCol select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+/* IMAGE UPLOAD BOX */
+.imageBox {
+  width: 100%;
+  height: 160px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  display: flex;
   justify-content: center;
-  z-index: 999;
-  backdrop-filter: blur(2px);
+  align-items: center;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-.modal {
-  background: #ffffff;
-  padding: 1.8rem 2rem;
-  border-radius: 1rem;
-  width: 600px;
-  max-width: 90%;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
-  animation: fadeIn 0.25s ease;
+.imageBox:hover {
+  background: #eef2f7;
 }
 
-.title {
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-  color: #222;
-  font-weight: 700;
+.imageBoxText {
+  font-size: 14px;
+  color: #64748b;
 }
 
-.examName {
-  color: #ff8a00;
+/* PREVIEW */
+.imagePreviewWrapper {
+  margin-top: 8px;
+  position: relative;
+  width: 100%;
 }
 
+.imagePreview {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  object-fit: cover;
+}
+
+.imageRemoveBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 4px 10px;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+}
+
+/* Footer button */
+.addBtn {
+  width: 100%;
+  background: #2563eb;
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: none;
+  margin-top: 8px;
+  transition: 0.2s;
+}
+
+.addBtn:hover {
+  background: #1e4fcf;
+}
+
+/* Manage skills */
 .skillList {
-  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 460px;
   overflow-y: auto;
-  margin-bottom: 1.5rem;
-  padding-right: 6px;
 }
 
 .skillItem {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  background: #fafafa;
-  border: 1px solid #eee;
-  border-radius: 0.6rem;
-  padding: 0.8rem 1rem;
-  margin-bottom: 0.6rem;
-  transition: all 0.2s ease;
-}
-
-.skillItem:hover {
-  background: #fff6e9;
-  border-color: #ffd089;
+  padding: 12px 14px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
 }
 
 .skillText {
-  flex: 1;
-  font-size: 0.95rem;
-  color: #333;
-  line-height: 1.4;
-  margin-right: 10px;
-}
-
-.actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  color: #374151;
 }
 
-.edit,
-.delete {
+.skillId {
+  font-weight: 700;
+}
+
+.actions button {
   background: none;
   border: none;
-  font-size: 1.2rem;
   cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-.edit:hover {
-  transform: scale(1.1);
-}
-
-.delete:hover {
-  transform: scale(1.1);
+  color: #475569;
 }
 
 .footer {
+  margin-top: 20px;
   display: flex;
-  justify-content: space-between;
-  margin-top: 1.2rem;
+  justify-content: flex-end;
+}
+.popupScrollArea {
+  max-height: 480px;       /* Adjust depending on screen */
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
 }
 
-.addBtn {
-  background: #10b981;
-  color: white;
-  border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 0.6rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s ease;
+.popupScrollArea::-webkit-scrollbar {
+  width: 6px;
 }
 
-.addBtn:hover {
-  background: #0f9f74;
+.popupScrollArea::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 
-.closeBtn {
-  background: #6b7280;
-  color: white;
-  border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 0.6rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s ease;
+.popupScrollArea {
+  max-height: 480px;
+  overflow-y: auto;
+  overflow-x: hidden !important;   /* ⬅ REMOVE horizontal scroll */
 }
 
-.closeBtn:hover {
-  background: #555b65;
+.formCol {
+  overflow-x: hidden;              /* ⬅ ensure inner content never overflows */
 }
 
-.empty {
-  text-align: center;
-  font-size: 0.95rem;
-  color: #555;
-  margin: 1.2rem 0;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.skillList {
+  overflow-x: hidden;              /* ⬅ skill list stays within bounds */
 }
