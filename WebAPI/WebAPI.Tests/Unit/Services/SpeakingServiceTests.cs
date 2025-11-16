@@ -128,23 +128,43 @@ namespace WebAPI.Tests.Unit.Services
                 Mode = "full",
                 ExamId = 1,
                 Answers = new List<SpeakingAnswerDTO>
-                {
-                    new() { SpeakingId = 10, AudioUrl = "A" },
-                    new() { SpeakingId = 11, AudioUrl = "B" }
-                }
+        {
+            new() { SpeakingId = 10, AudioUrl = "A" },
+            new() { SpeakingId = 11, AudioUrl = "B" }
+        }
             };
 
-            _repo.Setup(r => r.GetById(It.IsAny<int>())).Returns(new Speaking { SpeakingQuestion = "Q" });
-            _speech.Setup(s => s.TranscribeAndSave(It.IsAny<long>(), It.IsAny<string>())).Returns("T");
-            _ai.Setup(a => a.GradeSpeaking("Q", "T")).Returns(JsonDocument.Parse("{\"ok\":true}"));
+            // FIX: Mock GetByExamId để tránh NullReference
+            _repo.Setup(r => r.GetByExamId(1)).Returns(new List<Speaking>
+    {
+        new Speaking { SpeakingId = 10, SpeakingQuestion = "Q" },
+        new Speaking { SpeakingId = 11, SpeakingQuestion = "Q" }
+    });
 
+            _repo.Setup(r => r.GetById(It.IsAny<int>()))
+                 .Returns(new Speaking { SpeakingQuestion = "Q" });
+
+            _speech.Setup(s => s.TranscribeAndSave(It.IsAny<long>(), It.IsAny<string>()))
+                   .Returns("T");
+
+            _ai.Setup(a => a.GradeSpeaking("Q", "T"))
+               .Returns(JsonDocument.Parse("{\"ok\":true}"));
+
+            // Act
             var result = _service.GradeSpeaking(req, 1);
 
             result.RootElement.ToString().Should().Contain("Full speaking test graded successfully");
-            _feedback.Verify(f => f.SaveFeedback(It.IsAny<int>(), It.IsAny<int>(),
-                It.IsAny<JsonDocument>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()),
+
+            _feedback.Verify(f => f.SaveFeedback(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<JsonDocument>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()),
                 Times.Exactly(2));
         }
+
 
         [Fact]
         public void GradeSpeaking_ShouldHandleUnknownMode()

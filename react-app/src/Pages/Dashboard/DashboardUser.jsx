@@ -31,7 +31,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from "recharts";
 export default function DashboardUser() {
   const navigate = useNavigate();
@@ -99,24 +99,39 @@ export default function DashboardUser() {
       const rows = await Promise.all(
         attempts.map(async (a) => {
           let score = "-";
+          function roundSpeaking(score) {
+            if (score == null || isNaN(score)) return "-";
+
+            if (score < 6.5) return "6.0";
+            if (score === 6.5) return "6.5";
+            return "7.0";
+          }
 
           try {
             if (a.examType === "Speaking") {
               try {
+                // Feedback (chỉ những câu user đã làm)
                 const res = await SpeakingApi.getFeedback(a.examId, userId);
 
-                // Lấy overall đúng cho full exam
-                const overall =
-                  res.finalOverall ??
-                  res.averageOverall ??
-                  (res.feedbacks?.length
-                    ? res.feedbacks.reduce(
+                // Danh sách toàn bộ câu Speaking trong đề
+                const speakingList = await SpeakingApi.getByExam(a.examId);
+
+                const totalQuestions = speakingList.length;
+                const answeredQuestions = res.feedbacks?.length ?? 0;
+
+                // ❗ Nếu trả lời chưa đủ số câu => Không hiển thị điểm
+                if (answeredQuestions < totalQuestions) {
+                  score = "-";
+                } else {
+                  // Tính overall của tất cả feedback
+                  const overall =
+                    res.feedbacks.reduce(
                       (sum, f) => sum + (f.overall ?? 0),
                       0
-                    ) / res.feedbacks.length
-                    : null);
+                    ) / answeredQuestions;
 
-                score = overall != null ? Number(overall).toFixed(1) : "-";
+                  score = roundSpeaking(overall);
+                }
               } catch (err) {
                 console.warn("Failed to load speaking score", err);
               }
@@ -173,7 +188,6 @@ export default function DashboardUser() {
         <div className={`${styles.card} ${styles.calendarCard}`}>
           <div className={styles.cardHeader}>
             <h3 className={styles.cardTitle}>Your dedication chart</h3>
-
           </div>
 
           <div className={styles.compactCalendar}>
@@ -196,12 +210,19 @@ export default function DashboardUser() {
 
               {Array.from({ length: daysInMonth }, (_, i) => {
                 const day = i + 1;
-                const submitted = isDaySubmitted(day, month, year, submittedDays);
+                const submitted = isDaySubmitted(
+                  day,
+                  month,
+                  year,
+                  submittedDays
+                );
 
                 return (
                   <div
                     key={day}
-                    className={`${styles.dayCell} ${submitted ? styles.submittedDay : ""}`}
+                    className={`${styles.dayCell} ${
+                      submitted ? styles.submittedDay : ""
+                    }`}
                   >
                     {day}
                   </div>
@@ -211,12 +232,13 @@ export default function DashboardUser() {
           </div>
         </div>
 
-
         {/* ===== Stats Section ===== */}
         <div className={styles.goalsWrapper}>
           <div className={styles.statsSection}>
             <h3 className={styles.sectionTitle}>Outcome Statistics</h3>
-            <p className={styles.chartSubtitle}>Band scores scaled on a 0–9 range</p>
+            <p className={styles.chartSubtitle}>
+              Band scores scaled on a 0–9 range
+            </p>
 
             <div className={styles.chartContainer}>
               <ResponsiveContainer width="100%" height={260}>
@@ -241,17 +263,11 @@ export default function DashboardUser() {
                     tick={{ fill: "#666", fontSize: 12 }}
                   />
                   <Tooltip />
-                  <Bar
-                    dataKey="value"
-                    fill="#4c8ffb"
-                    radius={[6, 6, 0, 0]}
-                  />
+                  <Bar dataKey="value" fill="#4c8ffb" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
-
-
 
           {/* ===== Banner Section ===== */}
           <div className={styles.bannerCard}>
@@ -418,8 +434,9 @@ export default function DashboardUser() {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`${styles.pageButton} ${currentPage === page ? styles.activePage : ""
-                      }`}
+                    className={`${styles.pageButton} ${
+                      currentPage === page ? styles.activePage : ""
+                    }`}
                   >
                     {page}
                   </button>
@@ -427,7 +444,6 @@ export default function DashboardUser() {
               })()}
             </div>
           )}
-
         </div>
       </div>
     </AppLayout>

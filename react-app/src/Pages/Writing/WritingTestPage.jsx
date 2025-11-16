@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppLayout from "../../Components/Layout/AppLayout";
 import GeneralSidebar from "../../Components/Layout/GeneralSidebar";
@@ -15,6 +15,7 @@ export default function WritingTest() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [started, setStarted] = useState(false);
 
   // If no state → show back page
   if (!state)
@@ -32,7 +33,7 @@ export default function WritingTest() {
   const { exam, tasks, task, mode } = state;
 
   // ===========================================
-  // ✅ 1. RESTORE ANSWERS WHEN PAGE LOADS
+  // 1. RESTORE ANSWERS WHEN PAGE LOADS
   // ===========================================
   useEffect(() => {
     const saved = localStorage.getItem("writing_answers");
@@ -44,14 +45,22 @@ export default function WritingTest() {
   }, []);
 
   // ===========================================
-  // Timer logic
+  // 2. SET TIMER
   // ===========================================
   useEffect(() => {
-    if (mode === "full") setTimeLeft(60 * 60);
-    else if (task?.displayOrder === 1) setTimeLeft(20 * 60);
-    else if (task?.displayOrder === 2) setTimeLeft(40 * 60);
+    if (mode === "full") {
+      setTimeLeft(60 * 60);
+      setStarted(true);
+    } else if (task?.displayOrder === 1) {
+      setTimeLeft(20 * 60);
+      setStarted(true);
+    } else if (task?.displayOrder === 2) {
+      setTimeLeft(40 * 60);
+      setStarted(true);
+    }
   }, [mode, task]);
 
+  // Countdown
   useEffect(() => {
     if (timeLeft <= 0) return;
     const timer = setInterval(() => setTimeLeft((t) => t - 1), 1000);
@@ -64,12 +73,24 @@ export default function WritingTest() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  // ===========================================
+  // 3. CURRENT TASK
+  // ===========================================
   const currentTask =
-    mode === "full" && Array.isArray(tasks) ? tasks[currentIndex] : task;
+    mode === "full"
+      ? tasks?.[currentIndex]
+      : task || tasks?.[0];
 
-  const currentId = mode === "full" ? currentTask?.writingId : task?.writingId;
+  const currentId =
+    mode === "full"
+      ? tasks?.[currentIndex]?.writingId
+      : task?.writingId || tasks?.[0]?.writingId;
+
   const currentAnswer = answers[currentId] || "";
 
+  // ===========================================
+  // 4. WORD COUNT LOGIC
+  // ===========================================
   const getWordCount = (text) =>
     text.trim().length === 0
       ? 0
@@ -80,33 +101,34 @@ export default function WritingTest() {
   const isEnough = wordCount >= wordLimit;
 
   // ===========================================
-  // ✅ 2. AUTOSAVE ANSWERS TO LOCALSTORAGE
+  // 5. AUTO-SAVE ANSWERS
   // ===========================================
   const handleChange = (e) => {
     const text = e.target.value;
-
     const updated = {
       ...answers,
       [currentId]: text,
     };
 
     setAnswers(updated);
-
-    // ✔ Save all answers on each keypress
     localStorage.setItem("writing_answers", JSON.stringify(updated));
   };
 
+  // Next / Prev task (full mode)
   const handleNext = () => {
     if (currentIndex < tasks.length - 1) setCurrentIndex((i) => i + 1);
   };
+
   const handlePrev = () => {
     if (currentIndex > 0) setCurrentIndex((i) => i - 1);
   };
 
   // ===========================================
-  // Submit handler
+  // 6. SUBMIT HANDLER (FIXED WITH useCallback)
   // ===========================================
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
+    if (submitting) return; // prevent double submit
+
     try {
       setSubmitting(true);
 
@@ -129,9 +151,7 @@ export default function WritingTest() {
 
       await WritingApi.gradeWriting(gradeData);
 
-      // ===========================================
-      // ✅ 3. CLEAR AUTOSAVE AFTER SUBMIT
-      // ===========================================
+      // clear autosave
       localStorage.removeItem("writing_answers");
 
       navigate("/writing/result", {
@@ -150,7 +170,17 @@ export default function WritingTest() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [submitting, exam.examId, mode, tasks, task, answers, navigate]);
+
+  // ===========================================
+  // 7. AUTO-SUBMIT WHEN TIME EXPIRES (FIXED)
+  // ===========================================
+  useEffect(() => {
+    if (!started) return; // prevent instant submit
+    if (timeLeft === 0 && !submitting) {
+      handleSubmit();
+    }
+  }, [timeLeft, submitting, started, handleSubmit]);
 
   return (
     <AppLayout title="Writing Test" sidebar={<GeneralSidebar />}>
@@ -159,13 +189,13 @@ export default function WritingTest() {
           <h2>
             {mode === "full"
               ? `Full Writing Test — ${exam.examName}`
-              : `Task ${task.displayOrder} — ${exam.examName}`}
+              : `Task ${currentTask?.displayOrder} — ${exam.examName}`}
           </h2>
           <div className={styles.timer}>⏰ {formatTime(timeLeft)}</div>
         </div>
 
         <div className={styles.splitLayout}>
-          {/* ================= LEFT SIDE ================= */}
+          {/* LEFT SIDE */}
           <div className={styles.leftPane}>
             <div className={styles.answerHeader}>
               <h4>Your Answer:</h4>
@@ -200,11 +230,12 @@ export default function WritingTest() {
             </div>
           </div>
 
-          {/* ================= RIGHT SIDE ================= */}
+          {/* RIGHT SIDE */}
           <div className={styles.rightPane}>
             <div className={styles.taskBlock}>
               <h3>Task {currentTask?.displayOrder}</h3>
               <p>{currentTask?.writingQuestion}</p>
+
               {currentTask?.imageUrl && (
                 <img
                   src={currentTask.imageUrl}

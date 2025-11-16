@@ -72,7 +72,7 @@ namespace WebAPI.Tests.Unit.Controllers
             var result = _controller.GetByTerm(null);
 
             var bad = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-            bad.Value.Should().Be("Term is required");
+            bad.Value.Should().Be("Term is required.");
         }
 
         [Fact]

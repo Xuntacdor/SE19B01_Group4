@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using WebAPI.Data;
@@ -15,7 +14,7 @@ namespace WebAPI.Tests.Unit.Services
     public class TagServiceTests : IDisposable
     {
         private readonly ApplicationDbContext _context;
-        private readonly TagService _tagService;
+        private readonly TagService _service;
 
         public TagServiceTests()
         {
@@ -24,7 +23,7 @@ namespace WebAPI.Tests.Unit.Services
                 .Options;
 
             _context = new ApplicationDbContext(options);
-            _tagService = new TagService(_context);
+            _service = new TagService(_context);
 
             SeedTestData();
         }
@@ -35,24 +34,51 @@ namespace WebAPI.Tests.Unit.Services
             {
                 TagId = 1,
                 TagName = "General",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow.AddDays(-5),
+                Posts = new List<Post>()
             };
 
             var tag2 = new Tag
             {
                 TagId = 2,
                 TagName = "Question",
-                CreatedAt = DateTime.UtcNow.AddHours(-1)
+                CreatedAt = DateTime.UtcNow.AddDays(-3),
+                Posts = new List<Post>()
             };
 
             var tag3 = new Tag
             {
                 TagId = 3,
                 TagName = "Help",
-                CreatedAt = DateTime.UtcNow.AddHours(-2)
+                CreatedAt = DateTime.UtcNow.AddDays(-1),
+                Posts = new List<Post>()
+            };
+
+            // Create posts for tag1 to test PostCount
+            var post1 = new Post
+            {
+                PostId = 1,
+                UserId = 1,
+                Title = "Test Post 1",
+                Content = "Content 1",
+                Status = "approved",
+                CreatedAt = DateTime.UtcNow,
+                Tags = new List<Tag> { tag1 }
+            };
+
+            var post2 = new Post
+            {
+                PostId = 2,
+                UserId = 1,
+                Title = "Test Post 2",
+                Content = "Content 2",
+                Status = "approved",
+                CreatedAt = DateTime.UtcNow,
+                Tags = new List<Tag> { tag1 }
             };
 
             _context.Tag.AddRange(tag1, tag2, tag3);
+            _context.Post.AddRange(post1, post2);
             _context.SaveChanges();
         }
 
@@ -65,64 +91,95 @@ namespace WebAPI.Tests.Unit.Services
         // ============ GET ALL TAGS ============
 
         [Fact]
-        public async Task GetAllTagsAsync_ReturnsAllTags()
+        public void GetAllTags_ReturnsAllTagsOrderedByName()
         {
-            var result = await _tagService.GetAllTagsAsync();
+            var result = _service.GetAllTags();
 
             result.Should().NotBeNull();
             result.Should().HaveCount(3);
+            result.Select(t => t.TagName).Should().BeInAscendingOrder();
+            result.First().TagName.Should().Be("General");
         }
 
         [Fact]
-        public async Task GetAllTagsAsync_OrdersByTagName()
+        public void GetAllTags_ReturnsTagsWithPostCount()
         {
-            var result = await _tagService.GetAllTagsAsync();
+            var result = _service.GetAllTags();
 
-            result.Should().BeInAscendingOrder(t => t.TagName);
+            result.Should().NotBeNull();
+            var generalTag = result.First(t => t.TagName == "General");
+            generalTag.PostCount.Should().Be(2);
+            
+            var questionTag = result.First(t => t.TagName == "Question");
+            questionTag.PostCount.Should().Be(0);
         }
 
         [Fact]
-        public async Task GetAllTagsAsync_IncludesPostCount()
+        public void GetAllTags_ReturnsEmptyList_WhenNoTags()
         {
-            // Add a post with tag
-            var user = new User
+            // Clear all PostTag relationships first to avoid foreign key constraint issues
+            var posts = _context.Post.Include(p => p.Tags).ToList();
+            foreach (var post in posts)
             {
-                UserId = 1,
-                Username = "test",
-                Email = "test@test.com",
-                PasswordHash = new byte[] { 1 },
-                PasswordSalt = new byte[] { 1 },
-                Role = "user"
-            };
-            _context.User.Add(user);
-
-            var post = new Post
-            {
-                PostId = 1,
-                UserId = 1,
-                Title = "Test Post",
-                Content = "Content",
-                Status = "approved",
-                CreatedAt = DateTime.UtcNow
-            };
-            _context.Post.Add(post);
+                post.Tags.Clear();
+            }
             _context.SaveChanges();
 
-            var tag = _context.Tag.Include(t => t.Posts).First(t => t.TagId == 1);
-            tag.Posts.Add(post);
+            // Now clear all tags
+            _context.Tag.RemoveRange(_context.Tag);
             _context.SaveChanges();
 
-            var result = await _tagService.GetAllTagsAsync();
+            var result = _service.GetAllTags();
 
-            result.First(t => t.TagId == 1).PostCount.Should().Be(1);
+            result.Should().NotBeNull();
+            result.Should().BeEmpty();
         }
 
         // ============ GET TAG BY ID ============
 
         [Fact]
-        public async Task GetTagByIdAsync_ExistingTag_ReturnsTag()
+        public void GetTagById_WhenFound_ReturnsTag()
         {
-            var result = await _tagService.GetTagByIdAsync(1);
+            var result = _service.GetTagById(1);
+
+            result.Should().NotBeNull();
+            result!.TagId.Should().Be(1);
+            result.TagName.Should().Be("General");
+            result.PostCount.Should().Be(2);
+        }
+
+        [Fact]
+        public void GetTagById_WhenNotFound_ReturnsNull()
+        {
+            var result = _service.GetTagById(999);
+
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public void GetTagById_ReturnsTagWithCorrectPostCount()
+        {
+            var result = _service.GetTagById(1);
+
+            result.Should().NotBeNull();
+            result!.PostCount.Should().Be(2);
+        }
+
+        [Fact]
+        public void GetTagById_ReturnsTagWithZeroPostCount_WhenNoPosts()
+        {
+            var result = _service.GetTagById(2);
+
+            result.Should().NotBeNull();
+            result!.PostCount.Should().Be(0);
+        }
+
+        // ============ GET TAG BY NAME ============
+
+        [Fact]
+        public void GetTagByName_WhenFound_ReturnsTag()
+        {
+            var result = _service.GetTagByName("General");
 
             result.Should().NotBeNull();
             result!.TagId.Should().Be(1);
@@ -130,270 +187,355 @@ namespace WebAPI.Tests.Unit.Services
         }
 
         [Fact]
-        public async Task GetTagByIdAsync_NonExistentTag_ReturnsNull()
+        public void GetTagByName_WhenNotFound_ReturnsNull()
         {
-            var result = await _tagService.GetTagByIdAsync(999);
+            var result = _service.GetTagByName("Nonexistent");
 
             result.Should().BeNull();
         }
 
-        // ============ GET TAG BY NAME ============
-
         [Fact]
-        public async Task GetTagByNameAsync_ExistingTag_ReturnsTag()
+        public void GetTagByName_IsCaseInsensitive()
         {
-            var result = await _tagService.GetTagByNameAsync("General");
+            var result1 = _service.GetTagByName("GENERAL");
+            var result2 = _service.GetTagByName("general");
+            var result3 = _service.GetTagByName("GeNeRaL");
 
-            result.Should().NotBeNull();
-            result!.TagName.Should().Be("General");
+            result1.Should().NotBeNull();
+            result2.Should().NotBeNull();
+            result3.Should().NotBeNull();
+            result1!.TagId.Should().Be(1);
+            result2!.TagId.Should().Be(1);
+            result3!.TagId.Should().Be(1);
         }
 
         [Fact]
-        public async Task GetTagByNameAsync_CaseInsensitive_ReturnsTag()
+        public void GetTagByName_ReturnsTagWithPostCount()
         {
-            var result = await _tagService.GetTagByNameAsync("GENERAL");
+            var result = _service.GetTagByName("General");
 
             result.Should().NotBeNull();
-            result!.TagName.Should().Be("General");
-        }
-
-        [Fact]
-        public async Task GetTagByNameAsync_NonExistentTag_ReturnsNull()
-        {
-            var result = await _tagService.GetTagByNameAsync("NonExistent");
-
-            result.Should().BeNull();
+            result!.PostCount.Should().Be(2);
         }
 
         // ============ SEARCH TAGS ============
 
         [Fact]
-        public async Task SearchTagsAsync_PartialMatch_ReturnsTags()
+        public void SearchTags_WhenMatches_ReturnsMatchingTags()
         {
-            var result = await _tagService.SearchTagsAsync("Qu");
+            var result = _service.SearchTags("help");
 
-            result.Should().HaveCount(1);
-            result.First().TagName.Should().Be("Question");
-        }
-
-        [Fact]
-        public async Task SearchTagsAsync_CaseInsensitive_ReturnsTags()
-        {
-            var result = await _tagService.SearchTagsAsync("HELP");
-
+            result.Should().NotBeNull();
             result.Should().HaveCount(1);
             result.First().TagName.Should().Be("Help");
         }
 
         [Fact]
-        public async Task SearchTagsAsync_NoMatch_ReturnsEmpty()
+        public void SearchTags_IsCaseInsensitive()
         {
-            var result = await _tagService.SearchTagsAsync("xyz");
+            var result1 = _service.SearchTags("GENERAL");
+            var result2 = _service.SearchTags("general");
+            var result3 = _service.SearchTags("GeNeRaL");
 
+            result1.Should().HaveCount(1);
+            result2.Should().HaveCount(1);
+            result3.Should().HaveCount(1);
+            result1.First().TagName.Should().Be("General");
+        }
+
+        [Fact]
+        public void SearchTags_ReturnsPartialMatches()
+        {
+            var result = _service.SearchTags("ques");
+
+            result.Should().NotBeNull();
+            result.Should().HaveCount(1);
+            result.First().TagName.Should().Be("Question");
+        }
+
+        [Fact]
+        public void SearchTags_ReturnsMultipleMatches()
+        {
+            // Add another tag with similar name
+            var tag4 = new Tag { TagName = "General Knowledge", CreatedAt = DateTime.UtcNow };
+            _context.Tag.Add(tag4);
+            _context.SaveChanges();
+
+            var result = _service.SearchTags("general");
+
+            result.Should().HaveCount(2);
+            result.Should().Contain(t => t.TagName == "General");
+            result.Should().Contain(t => t.TagName == "General Knowledge");
+        }
+
+        [Fact]
+        public void SearchTags_WhenNoMatches_ReturnsEmptyList()
+        {
+            var result = _service.SearchTags("nonexistent");
+
+            result.Should().NotBeNull();
             result.Should().BeEmpty();
         }
 
         [Fact]
-        public async Task SearchTagsAsync_EmptyQuery_ReturnsEmpty()
+        public void SearchTags_ReturnsTagsOrderedByName()
         {
-            var result = await _tagService.SearchTagsAsync("");
+            var tag4 = new Tag { TagName = "Alpha", CreatedAt = DateTime.UtcNow };
+            var tag5 = new Tag { TagName = "Beta", CreatedAt = DateTime.UtcNow };
+            _context.Tag.AddRange(tag4, tag5);
+            _context.SaveChanges();
 
-            result.Should().HaveCount(3); // Empty string matches all
+            var result = _service.SearchTags("");
+
+            result.Should().NotBeNull();
+            result.Select(t => t.TagName).Should().BeInAscendingOrder();
         }
 
         // ============ CREATE TAG ============
 
         [Fact]
-        public async Task CreateTagAsync_ValidData_CreatesTag()
+        public void CreateTag_ValidData_CreatesTag()
         {
-            var dto = new CreateTagDTO
-            {
-                TagName = "NewTag"
-            };
+            var createDto = new CreateTagDTO { TagName = "NewTag" };
 
-            var result = await _tagService.CreateTagAsync(dto);
+            var result = _service.CreateTag(createDto);
 
             result.Should().NotBeNull();
+            result.TagId.Should().BeGreaterThan(0);
             result.TagName.Should().Be("NewTag");
             result.PostCount.Should().Be(0);
+            result.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
         }
 
         [Fact]
-        public async Task CreateTagAsync_TrimsWhitespace()
+        public void CreateTag_TrimsWhitespace()
         {
-            var dto = new CreateTagDTO
-            {
-                TagName = "  Trimmed  "
-            };
+            var createDto = new CreateTagDTO { TagName = "  TrimmedTag  " };
 
-            var result = await _tagService.CreateTagAsync(dto);
+            var result = _service.CreateTag(createDto);
 
-            result.TagName.Should().Be("Trimmed");
+            result.Should().NotBeNull();
+            result.TagName.Should().Be("TrimmedTag");
         }
 
         [Fact]
-        public async Task CreateTagAsync_PersistsToDatabase()
+        public void CreateTag_SavesToDatabase()
         {
-            var dto = new CreateTagDTO
-            {
-                TagName = "Persistent"
-            };
+            var createDto = new CreateTagDTO { TagName = "NewTag" };
 
-            var result = await _tagService.CreateTagAsync(dto);
+            _service.CreateTag(createDto);
 
-            var retrieved = await _context.Tag.FindAsync(result.TagId);
-            retrieved.Should().NotBeNull();
-            retrieved!.TagName.Should().Be("Persistent");
+            var savedTag = _context.Tag.FirstOrDefault(t => t.TagName == "NewTag");
+            savedTag.Should().NotBeNull();
+            savedTag!.TagName.Should().Be("NewTag");
+        }
+
+        [Fact]
+        public void CreateTag_SetsCreatedAtToUtcNow()
+        {
+            var createDto = new CreateTagDTO { TagName = "NewTag" };
+            var beforeCreation = DateTime.UtcNow;
+
+            var result = _service.CreateTag(createDto);
+
+            var afterCreation = DateTime.UtcNow;
+            result.CreatedAt.Should().BeAfter(beforeCreation.AddSeconds(-1));
+            result.CreatedAt.Should().BeBefore(afterCreation.AddSeconds(1));
         }
 
         // ============ UPDATE TAG ============
 
         [Fact]
-        public async Task UpdateTagAsync_ExistingTag_UpdatesTag()
+        public void UpdateTag_ValidData_UpdatesTag()
         {
-            var dto = new UpdateTagDTO
-            {
-                TagName = "UpdatedGeneral"
-            };
+            var updateDto = new UpdateTagDTO { TagName = "UpdatedTag" };
 
-            var result = await _tagService.UpdateTagAsync(1, dto);
+            var result = _service.UpdateTag(1, updateDto);
 
             result.Should().NotBeNull();
-            result!.TagName.Should().Be("UpdatedGeneral");
+            result!.TagId.Should().Be(1);
+            result.TagName.Should().Be("UpdatedTag");
+            result.PostCount.Should().Be(2); // Should preserve post count
         }
 
         [Fact]
-        public async Task UpdateTagAsync_TrimsWhitespace()
+        public void UpdateTag_TrimsWhitespace()
         {
-            var dto = new UpdateTagDTO
-            {
-                TagName = "  Updated  "
-            };
+            var updateDto = new UpdateTagDTO { TagName = "  TrimmedUpdate  " };
 
-            var result = await _tagService.UpdateTagAsync(1, dto);
+            var result = _service.UpdateTag(1, updateDto);
 
-            result!.TagName.Should().Be("Updated");
+            result.Should().NotBeNull();
+            result!.TagName.Should().Be("TrimmedUpdate");
         }
 
         [Fact]
-        public async Task UpdateTagAsync_NonExistentTag_ReturnsNull()
+        public void UpdateTag_UpdatesDatabase()
         {
-            var dto = new UpdateTagDTO
-            {
-                TagName = "NewName"
-            };
+            var updateDto = new UpdateTagDTO { TagName = "UpdatedTag" };
 
-            var result = await _tagService.UpdateTagAsync(999, dto);
+            _service.UpdateTag(1, updateDto);
+
+            var updatedTag = _context.Tag.Find(1);
+            updatedTag.Should().NotBeNull();
+            updatedTag!.TagName.Should().Be("UpdatedTag");
+        }
+
+        [Fact]
+        public void UpdateTag_WhenNotFound_ReturnsNull()
+        {
+            var updateDto = new UpdateTagDTO { TagName = "UpdatedTag" };
+
+            var result = _service.UpdateTag(999, updateDto);
 
             result.Should().BeNull();
         }
 
         [Fact]
-        public async Task UpdateTagAsync_PersistsToDatabase()
+        public void UpdateTag_PreservesCreatedAt()
         {
-            var dto = new UpdateTagDTO
-            {
-                TagName = "PersistentUpdate"
-            };
+            var originalTag = _context.Tag.Find(1);
+            var originalCreatedAt = originalTag!.CreatedAt;
+            var updateDto = new UpdateTagDTO { TagName = "UpdatedTag" };
 
-            await _tagService.UpdateTagAsync(1, dto);
+            var result = _service.UpdateTag(1, updateDto);
 
-            var retrieved = await _context.Tag.FindAsync(1);
-            retrieved!.TagName.Should().Be("PersistentUpdate");
+            result.Should().NotBeNull();
+            result!.CreatedAt.Should().Be(originalCreatedAt);
+        }
+
+        [Fact]
+        public void UpdateTag_ReturnsCorrectPostCount()
+        {
+            var updateDto = new UpdateTagDTO { TagName = "UpdatedTag" };
+
+            var result = _service.UpdateTag(1, updateDto);
+
+            result.Should().NotBeNull();
+            result!.PostCount.Should().Be(2);
         }
 
         // ============ DELETE TAG ============
 
         [Fact]
-        public async Task DeleteTagAsync_UnusedTag_DeletesTag()
+        public void DeleteTag_WhenFound_DeletesTag()
         {
-            var result = await _tagService.DeleteTagAsync(1);
+            var result = _service.DeleteTag(2);
 
             result.Should().BeTrue();
-
-            var deleted = await _context.Tag.FindAsync(1);
-            deleted.Should().BeNull();
+            var deletedTag = _context.Tag.Find(2);
+            deletedTag.Should().BeNull();
         }
 
         [Fact]
-        public async Task DeleteTagAsync_NonExistentTag_ReturnsFalse()
+        public void DeleteTag_WhenNotFound_ReturnsFalse()
         {
-            var result = await _tagService.DeleteTagAsync(999);
+            var result = _service.DeleteTag(999);
 
             result.Should().BeFalse();
         }
 
         [Fact]
-        public async Task DeleteTagAsync_TagUsedByPost_ThrowsException()
+        public void DeleteTag_WhenTagHasPosts_ThrowsException()
         {
-            // Add a post with tag
-            var user = new User
-            {
-                UserId = 1,
-                Username = "test",
-                Email = "test@test.com",
-                PasswordHash = new byte[] { 1 },
-                PasswordSalt = new byte[] { 1 },
-                Role = "user"
-            };
-            _context.User.Add(user);
+            Action act = () => _service.DeleteTag(1);
 
-            var post = new Post
-            {
-                PostId = 1,
-                UserId = 1,
-                Title = "Test Post",
-                Content = "Content",
-                Status = "approved",
-                CreatedAt = DateTime.UtcNow
-            };
-            _context.Post.Add(post);
-            _context.SaveChanges();
-
-            var tag = await _context.Tag.Include(t => t.Posts).FirstAsync(t => t.TagId == 1);
-            tag.Posts.Add(post);
-            await _context.SaveChangesAsync();
-
-            Func<Task> act = async () => await _tagService.DeleteTagAsync(1);
-
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            act.Should().Throw<InvalidOperationException>()
                 .WithMessage("Cannot delete tag that is being used by posts");
+            
+            var tag = _context.Tag.Find(1);
+            tag.Should().NotBeNull(); // Tag should still exist
+        }
+
+        [Fact]
+        public void DeleteTag_WhenTagHasNoPosts_DeletesSuccessfully()
+        {
+            var result = _service.DeleteTag(2);
+
+            result.Should().BeTrue();
+            var deletedTag = _context.Tag.Find(2);
+            deletedTag.Should().BeNull();
+        }
+
+        [Fact]
+        public void DeleteTag_RemovesFromDatabase()
+        {
+            var tagId = 2;
+            var tagExistsBefore = _context.Tag.Any(t => t.TagId == tagId);
+            tagExistsBefore.Should().BeTrue();
+
+            _service.DeleteTag(tagId);
+
+            var tagExistsAfter = _context.Tag.Any(t => t.TagId == tagId);
+            tagExistsAfter.Should().BeFalse();
         }
 
         // ============ EDGE CASES ============
 
         [Fact]
-        public async Task GetAllTagsAsync_EmptyDatabase_ReturnsEmptyList()
+        public void GetAllTags_HandlesTagsWithManyPosts()
         {
-            // Clear all tags
-            _context.Tag.RemoveRange(_context.Tag);
-            await _context.SaveChangesAsync();
+            // Add many posts to a tag
+            var tag = _context.Tag.Find(2);
+            for (int i = 3; i <= 20; i++)
+            {
+                var post = new Post
+                {
+                    PostId = i,
+                    UserId = 1,
+                    Title = $"Post {i}",
+                    Content = $"Content {i}",
+                    Status = "approved",
+                    CreatedAt = DateTime.UtcNow,
+                    Tags = new List<Tag> { tag! }
+                };
+                _context.Post.Add(post);
+            }
+            _context.SaveChanges();
 
-            var result = await _tagService.GetAllTagsAsync();
-
-            result.Should().BeEmpty();
-        }
-
-        [Fact]
-        public async Task SearchTagsAsync_MultipleMatches_ReturnsAllMatched()
-        {
-            // Add more tags with "e" in them
-            _context.Tag.Add(new Tag { TagName = "Test", CreatedAt = DateTime.UtcNow });
-            _context.Tag.Add(new Tag { TagName = "Development", CreatedAt = DateTime.UtcNow });
-            await _context.SaveChangesAsync();
-
-            var result = await _tagService.SearchTagsAsync("e");
-
-            result.Should().HaveCountGreaterThan(1);
-        }
-
-        [Fact]
-        public async Task GetTagByIdAsync_IncludesPostCount()
-        {
-            var result = await _tagService.GetTagByIdAsync(1);
+            var result = _service.GetTagById(2);
 
             result.Should().NotBeNull();
-            result!.PostCount.Should().Be(0); // No posts initially
+            result!.PostCount.Should().Be(18);
+        }
+
+        [Fact]
+        public void SearchTags_HandlesSpecialCharacters()
+        {
+            var tag = new Tag { TagName = "C# Programming", CreatedAt = DateTime.UtcNow };
+            _context.Tag.Add(tag);
+            _context.SaveChanges();
+
+            var result = _service.SearchTags("C#");
+
+            result.Should().NotBeNull();
+            result.Should().Contain(t => t.TagName == "C# Programming");
+        }
+
+        [Fact]
+        public void CreateTag_HandlesLongTagNames()
+        {
+            var longName = new string('a', 50); // Max length based on DTO
+            var createDto = new CreateTagDTO { TagName = longName };
+
+            var result = _service.CreateTag(createDto);
+
+            result.Should().NotBeNull();
+            result.TagName.Should().Be(longName);
+        }
+
+        [Fact]
+        public void GetAllTags_ReturnsTagsWithCorrectProperties()
+        {
+            var result = _service.GetAllTags();
+
+            result.Should().NotBeNull();
+            result.Should().OnlyContain(t =>
+                t.TagId > 0 &&
+                !string.IsNullOrEmpty(t.TagName) &&
+                t.CreatedAt != default(DateTime) &&
+                t.PostCount >= 0
+            );
         }
     }
 }
