@@ -348,16 +348,19 @@ namespace WebAPI.Tests.Unit.Services
             result.Title.Should().Be("Post with Attachments");
             result.Attachments.Should().HaveCount(2);
             
-            var firstAttachment = result.Attachments.First();
-            firstAttachment.FileName.Should().Be("document.pdf");
-            firstAttachment.FileUrl.Should().Be("https://example.com/files/document.pdf");
-            firstAttachment.FileType.Should().Be("application/pdf");
-            firstAttachment.FileExtension.Should().Be(".pdf");
-            firstAttachment.FileSize.Should().Be(102400);
+            // Find attachments by filename instead of relying on order
+            var pdfAttachment = result.Attachments.FirstOrDefault(a => a.FileName == "document.pdf");
+            pdfAttachment.Should().NotBeNull();
+            pdfAttachment!.FileName.Should().Be("document.pdf");
+            pdfAttachment.FileUrl.Should().Be("https://example.com/files/document.pdf");
+            pdfAttachment.FileType.Should().Be("application/pdf");
+            pdfAttachment.FileExtension.Should().Be(".pdf");
+            pdfAttachment.FileSize.Should().Be(102400);
             
-            var secondAttachment = result.Attachments.Last();
-            secondAttachment.FileName.Should().Be("image.png");
-            secondAttachment.FileSize.Should().Be(51200);
+            var imageAttachment = result.Attachments.FirstOrDefault(a => a.FileName == "image.png");
+            imageAttachment.Should().NotBeNull();
+            imageAttachment!.FileName.Should().Be("image.png");
+            imageAttachment.FileSize.Should().Be(51200);
         }
 
         [Fact]
