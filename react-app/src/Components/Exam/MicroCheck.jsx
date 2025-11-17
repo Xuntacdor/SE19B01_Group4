@@ -3,76 +3,86 @@ import React, { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, RotateCcw } from "lucide-react";
 import "./MicroCheck.css";
 
-export default function MicroCheck() {
+function MicroCheck() {
   const [show, setShow] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
-  const [recorder, setRecorder] = useState(null);
-  const [timer, setTimer] = useState(0);
+
+  const recorderRef = useRef(null);
   const intervalRef = useRef(null);
-  const audioRef = useRef(null);
+
+  const secondsRef = useRef(20);
+  const [seconds, setSeconds] = useState(20);
 
   useEffect(() => {
     return () => {
-      // cleanup khi unmount
       if (intervalRef.current) clearInterval(intervalRef.current);
-      if (recorder) {
-        try {
-          recorder.stream?.getTracks()?.forEach((t) => t.stop());
-        } catch {}
-      }
+      try {
+        recorderRef.current?.stream?.getTracks()?.forEach((t) => t.stop());
+      } catch {}
     };
-  }, [recorder]);
+  }, []);
+
+  useEffect(() => {
+    if (show) {
+      secondsRef.current = 20;
+      setSeconds(20);
+      setAudioUrl(null);
+      setIsRecording(false);
+    }
+  }, [show]);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // chọn mimeType phổ biến nhất
       const mr = new MediaRecorder(stream, {
         mimeType: "audio/webm;codecs=opus",
       });
+
+      recorderRef.current = mr;
+
       const chunks = [];
       mr.ondataavailable = (e) => chunks.push(e.data);
       mr.onstop = () => {
         const blob = new Blob(chunks, { type: "audio/webm" });
         setAudioUrl(URL.createObjectURL(blob));
       };
-      mr.start();
-      setRecorder(mr);
-      setIsRecording(true);
-      setTimer(0);
 
-      // đếm 20s, tự dừng
+      mr.start();
+      setIsRecording(true);
+
+      secondsRef.current = 20;
+      setSeconds(20);
+
       intervalRef.current = setInterval(() => {
-        setTimer((t) => {
-          if (t >= 19) {
-            stopRecording();
-            return 20;
-          }
-          return t + 1;
-        });
+        secondsRef.current -= 1;
+        setSeconds(secondsRef.current);
+
+        if (secondsRef.current <= 0) stopRecording();
       }, 1000);
     } catch (err) {
       alert("Cannot access microphone!");
-      console.error(err);
     }
   };
 
   const stopRecording = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-      recorder.stream.getTracks().forEach((t) => t.stop());
-    }
+    clearInterval(intervalRef.current);
+
+    try {
+      if (recorderRef.current?.state !== "inactive") {
+        recorderRef.current.stop();
+        recorderRef.current.stream?.getTracks()?.forEach((t) => t.stop());
+      }
+    } catch {}
+
     setIsRecording(false);
   };
 
   const resetAll = () => {
+    secondsRef.current = 20;
+    setSeconds(20);
     setAudioUrl(null);
-    setTimer(0);
+    setIsRecording(false);
   };
 
   return (
@@ -96,6 +106,7 @@ export default function MicroCheck() {
           <li>Please allow microphone access to check.</li>
         </ul>
 
+        {/* BUTTONS */}
         <div className="record-controls">
           {!audioUrl && !isRecording && (
             <button className="record-btn" onClick={startRecording}>
@@ -105,7 +116,7 @@ export default function MicroCheck() {
 
           {isRecording && (
             <button className="recording-btn" onClick={stopRecording}>
-              <MicOff size={18} /> Stop ({timer}s)
+              <MicOff size={18} /> Stop ({seconds}s)
             </button>
           )}
         </div>
@@ -113,8 +124,9 @@ export default function MicroCheck() {
         {audioUrl && (
           <>
             <div className="audio-preview">
-              <audio ref={audioRef} src={audioUrl} controls />
+              <audio src={audioUrl} controls />
             </div>
+
             <div className="record-controls">
               <button className="record-btn" onClick={resetAll}>
                 <RotateCcw size={16} /> Try Again
@@ -126,3 +138,5 @@ export default function MicroCheck() {
     </>
   );
 }
+
+export default React.memo(MicroCheck); //  ⬅⬅⬅ FIX QUAN TRỌNG NHẤT

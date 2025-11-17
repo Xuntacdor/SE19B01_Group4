@@ -114,19 +114,30 @@
 }
 
 .users-table thead th {
-  background: #f8f9fa;
+  background: #2563EB;
   padding: 16px 20px;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   font-size: 14px;
-  color: #495057;
+  color: white;
   border-bottom: 2px solid #e9ecef;
+}
+
+.users-table thead th:first-child,
+.users-table thead th:nth-child(2) {
+  text-align: left;
 }
 
 .users-table tbody td {
   padding: 16px 20px;
   border-bottom: 1px solid #e9ecef;
   vertical-align: middle;
+  text-align: center;
+}
+
+.users-table tbody td:first-child,
+.users-table tbody td:nth-child(2) {
+  text-align: left;
 }
 
 .users-table tbody tr:hover {
@@ -182,12 +193,14 @@
 .role-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
   text-transform: capitalize;
+  margin: 0 auto;
 }
 
 .role-badge.admin {
@@ -219,7 +232,9 @@
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  margin: 0 auto;
 }
 
 .action-btn.change-role {
@@ -344,6 +359,30 @@
   color: #666;
 }
 
+.user-info-modal .role-badge {
+  font-size: 13px;
+  padding: 6px 14px;
+  font-weight: 600;
+}
+
+.user-info-modal .role-badge.admin {
+  background: #2563EB;
+  color: white;
+  border: 1px solid #2563EB;
+}
+
+.user-info-modal .role-badge.moderator {
+  background: #7c3aed;
+  color: white;
+  border: 1px solid #7c3aed;
+}
+
+.user-info-modal .role-badge.user {
+  background: #059669;
+  color: white;
+  border: 1px solid #059669;
+}
+
 .role-options h4 {
   margin: 0 0 12px 0;
   font-size: 16px;
@@ -359,11 +398,12 @@
 .role-btn {
   flex: 1;
   padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  background: white;
+  border: 2px solid #e1e5e9;
+  background: #fff;
+  color: #495057;
   border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -375,26 +415,41 @@
 .role-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #2563EB;
+  background: #f8f9fa;
+}
+
+.role-btn.user {
+  color: #495057;
 }
 
 .role-btn.user:hover {
-  border-color: #66bb6a;
-  background: #e8f5e8;
+  border-color: #2563EB;
+  background: #e3f2fd;
+  color: #2563EB;
+}
+
+.role-btn.moderator {
+  color: #495057;
 }
 
 .role-btn.moderator:hover {
-  border-color: #ba68c8;
-  background: #f3e5f5;
+  border-color: #2563EB;
+  background: #e3f2fd;
+  color: #2563EB;
 }
 
 .role-btn.current {
-  background: #007bff;
+  background: #2563EB;
   color: white;
-  border-color: #007bff;
+  border-color: #2563EB;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 .role-btn.current:hover {
-  background: #0056b3;
+  background: #1E40AF;
+  border-color: #1E40AF;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 
 /* Responsive Design */
