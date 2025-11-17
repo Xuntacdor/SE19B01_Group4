@@ -310,6 +310,7 @@ export default function ListeningResultPage() {
               <audio
                 controls
                 className={styles.audioPlayer}
+                key={listeningsWithCorrect[currentPart].listeningId}
               >
                 <source
                   src={listeningsWithCorrect[currentPart].listeningContent}

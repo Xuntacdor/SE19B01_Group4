@@ -4,7 +4,7 @@ import { marked } from "marked";
 import { submitListeningAttempt } from "../../Services/ListeningApi";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 import { Clock, Highlighter } from "lucide-react";
-import ConfirmationPopup from "../../Components/Common/ConfirmationPopup"; 
+import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
 import styles from "./ListeningExamPage.module.css";
 
 // ---------- Markdown config ----------
@@ -79,7 +79,9 @@ export default function ListeningExamPage() {
 
         setPopup({
           open: true,
-          message: `You can only select ${limit} option${limit > 1 ? "s" : ""}.`,
+          message: `You can only select ${limit} option${
+            limit > 1 ? "s" : ""
+          }.`,
         });
 
         return;
@@ -167,7 +169,6 @@ export default function ListeningExamPage() {
           open: true,
           message: `Failed to submit your listening attempt.`,
         });
-
       })
       .finally(() => setIsSubmitting(false));
   };
@@ -282,7 +283,11 @@ export default function ListeningExamPage() {
 
             <div className={styles.audioPlaybarWrap}>
               {currentTaskData?.listeningContent ? (
-                <audio controls className={styles.audioPlaybar}>
+                <audio
+                  controls
+                  className={styles.audioPlaybar}
+                  key={currentTaskData.listeningId}
+                >
                   <source
                     src={currentTaskData.listeningContent}
                     type="audio/mpeg"
@@ -300,7 +305,11 @@ export default function ListeningExamPage() {
             <h3 className={styles.passageTitle}>Section {currentTask + 1}</h3>
 
             {currentTaskData?.listeningContent ? (
-              <audio controls className={styles.audioPlayer}>
+              <audio
+                controls
+                className={styles.audioPlayer}
+                key={currentTaskData.listeningId}
+              >
                 <source
                   src={currentTaskData.listeningContent}
                   type="audio/mpeg"
