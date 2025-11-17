@@ -7,7 +7,6 @@ import NothingFound from "../../Components/Nothing/NothingFound";
 import * as AuthApi from "../../Services/AuthApi";
 import { getSubmittedDays } from "../../Services/ExamApi";
 import useExamAttempts from "../../Hook/UseExamAttempts";
-import { isDaySubmitted } from "../../utils/date";
 import * as SpeakingApi from "../../Services/SpeakingApi";
 import * as WritingApi from "../../Services/WritingApi";
 import sadcloud from "../../assets/sad_cloud.png";
@@ -54,12 +53,17 @@ export default function DashboardUser() {
     for (let i = 0; i < days.length; i += 7) result.push(days.slice(i, i + 7));
     return result;
   }, [month, year]);
-
+function isDaySubmitted(day, month, year, submittedDays) {
+  return submittedDays.some(
+    d => d.day === day && d.month === month && d.year === year
+  );
+}
   // ===== State =====
   const [userId, setUserId] = useState(null);
   const [submittedDays, setSubmittedDays] = useState([]);
   const [historyData, setHistoryData] = useState([]);
   const [loadingScores, setLoadingScores] = useState(false);
+  const { attempts, stats } = useExamAttempts(userId);
 
   // ===== Pagination logic =====
   const [currentPage, setCurrentPage] = useState(1);
@@ -81,15 +85,25 @@ export default function DashboardUser() {
   }, []);
 
   // ===== Submitted days =====
-  useEffect(() => {
-    if (!userId) return;
-    getSubmittedDays(userId)
-      .then((days) => setSubmittedDays(days))
-      .catch((err) => console.error("Failed to fetch submitted days:", err));
-  }, [userId]);
+// Extract submitted days directly from attempts
+useEffect(() => {
+  if (!attempts || attempts.length === 0) return;
+
+  const days = attempts
+    .filter(a => a.submittedAt) // only finished attempts
+    .map(a => {
+      const d = new Date(a.submittedAt);
+      return {
+        day: d.getDate(),
+        month: d.getMonth(),       // 0–11
+        year: d.getFullYear(),
+      };
+    });
+
+  setSubmittedDays(days);
+}, [attempts]);
 
   // ===== History + Stats =====
-  const { attempts, stats } = useExamAttempts(userId);
 
   useEffect(() => {
     if (!attempts || attempts.length === 0 || !userId) return;
@@ -215,9 +229,8 @@ export default function DashboardUser() {
                 return (
                   <div
                     key={day}
-                    className={`${styles.dayCell} ${
-                      submitted ? styles.submittedDay : ""
-                    }`}
+                    className={`${styles.dayCell} ${submitted ? styles.submittedDay : ""
+                      }`}
                   >
                     {day}
                   </div>
@@ -429,9 +442,8 @@ export default function DashboardUser() {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`${styles.pageButton} ${
-                      currentPage === page ? styles.activePage : ""
-                    }`}
+                    className={`${styles.pageButton} ${currentPage === page ? styles.activePage : ""
+                      }`}
                   >
                     {page}
                   </button>

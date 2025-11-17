@@ -44,3 +44,6 @@ export function gradeWriting(gradeData) {
 
 export const getFeedback = (examId, userId) =>
   API.get(`/feedback/${examId}/${userId}`).then((res) => res.data);
+
+export const getFeedbackByAttempt = (attemptId) =>
+  API.get(`/feedback/attempt/${attemptId}`).then((res) => res.data);

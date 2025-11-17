@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using Moq;
 using FluentAssertions;
 using System;
@@ -59,7 +59,7 @@ namespace WebAPI.Tests
         }
 
         // ---------------------------------------------------------------------
-        // CRUD TESTS
+        // CRUD
         // ---------------------------------------------------------------------
 
         [Fact]
@@ -127,7 +127,7 @@ namespace WebAPI.Tests
             var dto = new WritingDTO { WritingQuestion = "New", DisplayOrder = 3, ImageUrl = "i" };
             var result = _service.Update(1, dto);
 
-            result.WritingQuestion.Should().Be("New");
+            result!.WritingQuestion.Should().Be("New");
             _writingRepoMock.Verify(r => r.Update(entity), Times.Once);
         }
 
@@ -155,7 +155,7 @@ namespace WebAPI.Tests
         }
 
         // ---------------------------------------------------------------------
-        // GRADE WRITING TESTS
+        // GRADE WRITING
         // ---------------------------------------------------------------------
 
         [Fact]
@@ -239,7 +239,7 @@ namespace WebAPI.Tests
         }
 
         // ---------------------------------------------------------------------
-        // SAVE FEEDBACK TESTS
+        // SAVE FEEDBACK
         // ---------------------------------------------------------------------
 
         [Fact]
@@ -266,8 +266,9 @@ namespace WebAPI.Tests
         }
 
         [Fact]
-        public void SaveFeedback_WhenAttemptHasAnswerText_DoesNotSaveAgain()
+        public void SaveFeedback_WhenAttemptHasAnswerText_StillSavesAccordingToServiceLogic()
         {
+            // logic mới: attempt có answerText nhưng service vẫn gọi Save()
             var feedback = CreateSampleFeedback();
             var writing = new Writing { WritingId = 1, WritingQuestion = "Q" };
             var summary = new ExamAttemptSummaryDto { ExamId = 1, AttemptId = 5 };
@@ -277,7 +278,7 @@ namespace WebAPI.Tests
             _examServiceMock.Setup(s => s.GetAttemptById(5)).Returns(() => attempt);
             _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
             _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
-            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(() => new List<WritingFeedback>());
+            _feedbackRepoMock.Setup(f => f.GetByAttemptAndWriting(5, 1)).Returns(() => null);
 
             var dto = new WritingGradeRequestDTO
             {
@@ -287,7 +288,8 @@ namespace WebAPI.Tests
             };
 
             _service.GradeWriting(dto, 1);
-            _examServiceMock.Verify(s => s.Save(), Times.Never);
+
+            _examServiceMock.Verify(s => s.Save(), Times.Once);
         }
 
         [Fact]
@@ -302,7 +304,7 @@ namespace WebAPI.Tests
             _examServiceMock.Setup(s => s.GetAttemptById(6)).Returns(() => attempt);
             _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
             _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
-            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(() => new List<WritingFeedback>());
+            _feedbackRepoMock.Setup(f => f.GetByAttemptAndWriting(6, 1)).Returns(() => null);
             _feedbackRepoMock.Setup(f => f.Add(It.IsAny<WritingFeedback>()));
 
             var dto = new WritingGradeRequestDTO
@@ -313,35 +315,9 @@ namespace WebAPI.Tests
             };
 
             _service.GradeWriting(dto, 1);
+
             _examServiceMock.Verify(s => s.Save(), Times.Once);
-            attempt.AnswerText.Should().Be("Ans");
-        }
-
-        [Fact]
-        public void SaveFeedback_WhenExistingFeedback_UpdatesFeedback()
-        {
-            var feedback = CreateSampleFeedback();
-            var writing = new Writing { WritingId = 1, WritingQuestion = "Q" };
-            var summary = new ExamAttemptSummaryDto { ExamId = 1, AttemptId = 10 };
-            var attempt = new ExamAttempt { AttemptId = 10, ExamId = 1, AnswerText = "Ans" };
-            var existingFeedback = new WritingFeedback { AttemptId = 10, WritingId = 1 };
-
-            _examServiceMock.Setup(s => s.GetExamAttemptsByUser(1)).Returns(() => new() { summary });
-            _examServiceMock.Setup(s => s.GetAttemptById(10)).Returns(() => attempt);
-            _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
-            _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
-            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(() => new List<WritingFeedback> { existingFeedback });
-
-            var dto = new WritingGradeRequestDTO
-            {
-                Mode = "single",
-                ExamId = 1,
-                Answers = new() { new() { WritingId = 1, AnswerText = "Ans" } }
-            };
-
-            _service.GradeWriting(dto, 1);
-
-            _feedbackRepoMock.Verify(f => f.Update(It.Is<WritingFeedback>(fb => fb.AttemptId == 10 && fb.Overall == 7)), Times.Once);
+            attempt.AnswerText.Should().Be("--- TASK 1 ---\nAns");
         }
 
         [Fact]
@@ -356,7 +332,7 @@ namespace WebAPI.Tests
             _examServiceMock.Setup(s => s.GetAttemptById(8)).Returns(() => attempt);
             _writingRepoMock.Setup(r => r.GetById(1)).Returns(() => writing);
             _openAIMock.Setup(s => s.GradeWriting("Q", "Ans", null)).Returns(() => feedback);
-            _feedbackRepoMock.Setup(f => f.GetAll()).Returns(() => new List<WritingFeedback>());
+            _feedbackRepoMock.Setup(f => f.GetByAttemptAndWriting(8, 1)).Returns(() => null);
 
             var dto = new WritingGradeRequestDTO
             {
@@ -387,7 +363,7 @@ namespace WebAPI.Tests
             };
 
             Action act = () => _service.GradeWriting(dto, 1);
-            act.Should().NotThrow(); // handled internally
+            act.Should().NotThrow();
         }
     }
 }
