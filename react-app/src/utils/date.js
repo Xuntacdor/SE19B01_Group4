@@ -93,13 +93,8 @@ export function formatFullDateVietnam(dateInput) {
 // ==============================
 // 🔍 Kiểm tra ngày đã submit chưa
 // ==============================
-export function isDaySubmitted(day, month, year, submittedDays = []) {
-  if (!day) return false;
-  const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(
-    day
-  ).padStart(2, "0")}`;
-  return submittedDays.includes(dateStr);
-}
+
+
 export function getTodayVietnamISO() {
   const now = new Date();
   // Lấy đúng ngày hiện tại theo local machine (máy người dùng)
