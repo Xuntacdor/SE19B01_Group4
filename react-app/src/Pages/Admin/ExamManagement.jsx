@@ -9,10 +9,9 @@ import * as writingService from "../../Services/WritingApi";
 import * as speakingService from "../../Services/SpeakingApi";
 
 import Sidebar from "../../Components/Admin/AdminNavbar.jsx";
-import ExamSkillModal from "../../Components/Admin/ExamPopup.jsx";
+import ExamManageSkill from "../../Components/Admin/ExamPopup.jsx"; // chỉ giữ cái này
 import CreateExamPopup from "../../Components/Admin/CreateExamPopup.jsx";
 import DeleteConfirmPopup from "../../Components/Common/DeleteConfirmPopup.jsx";
-
 import AppLayout from "../../Components/Layout/AppLayout";
 
 import { FileBadge, Search } from "lucide-react";
@@ -22,7 +21,6 @@ export default function ExamManagement() {
   const navigate = useNavigate();
 
   const [exams, setExams] = useState([]);
-  const [skills, setSkills] = useState([]);
   const [search, setSearch] = useState("");
   const [skillFilter, setSkillFilter] = useState("All");
 
@@ -56,22 +54,14 @@ export default function ExamManagement() {
 
   const openSkillModal = (exam) => {
     setSelectedExam(exam);
-    fetchSkills(exam.examId, exam.examType);
     setShowSkillModal(true);
-  };
-
-  const fetchSkills = async (id, type) => {
-    try {
-      const list = await serviceMap[type].getByExam(id);
-      setSkills(list);
-    } catch {
-      setSkills([]);
-    }
   };
 
   // FILTER
   const filtered = exams.filter((e) => {
-    const matchesSearch = e.examName.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = e.examName
+      .toLowerCase()
+      .includes(search.toLowerCase());
     const matchesSkill =
       skillFilter === "All" ? true : e.examType === skillFilter;
     return matchesSearch && matchesSkill;
@@ -80,7 +70,6 @@ export default function ExamManagement() {
   return (
     <AppLayout sidebar={<Sidebar />} title="Exam Management">
       <div className={styles.page}>
-
         {/* HEADER */}
         <div className="user-management-header">
           <div className="header-content">
@@ -99,7 +88,6 @@ export default function ExamManagement() {
 
         {/* SEARCH + FILTER */}
         <div className={styles.filterWrapper}>
-
           <div className="search-container">
             <Search size={20} />
             <input
@@ -122,7 +110,6 @@ export default function ExamManagement() {
             <option value="Writing">Writing</option>
             <option value="Speaking">Speaking</option>
           </select>
-
         </div>
 
         {/* TABLE */}
@@ -141,7 +128,7 @@ export default function ExamManagement() {
 
               <tbody>
                 {filtered.length ? (
-                  filtered.reverse().map((exam) => (
+                  [...filtered].reverse().map((exam) => (
                     <tr key={exam.examId}>
                       <td>#{exam.examId}</td>
                       <td>{exam.examName}</td>
@@ -180,11 +167,10 @@ export default function ExamManagement() {
           </div>
         </div>
 
-        {/* POPUPS */}
-        <ExamSkillModal
+        {/* POPUP MANAGE EXAM + SKILLS */}
+        <ExamManageSkill
           show={showSkillModal}
           exam={selectedExam}
-          skills={skills}
           onClose={() => setShowSkillModal(false)}
           onEdit={(skill) =>
             navigate(`add-${selectedExam.examType.toLowerCase()}`, {
@@ -192,17 +178,29 @@ export default function ExamManagement() {
             })
           }
           onDelete={(id) =>
-            serviceMap[selectedExam.examType]
-              .remove(id)
-              .then(() => fetchSkills(selectedExam.examId, selectedExam.examType))
+            serviceMap[selectedExam.examType].remove(id)
           }
           onAddSkill={() =>
             navigate(`add-${selectedExam.examType.toLowerCase()}`, {
               state: { exam: selectedExam },
             })
           }
+          onUpdateExam={async (updatedExam) => {
+            await examService.update(updatedExam.examId, {
+              examName: updatedExam.examName,
+              examType: updatedExam.examType,
+              backgroundImageUrl: updatedExam.backgroundImageUrl,
+            });
+            await loadExams();
+            setSelectedExam((prev) =>
+              prev && prev.examId === updatedExam.examId
+                ? { ...prev, ...updatedExam }
+                : prev
+            );
+          }}
         />
 
+        {/* POPUP CREATE EXAM */}
         <CreateExamPopup
           show={showCreatePopup}
           onClose={() => setShowCreatePopup(false)}
@@ -228,7 +226,6 @@ export default function ExamManagement() {
             loadExams();
           }}
         />
-
       </div>
     </AppLayout>
   );
