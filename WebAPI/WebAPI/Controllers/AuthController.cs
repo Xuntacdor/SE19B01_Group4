@@ -51,18 +51,26 @@ namespace WebAPI.Controllers
 
             try
             {
+                // 🔥 XÓA COOKIE ADMIN CŨ TRƯỚC KHI ĐĂNG NHẬP
+                HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme)
+                           .GetAwaiter().GetResult();
+                HttpContext.Session.Clear();
+
                 var user = _userService.Authenticate(dto.Email, dto.Password);
 
+                // 🔥 LƯU SESSION CHUẨN
                 HttpContext.Session.SetInt32("UserId", user.UserId);
+                HttpContext.Session.SetString("Role", user.Role);
 
+                // 🔥 TẠO CLAIMS CHUẨN
                 var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim("UserId", user.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
-                };
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new Claim("UserId", user.UserId.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role)
+        };
 
                 var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);
@@ -74,28 +82,14 @@ namespace WebAPI.Controllers
                         ExpiresUtc = DateTimeOffset.UtcNow.AddHours(2)
                     }).GetAwaiter().GetResult();
 
-                try
-                {
-                    var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-                    var device = Request.Headers["User-Agent"].ToString();
-                    _signInHistoryService.LogSignIn(user.UserId, ip, device);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[AuthController] Failed to log sign-in: {ex.Message}");
-                }
-
                 return Ok(ToDto(user));
             }
             catch (UnauthorizedAccessException ex)
             {
                 return Unauthorized(new AuthResponse { message = ex.Message });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new AuthResponse { message = "An error occurred during login" });
-            }
         }
+
 
         [HttpPost("logout")]
         public IActionResult Logout()

@@ -5,6 +5,7 @@ import { marked } from "marked";
 import { submitReadingAttempt } from "../../Services/ReadingApi";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 import { Highlighter, Trash2, Pencil } from "lucide-react";
+import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
 import styles from "./ReadingExamPage.module.css";
 
 // ---------- Markdown config for the PASSAGE ----------
@@ -18,10 +19,10 @@ marked.setOptions({
 // Remove [H*id]...[/H] wrappers and render full Markdown (so headings, lists, breaks work)
 function passageMarkdownToHtml(raw) {
   if (!raw) return "";
-    const cleaned = String(raw).replace(
-      /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
-      (_match, _id, inner) => inner
-    );
+  const cleaned = String(raw).replace(
+    /\[H(?:\*([^\]]*))?\]([\s\S]*?)\[\/H\]/g,
+    (_match, _id, inner) => inner
+  );
   return marked.parse(cleaned);
 }
 
@@ -147,6 +148,9 @@ export default function ReadingExamPage() {
   const [pendingSelection, setPendingSelection] = useState(null);
   const passageContentRef = useRef(null);
 
+  // Popup (for checkbox limit + submit error)
+  const [popup, setPopup] = useState({ open: false, message: "" });
+
   // Countdown
   useEffect(() => {
     if (!timeLeft || submitted) return;
@@ -178,7 +182,14 @@ export default function ReadingExamPage() {
       if (checked && limit && checkedInGroup.length > limit) {
         e.preventDefault();
         e.target.checked = false;
-        alert(`You can only select ${limit} option${limit > 1 ? "s" : ""}.`);
+
+        setPopup({
+          open: true,
+          message: `You can only select ${limit} option${
+            limit > 1 ? "s" : ""
+          }.`,
+        });
+
         return;
       }
 
@@ -252,7 +263,10 @@ export default function ReadingExamPage() {
       })
       .catch((err) => {
         console.error("❌ Submit failed:", err);
-        alert(`Failed to submit your reading attempt.\n\n${jsonString}`);
+        setPopup({
+          open: true,
+          message: `Failed to submit your reading attempt.`,
+        });
       })
       .finally(() => setIsSubmitting(false));
   };
@@ -395,15 +409,17 @@ export default function ReadingExamPage() {
     });
 
     // Sort highlights by start path, apply from end to start so DOM changes don't shift later ranges
-    const sorted = [...highlights].sort((a, b) => {
-      const cmp = comparePaths(
-        a.serializedRange.startPath,
-        b.serializedRange.startPath
-      );
-      return cmp === 0
-        ? comparePaths(a.serializedRange.endPath, b.serializedRange.endPath)
-        : cmp;
-    }).reverse();
+    const sorted = [...highlights]
+      .sort((a, b) => {
+        const cmp = comparePaths(
+          a.serializedRange.startPath,
+          b.serializedRange.startPath
+        );
+        return cmp === 0
+          ? comparePaths(a.serializedRange.endPath, b.serializedRange.endPath)
+          : cmp;
+      })
+      .reverse();
 
     sorted.forEach((h) => {
       // skip if already applied
@@ -442,7 +458,10 @@ export default function ReadingExamPage() {
                 r.setStart(startNode, startOffset);
                 r.setEnd(
                   startNode,
-                  Math.min(startNode.nodeValue.length, startOffset + h.text.length)
+                  Math.min(
+                    startNode.nodeValue.length,
+                    startOffset + h.text.length
+                  )
                 );
                 const frag = r.extractContents();
                 const span = document.createElement("span");
@@ -622,7 +641,8 @@ export default function ReadingExamPage() {
               if (highlightElement) {
                 e.preventDefault();
                 e.stopPropagation();
-                const highlightId = highlightElement.getAttribute("data-highlight-id");
+                const highlightId =
+                  highlightElement.getAttribute("data-highlight-id");
                 setContextMenu({
                   x: e.clientX,
                   y: e.clientY,
@@ -670,6 +690,17 @@ export default function ReadingExamPage() {
           </div>
         </div>
       </div>
+
+      {/* Popup for messages */}
+      <ConfirmationPopup
+        isOpen={popup.open}
+        title="Notice"
+        message={popup.message}
+        onClose={() => setPopup({ open: false, message: "" })}
+        onConfirm={() => setPopup({ open: false, message: "" })}
+        confirmText="OK"
+        cancelText="Close"
+      />
 
       {/* Bottom Nav */}
       <div className={styles.bottomNavigation}>

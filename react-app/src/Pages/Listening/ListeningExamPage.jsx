@@ -1,10 +1,10 @@
-// ListeningExamPage.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { marked } from "marked";
 import { submitListeningAttempt } from "../../Services/ListeningApi";
 import ExamMarkdownRenderer from "../../Components/Exam/ExamMarkdownRenderer";
 import { Clock, Highlighter } from "lucide-react";
+import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
 import styles from "./ListeningExamPage.module.css";
 
 // ---------- Markdown config ----------
@@ -39,6 +39,9 @@ export default function ListeningExamPage() {
   const [highlightMode, setHighlightMode] = useState(false);
   const [useReadingLayout, setUseReadingLayout] = useState(false);
 
+  // NEW: Popup
+  const [popup, setPopup] = useState({ open: false, message: "" });
+
   const toggleHighlightMode = () => {
     setHighlightMode((prev) => !prev);
   };
@@ -59,7 +62,6 @@ export default function ListeningExamPage() {
     return `${m}:${s < 10 ? "0" + s : s}`;
   };
 
-  // Track answers
   const handleChange = (e) => {
     const { name, value, type, checked, multiple, options, dataset } = e.target;
     if (!name) return;
@@ -74,7 +76,14 @@ export default function ListeningExamPage() {
       if (checked && limit && checkedInGroup.length > limit) {
         e.preventDefault();
         e.target.checked = false;
-        alert(`You can only select ${limit} option${limit > 1 ? "s" : ""}.`);
+
+        setPopup({
+          open: true,
+          message: `You can only select ${limit} option${
+            limit > 1 ? "s" : ""
+          }.`,
+        });
+
         return;
       }
 
@@ -99,7 +108,6 @@ export default function ListeningExamPage() {
     setAnswers((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Helper: is question answered?
   const isAnswered = (skillId, qNumber) => {
     const key = `${skillId}_q${qNumber}`;
     const val = answers[key];
@@ -108,7 +116,6 @@ export default function ListeningExamPage() {
     return false;
   };
 
-  // Submit
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (isSubmitting) return;
@@ -157,19 +164,21 @@ export default function ListeningExamPage() {
       })
       .catch((err) => {
         console.error("❌ Submit failed:", err);
-        alert(`Failed to submit your listening attempt.\n\n${jsonString}`);
+
+        setPopup({
+          open: true,
+          message: `Failed to submit your listening attempt.`,
+        });
       })
       .finally(() => setIsSubmitting(false));
   };
 
-  // Count [!num] markers
   const getQuestionCount = (listeningQuestion) => {
     if (!listeningQuestion) return 0;
     const numMarkers = listeningQuestion.match(/\[!num\]/g);
     return numMarkers ? numMarkers.length : 0;
   };
 
-  // Scroll top when switching parts
   useEffect(() => {
     document
       .querySelector(`.${styles.examWrapper}`)
@@ -243,11 +252,8 @@ export default function ListeningExamPage() {
         </button>
       </div>
 
-      {/* Middle rail (centered panel, left-aligned content) */}
+      {/* LAYOUT */}
       {!useReadingLayout ? (
-        /* ===============================
-     ORIGINAL LISTENING LAYOUT
-  =============================== */
         <div className={styles.middleGrid}>
           <div className={styles.middleRail}>
             <div
@@ -277,7 +283,11 @@ export default function ListeningExamPage() {
 
             <div className={styles.audioPlaybarWrap}>
               {currentTaskData?.listeningContent ? (
-                <audio controls className={styles.audioPlaybar}>
+                <audio
+                  controls
+                  className={styles.audioPlaybar}
+                  key={currentTaskData.listeningId}
+                >
                   <source
                     src={currentTaskData.listeningContent}
                     type="audio/mpeg"
@@ -290,15 +300,16 @@ export default function ListeningExamPage() {
           </div>
         </div>
       ) : (
-        /* ===============================
-     READING-STYLE LAYOUT
-  =============================== */
         <div className={styles.readingMainContent}>
           <div className={styles.leftPanel}>
             <h3 className={styles.passageTitle}>Section {currentTask + 1}</h3>
 
             {currentTaskData?.listeningContent ? (
-              <audio controls className={styles.audioPlayer}>
+              <audio
+                controls
+                className={styles.audioPlayer}
+                key={currentTaskData.listeningId}
+              >
                 <source
                   src={currentTaskData.listeningContent}
                   type="audio/mpeg"
@@ -328,7 +339,18 @@ export default function ListeningExamPage() {
         </div>
       )}
 
-      {/* Bottom Navigation – same structure as Reading */}
+      {/* INSERTED POPUP HERE */}
+      <ConfirmationPopup
+        isOpen={popup.open}
+        title="Notice"
+        message={popup.message}
+        onClose={() => setPopup({ open: false, message: "" })}
+        onConfirm={() => setPopup({ open: false, message: "" })}
+        confirmText="OK"
+        cancelText="Close"
+      />
+
+      {/* Bottom Navigation */}
       <div className={styles.bottomNavigation}>
         <div className={styles.navScrollContainer}>
           {(tasks || []).map((task, taskIndex) => {
