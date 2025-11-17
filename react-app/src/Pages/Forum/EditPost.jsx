@@ -139,10 +139,6 @@ export default function EditPost({ onNavigate }) {
       });
   };
 
-  const handleSaveDraft = () => {
-    // TODO: Implement save as draft functionality
-    console.log("Save as draft:", formData);
-  };
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -467,13 +463,7 @@ export default function EditPost({ onNavigate }) {
                   >
                     <Image size={16} />
                     Add Image
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn btn-draft"
-                    onClick={handleSaveDraft}
-                  >
-                    Save as draft
+                  
                   </button>
                   <button 
                     type="submit" 
