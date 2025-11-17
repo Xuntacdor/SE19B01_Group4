@@ -570,6 +570,11 @@ export default function SpeakingTest() {
                 //label="Question"
                 text={currentTask?.speakingQuestion}
               />
+              {phase === "idle" && (
+                <div className={styles.recordHint}>
+                  Please press the button below to start recording.
+                </div>
+              )}
 
               <div className={styles.dynamicSection}>
                 {renderDynamicSection()}
