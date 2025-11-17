@@ -10,6 +10,7 @@ import { getSpeakingSuggestion } from "../../Services/SpeakingApi";
 import VocabularySuggestion from "../../Components/Exam/VocabularySuggestion";
 import SampleAnswerBox from "../../Components/Exam/SampleAnswerBox";
 import AudioTextBox from "../../Components/Common/AudioTextBox";
+import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
 import {
   Mic,
   MicOff,
@@ -48,6 +49,11 @@ export default function SpeakingTest() {
   const [params] = useSearchParams();
   const speakingId = params.get("speakingId");
   const chatEndRef = useRef(null);
+  const [confirm, setConfirm] = useState({
+    show: false,
+    title: "",
+    message: "",
+  });
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -167,7 +173,11 @@ export default function SpeakingTest() {
           console.log(" Uploaded audio:", audioUrl);
         } catch (err) {
           console.error(" Upload failed:", err);
-          alert("Upload failed, please try again.");
+          setConfirm({
+            show: true,
+            title: "Upload Failed",
+            message: "Audio upload failed. Please try again.",
+          });
         } finally {
           setUploading((p) => ({ ...p, [currentId]: false }));
           stream.getTracks().forEach((t) => t.stop());
@@ -177,7 +187,13 @@ export default function SpeakingTest() {
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
     } catch (err) {
-      alert("Cannot access microphone!");
+      setConfirm({
+        show: true,
+        title: "Microphone Error",
+        message:
+          "Cannot access microphone! Please allow microphone permission.",
+      });
+
       console.error(" Microphone error:", err);
       setPhase("idle");
     }
@@ -694,6 +710,15 @@ export default function SpeakingTest() {
           </div>
         </div>
         {/* <FloatingDictionaryChat /> */}
+        <ConfirmationPopup
+          isOpen={confirm.show}
+          title={confirm.title}
+          message={confirm.message}
+          confirmText="OK"
+          cancelText="" // ẩn nút cancel
+          onClose={() => setConfirm({ ...confirm, show: false })}
+          onConfirm={() => setConfirm({ ...confirm, show: false })}
+        />
       </main>
     </div>
   );
