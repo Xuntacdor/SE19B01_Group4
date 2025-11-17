@@ -18,7 +18,7 @@ export default function WritingTest() {
   const [started, setStarted] = useState(false);
 
   // state có thể undefined, nên destructure an toàn
-  const { exam, tasks = [], task, mode } = state || {};
+  const { exam, tasks = [], task, mode, duration } = state || {};
   const STORAGE_KEY = exam
     ? `writing_answers_exam_${exam.examId}`
     : "writing_answers_temp";
@@ -59,20 +59,29 @@ export default function WritingTest() {
   // ===========================================
   // 2. SET TIMER
   // ===========================================
-  useEffect(() => {
-    if (!mode) return;
+ useEffect(() => {
+  if (!mode) return;
 
-    if (mode === "full") {
-      setTimeLeft(60 * 60);
-      setStarted(true);
-    } else if (task?.displayOrder === 1) {
-      setTimeLeft(20 * 60);
-      setStarted(true);
-    } else if (task?.displayOrder === 2) {
-      setTimeLeft(40 * 60);
-      setStarted(true);
+  // FULL TEST → luôn ưu tiên duration truyền sang
+  if (mode === "full") {
+    if (duration !== undefined && duration !== null) {
+      setTimeLeft(duration * 60);
+    } else {
+      setTimeLeft(60 * 60); // fallback
     }
-  }, [mode, task]);
+    setStarted(true);
+    return;
+  }
+
+  if (mode === "single") {
+    const isTask1 = task?.displayOrder === 1;
+    setTimeLeft(isTask1 ? 20 * 60 : 40 * 60);
+    setStarted(true);
+    return;
+  }
+
+}, [mode, task, duration]);
+
 
   // Countdown
   useEffect(() => {
@@ -180,7 +189,6 @@ export default function WritingTest() {
 
       await WritingApi.gradeWriting(gradeData);
 
-      // clear autosave cho exam này
       localStorage.removeItem(STORAGE_KEY);
 
       navigate("/writing/result", {
