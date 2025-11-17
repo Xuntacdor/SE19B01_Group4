@@ -392,3 +392,7 @@
   margin-inline: 0;
 }
 
+.highlighted {
+  background-color: yellow;
+  padding: 2px 0;
+}
