@@ -10,12 +10,9 @@ export default function QuizPage({ groupWords, onBack }) {
 
   const [queue, setQueue] = useState(initialOrder);
   const [cursor, setCursor] = useState(0);
-
   const [mastered, setMastered] = useState(new Set());
   const [failed, setFailed] = useState(new Set());
-
   const [questionNumber, setQuestionNumber] = useState(1);
-
   const [selected, setSelected] = useState(null);
   const [revealing, setRevealing] = useState(false);
   const [showMeaningRevealed, setShowMeaningRevealed] = useState(false);
@@ -73,14 +70,12 @@ export default function QuizPage({ groupWords, onBack }) {
     [currentIndex, groupWords]
   );
 
-  // ========== AUTO RETURN WHEN DONE ==========
   useEffect(() => {
     if (cursor >= queue.length) {
-      onBack(); // 🔥 Auto quay về dictionary
+      onBack();
     }
   }, [cursor, queue.length, onBack]);
 
-  // ========== NEXT STEP LOGIC ==========
   const goNext = (wasCorrect) => {
     if (wasCorrect) {
       setMastered((prev) => new Set(prev).add(currentIndex));
@@ -88,22 +83,19 @@ export default function QuizPage({ groupWords, onBack }) {
     } else {
       setQueue((q) => [...q, currentIndex]); // wrong → requeue
       setFailed((prev) => new Set(prev).add(currentIndex));
-      // ❌ do NOT increase questionNumber
     }
 
     setCursor((c) => c + 1);
   };
 
-const handleSkip = () => {
-  // Skip: KHÔNG tính là sai → KHÔNG requeue
-  setCursor((c) => c + 1);
-  setQuestionNumber((n) => n + 1); 
-
-  setSelected(null);
-  setRevealing(false);
-  setShowMeaningRevealed(false);
-  setFadeOthers(false);
-};
+  const handleSkip = () => {
+    setCursor((c) => c + 1);
+    setQuestionNumber((n) => n + 1);
+    setSelected(null);
+    setRevealing(false);
+    setShowMeaningRevealed(false);
+    setFadeOthers(false);
+  };
 
   const handleRevealMeaning = () => {
     if (revealing || selected) return;
@@ -129,7 +121,7 @@ const handleSkip = () => {
       setFadeOthers(false);
       setShowMeaningRevealed(false);
 
-      goNext(correct); // ✔ correct or wrong processed here
+      goNext(correct); 
     }, 700);
   };
 

@@ -104,11 +104,10 @@ function TextWithErrors({
         p.type === "error" ? (
           <span
             key={p.key}
-            className={`${styles.errorHighlight} ${
-              errorType === "coherenceLogic"
-                ? styles.coherenceLogicError
-                : styles.grammarVocabError
-            }`}
+            className={`${styles.errorHighlight} ${errorType === "coherenceLogic"
+              ? styles.coherenceLogicError
+              : styles.grammarVocabError
+              }`}
             onClick={(e) => onErrorClick(e, p.error)}
           >
             {p.content}
@@ -170,26 +169,27 @@ export default function WritingResultPage() {
           const attemptDetail = await ExamApi.getExamAttemptDetail(targetAttemptId);
           if (attemptDetail?.answerText) {
             let answerText = attemptDetail.answerText;
-            
+
             // Loại bỏ phần feedback JSON nếu có (format: "answer\n\n---\n[AI Feedback JSON]\n...")
             const feedbackMarker = "\n\n---\n[AI Feedback JSON]\n";
             if (answerText.includes(feedbackMarker)) {
               answerText = answerText.split(feedbackMarker)[0];
             }
+            const parseTaskAnswers = (rawText) => {
+              const map = {};
+              const blocks = rawText.split(/--- TASK (\d+) ---/g).slice(1);
 
-            // Thử parse answerText như JSON object (writingId -> answerText)
-            try {
-              const parsed = JSON.parse(answerText);
-              if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-                setFetchedAnswers(parsed);
-              } else {
-                // Nếu không phải object, có thể là text đơn giản
-                setFetchedAnswers({ _single: answerText });
+              // blocks = ["10", "text1", "9", "text2", ...]
+              for (let i = 0; i < blocks.length; i += 2) {
+                const id = Number(blocks[i]);       // writingId
+                const text = blocks[i + 1].trim();  // nội dung
+                map[id] = text;
               }
-            } catch {
-              // Nếu không parse được JSON, lưu như text đơn giản
-              setFetchedAnswers({ _single: answerText });
-            }
+
+              return map;
+            };
+
+            setFetchedAnswers(parseTaskAnswers(answerText));
           }
         }
       } catch (err) {
@@ -214,7 +214,7 @@ export default function WritingResultPage() {
           clearInterval(interval);
           clearInterval(progressTimer);
         }
-      } catch {}
+      } catch { }
     };
 
     if (isWaiting) {
@@ -280,11 +280,7 @@ export default function WritingResultPage() {
     feedbacks: [],
     averageOverall: 0,
   };
-  const filteredFeedbacks = feedbacks.filter(
-    (f) =>
-      !originalAnswers ||
-      Object.keys(originalAnswers).includes(String(f.writingId))
-  );
+  const filteredFeedbacks = feedbacks;
 
   /* ====================== RENDER ====================== */
   if (!feedbackData || filteredFeedbacks.length === 0) {
@@ -324,9 +320,8 @@ export default function WritingResultPage() {
             {filteredFeedbacks.map((_, idx) => (
               <button
                 key={idx}
-                className={`${styles.taskBtn} ${
-                  idx === activeTaskIndex ? styles.taskBtnActive : ""
-                }`}
+                className={`${styles.taskBtn} ${idx === activeTaskIndex ? styles.taskBtnActive : ""
+                  }`}
                 onClick={() => setActiveTaskIndex(idx)}
               >
                 {`Task ${idx + 1}`}
@@ -337,23 +332,19 @@ export default function WritingResultPage() {
 
         {filteredFeedbacks.map((f, i) => {
           if (i !== activeTaskIndex) return null;
-          
+
           // Ưu tiên: originalAnswers (từ state) > fetchedAnswers (từ ExamAttempt) > f.answerText (từ feedback) > ""
           let originalText = "";
           if (originalAnswers?.[f.writingId]) {
             originalText = originalAnswers[f.writingId];
           } else if (fetchedAnswers) {
             if (fetchedAnswers[f.writingId]) {
-              // Nếu có answer cho writingId cụ thể
               originalText = fetchedAnswers[f.writingId];
             } else if (fetchedAnswers._single) {
-              // Nếu answerText là single string, dùng cho task đầu tiên
-              // (với full exam thường chỉ có 1 task, nhưng nếu có nhiều thì dùng cho task đầu tiên)
-              if (i === 0 || filteredFeedbacks.length === 1) {
-                originalText = fetchedAnswers._single;
-              }
+              originalText = fetchedAnswers._single;
             }
-          } else {
+          }
+          else {
             originalText = f.answerText || "";
           }
 

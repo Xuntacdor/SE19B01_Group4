@@ -1,316 +1,325 @@
 import React, { useState, useEffect, useRef } from "react";
-import { likeComment, unlikeComment, createComment, reportComment, updateComment, deleteComment } from "../../Services/ForumApi";
+import {
+  likeComment,
+  unlikeComment,
+  createComment,
+  reportComment,
+  updateComment,
+  deleteComment,
+} from "../../Services/ForumApi";
+
 import { ThumbsUp, MoreVertical, Flag, Edit, Trash2, X } from "lucide-react";
+
 import useAuth from "../../Hook/UseAuth";
 import { formatTimeVietnam } from "../../utils/date";
 import NotificationPopup from "../Forum/NotificationPopup";
+import DeleteConfirmPopup from "../Common/DeleteConfirmPopup";
 
-export default function CommentItem({ comment, onReply, level = 0, postId, postOwnerId }) {
+export default function CommentItem({
+  comment,
+  onReply,
+  level = 0,
+  postId,
+  postOwnerId,
+}) {
   const { user } = useAuth();
-  
+
   const [isVoted, setIsVoted] = useState(comment.isVoted || false);
-  const [voteCount, setVoteCount] = useState(comment.voteCount || comment.likeNumber || 0);
+  const [voteCount, setVoteCount] = useState(
+    comment.voteCount || comment.likeNumber || 0
+  );
+
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [showReplies, setShowReplies] = useState(false); // Đóng replies mặc định
+
+  const [showReplies, setShowReplies] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+
   const [showReportModal, setShowReportModal] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
   const [reportReason, setReportReason] = useState("");
-  const [editContent, setEditContent] = useState(comment.content);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
   const menuRef = useRef(null);
-  
+
   // Notification state
   const [notification, setNotification] = useState({
     isOpen: false,
     type: "success",
     title: "",
-    message: ""
+    message: "",
   });
 
-  // Sync state with props when component mounts or props change
+  /** Sync when comment changes */
   useEffect(() => {
     setIsVoted(comment.isVoted || false);
     setVoteCount(comment.voteCount || comment.likeNumber || 0);
     setEditContent(comment.content);
-  }, [comment.isVoted, comment.voteCount, comment.likeNumber, comment.content]);
+  }, [comment]);
 
-  // Close menu when clicking outside
+  /** Close menu when clicking outside */
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowMenu(false);
       }
     };
 
-    if (showMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    if (showMenu) document.addEventListener("mousedown", handler);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handler);
     };
   }, [showMenu]);
 
-
-  // Notification functions
+  /** Notification helpers */
   const showNotification = (type, title, message) => {
     setNotification({
       isOpen: true,
       type,
       title,
-      message
+      message,
     });
   };
 
-  const closeNotification = () => {
-    setNotification(prev => ({ ...prev, isOpen: false }));
-  };
+  const closeNotification = () =>
+    setNotification((prev) => ({ ...prev, isOpen: false }));
 
-  const handleVote = (e) => {
-    e.stopPropagation();
-    
+  /** Vote */
+  const handleVote = () => {
     if (isVoted) {
       unlikeComment(comment.commentId)
         .then(() => {
           setIsVoted(false);
-          setVoteCount(prev => prev - 1);
+          setVoteCount((v) => v - 1);
         })
-        .catch(error => {
-          console.error("Error unliking comment:", error);
-        });
+        .catch(console.error);
     } else {
       likeComment(comment.commentId)
         .then(() => {
           setIsVoted(true);
-          setVoteCount(prev => prev + 1);
+          setVoteCount((v) => v + 1);
         })
-        .catch(error => {
-          console.error("Error liking comment:", error);
-        });
+        .catch(console.error);
     }
   };
 
-
+  /** Reply */
   const handleReply = (e) => {
     e.preventDefault();
-    if (!replyText.trim() || submitting) return;
+    if (!replyText.trim()) return;
 
     setSubmitting(true);
     createComment(postId, replyText, comment.commentId)
-      .then((response) => {
-        // Đảm bảo reply có parentCommentId đúng
+      .then((res) => {
         const replyData = {
-          ...response.data,
-          parentCommentId: comment.commentId
+          ...res.data,
+          parentCommentId: comment.commentId,
         };
+
         onReply(replyData);
         setReplyText("");
         setShowReplyForm(false);
-        showNotification("success", "Reply Posted!", "Your reply has been added successfully.");
+
+        showNotification(
+          "success",
+          "Reply Posted!",
+          "Your reply has been added."
+        );
       })
-      .catch(error => {
-        console.error("Error creating reply:", error);
-        
-        // Check if the error is due to account restriction
-        const errorMessage = error.response?.data?.message || error.response?.data || error.message || "";
-        
-        if (errorMessage.toLowerCase().includes("restricted")) {
+      .catch((error) => {
+        const msg =
+          error.response?.data?.message ||
+          error.response?.data ||
+          error.message ||
+          "";
+
+        if (msg.toLowerCase().includes("restricted")) {
           showNotification(
             "error",
             "Account Restricted",
-            "Your account has been restricted from commenting on the forum due to violations of community guidelines. Please contact support if you believe this is an error."
+            "Your account is restricted from commenting."
           );
         } else {
-          showNotification(
-            "error",
-            "Error Creating Reply",
-            "Unable to post your reply. Please try again later."
-          );
+          showNotification("error", "Reply Failed", "Please try again later.");
         }
       })
-      .finally(() => {
-        setSubmitting(false);
-      });
+      .finally(() => setSubmitting(false));
   };
 
-  const formatTime = (dateString) => {
-    return formatTimeVietnam(dateString);
+  /** Delete */
+  const handleDelete = async () => {
+    setIsDeleting(true);
+
+    try {
+      await deleteComment(postId, comment.commentId);
+
+      onReply({ action: "delete", commentId: comment.commentId });
+      showNotification(
+        "success",
+        "Comment Deleted",
+        "The comment has been removed."
+      );
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data ||
+        error.message ||
+        "Failed to delete";
+
+      showNotification("error", "Delete Failed", msg);
+    } finally {
+      setIsDeleting(false);
+      setShowDeletePopup(false);
+    }
   };
 
-  // Check permissions
+  /** Report comment */
+  const handleSubmitReport = (e) => {
+    e.preventDefault();
+    if (!reportReason.trim()) return;
+
+    setIsSubmittingReport(true);
+
+    reportComment(comment.commentId, reportReason.trim())
+      .then(() => {
+        showNotification(
+          "success",
+          "Reported",
+          "Your report has been submitted."
+        );
+        setReportReason("");
+        setShowReportModal(false);
+      })
+      .catch((error) => {
+        const msg =
+          error.response?.data?.message ||
+          error.response?.data ||
+          error.message ||
+          "Report failed";
+
+        showNotification("error", "Report Failed", msg);
+      })
+      .finally(() => setIsSubmittingReport(false));
+  };
+
+  /** Update comment */
+  const handleSubmitEdit = (e) => {
+    e.preventDefault();
+    if (!editContent.trim() || editContent === comment.content) return;
+
+    setIsSubmittingEdit(true);
+
+    updateComment(comment.commentId, editContent.trim())
+      .then(() => {
+        comment.content = editContent.trim();
+        setShowEditForm(false);
+
+        showNotification(
+          "success",
+          "Comment Updated",
+          "Your comment has been updated."
+        );
+      })
+      .catch((error) => {
+        const msg =
+          error.response?.data?.message ||
+          error.response?.data ||
+          error.message ||
+          "Update failed";
+
+        showNotification("error", "Update Failed", msg);
+      })
+      .finally(() => setIsSubmittingEdit(false));
+  };
+
+  /** Permissions */
   const isOwner = user && comment.user?.userId === user.userId;
-  const isAdmin = user && user.role === 'admin';
+  const isAdmin = user && user.role === "admin";
   const isPostOwner = user && postOwnerId === user.userId;
+
   const canEdit = isOwner;
   const canDelete = isOwner || isAdmin || isPostOwner;
   const canReport = user && !isOwner;
 
-  // Handle menu toggle
-  const handleMenuToggle = (e) => {
-    e.stopPropagation();
-    setShowMenu(!showMenu);
-  };
-
-  // Handle report
-  const handleReport = () => {
-    setShowMenu(false);
-    setShowReportModal(true);
-  };
-
-  const handleSubmitReport = async (e) => {
-    e.preventDefault();
-    if (!reportReason.trim() || isSubmittingReport) return;
-
-    setIsSubmittingReport(true);
-    try {
-      await reportComment(comment.commentId, reportReason.trim());
-      setShowReportModal(false);
-      setReportReason("");
-      showNotification("success", "Comment Reported", "Thank you for your report. We will review it soon.");
-    } catch (error) {
-      console.error("Error reporting comment:", error);
-      const errorMessage = error.response?.data?.message || error.response?.data || error.message || "Failed to report comment";
-      showNotification("error", "Report Failed", errorMessage);
-    } finally {
-      setIsSubmittingReport(false);
-    }
-  };
-
-  // Handle edit
-  const handleEdit = () => {
-    setShowMenu(false);
-    setShowEditForm(true);
-    setEditContent(comment.content);
-  };
-
-  const handleCancelEdit = () => {
-    setShowEditForm(false);
-    setEditContent(comment.content);
-  };
-
-  const handleSubmitEdit = async (e) => {
-    e.preventDefault();
-    if (!editContent.trim() || editContent === comment.content || isSubmittingEdit) return;
-
-    setIsSubmittingEdit(true);
-    try {
-      await updateComment(comment.commentId, editContent.trim());
-      // Update local comment content
-      comment.content = editContent.trim();
-      setShowEditForm(false);
-      showNotification("success", "Comment Updated", "Your comment has been updated successfully.");
-    } catch (error) {
-      console.error("Error updating comment:", error);
-      const errorMessage = error.response?.data?.message || error.response?.data || error.message || "Failed to update comment";
-      showNotification("error", "Update Failed", errorMessage);
-    } finally {
-      setIsSubmittingEdit(false);
-    }
-  };
-
-  // Handle delete
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this comment?")) {
-      setShowMenu(false);
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      await deleteComment(postId, comment.commentId);
-      // Notify parent to remove comment
-      onReply({ action: 'delete', commentId: comment.commentId });
-      showNotification("success", "Comment Deleted", "The comment has been deleted successfully.");
-    } catch (error) {
-      console.error("Error deleting comment:", error);
-      const errorMessage = error.response?.data?.message || error.response?.data || error.message || "Failed to delete comment";
-      showNotification("error", "Delete Failed", errorMessage);
-    } finally {
-      setIsDeleting(false);
-      setShowMenu(false);
-    }
-  };
-
-  const hasReplies = comment.replies && comment.replies.length > 0;
-  
-  // Đếm tất cả nested comments (bao gồm replies của replies)
-  const countAllNestedComments = (replies) => {
-    if (!replies || replies.length === 0) return 0;
-    
-    let total = replies.length;
-    replies.forEach(reply => {
-      total += countAllNestedComments(reply.replies);
-    });
+  /** Count nested replies */
+  const countReplies = (items) => {
+    if (!items) return 0;
+    let total = items.length;
+    items.forEach((r) => (total += countReplies(r.replies)));
     return total;
   };
-  
-  const replyCount = comment.replies ? countAllNestedComments(comment.replies) : 0;
-  
-  // Debug log để xem cấu trúc comment
-  console.log('Comment data:', {
-    commentId: comment.commentId,
-    content: comment.content,
-    isVoted: comment.isVoted,
-    voteCount: comment.voteCount,
-    likeNumber: comment.likeNumber,
-    replies: comment.replies,
-    replyCount: replyCount,
-    hasReplies: hasReplies
-  });
+
+  const replyCount = countReplies(comment.replies || []);
 
   return (
-    <div className={`comment-item ${level > 0 ? 'reply-item' : ''}`}>
+    <div className={`comment-item ${level > 0 ? "reply-item" : ""}`}>
+      {/* HEADER */}
       <div className="comment-header">
         <img
           src={comment.user?.avatar || "/default-avatar.png"}
-          alt={comment.user?.username}
+          alt="avatar"
           className="comment-avatar"
         />
+
         <div className="comment-user-info">
           <div className="comment-user-header">
             <span className="comment-username">@{comment.user?.username}</span>
+
             {(canEdit || canDelete || canReport) && (
               <div className="comment-menu" ref={menuRef}>
-                <button 
-                  className="comment-menu-btn" 
-                  onClick={handleMenuToggle}
-                  aria-label="Comment options"
+                <button
+                  className="comment-menu-btn"
+                  onClick={() => setShowMenu((v) => !v)}
                 >
                   <MoreVertical size={16} />
                 </button>
+
                 {showMenu && (
                   <div className="comment-menu-dropdown">
                     {canReport && (
-                      <button 
+                      <button
                         className="forum-comment-menu-item report-item"
-                        onClick={handleReport}
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowReportModal(true);
+                        }}
                       >
                         <Flag size={16} />
                         Report
                       </button>
                     )}
+
                     {canEdit && (
-                      <button 
+                      <button
                         className="forum-comment-menu-item"
-                        onClick={handleEdit}
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowEditForm(true);
+                        }}
                       >
                         <Edit size={16} />
                         Edit
                       </button>
                     )}
+
                     {canDelete && (
-                      <button 
+                      <button
                         className="forum-comment-menu-item delete-item"
-                        onClick={handleDelete}
-                        disabled={isDeleting}
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowDeletePopup(true);
+                        }}
                       >
                         <Trash2 size={16} />
-                        {isDeleting ? "Deleting..." : "Delete"}
+                        Delete
                       </button>
                     )}
                   </div>
@@ -318,6 +327,8 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
               </div>
             )}
           </div>
+
+          {/* CONTENT OR EDIT FORM */}
           {showEditForm ? (
             <form className="edit-comment-form" onSubmit={handleSubmitEdit}>
               <textarea
@@ -325,45 +336,46 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
                 onChange={(e) => setEditContent(e.target.value)}
                 className="forum-comment-edit-textarea"
                 rows={3}
-                required
               />
+
               <div className="edit-actions">
                 <button
                   type="button"
                   className="forum-comment-btn forum-comment-btn-secondary"
-                  onClick={handleCancelEdit}
-                  disabled={isSubmittingEdit}
+                  onClick={() => setShowEditForm(false)}
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   className="forum-comment-btn forum-comment-btn-primary"
-                  disabled={isSubmittingEdit || !editContent.trim() || editContent === comment.content}
+                  disabled={isSubmittingEdit}
                 >
                   {isSubmittingEdit ? "Saving..." : "Save"}
                 </button>
               </div>
             </form>
           ) : (
-            <div className="comment-content">
-              {comment.content}
-            </div>
+            <div className="comment-content">{comment.content}</div>
           )}
         </div>
       </div>
 
+      {/* ACTIONS */}
       <div className="comment-actions">
         <div className="comment-actions-left">
-          <span className="comment-time">{formatTime(comment.createdAt)}</span>
-          
+          <span className="comment-time">
+            {formatTimeVietnam(comment.createdAt)}
+          </span>
+
           <button
             className="comment-action-btn"
-            onClick={() => setShowReplyForm(!showReplyForm)}
+            onClick={() => setShowReplyForm((v) => !v)}
           >
             Reply
           </button>
-          
+
           <button
             className={`comment-action-btn vote-btn ${isVoted ? "voted" : ""}`}
             onClick={handleVote}
@@ -373,28 +385,31 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
             <span className="vote-count">({voteCount})</span>
           </button>
         </div>
-        
+
         <div className="comment-actions-right">
-          {hasReplies && (
+          {replyCount > 0 && (
             <button
               className="comment-action-btn toggle-replies-btn"
-              onClick={() => setShowReplies(!showReplies)}
+              onClick={() => setShowReplies((v) => !v)}
             >
-              {showReplies ? `Hide ${replyCount} replies` : `View all ${replyCount} replies`}
+              {showReplies
+                ? `Hide ${replyCount} replies`
+                : `View all ${replyCount} replies`}
             </button>
           )}
         </div>
       </div>
 
+      {/* REPLY FORM */}
       {showReplyForm && (
         <form className="reply-form" onSubmit={handleReply}>
           <textarea
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
-            placeholder="Type your reply..."
             rows={4}
-            required
+            placeholder="Type your reply..."
           />
+
           <div className="reply-actions">
             <button
               type="button"
@@ -403,10 +418,11 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
             >
               Cancel
             </button>
+
             <button
               type="submit"
               className="forum-comment-btn forum-comment-btn-primary"
-              disabled={submitting || !replyText.trim()}
+              disabled={submitting}
             >
               {submitting ? "Replying..." : "Reply"}
             </button>
@@ -414,12 +430,13 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
         </form>
       )}
 
-      {showReplies && hasReplies && (
+      {/* REPLIES */}
+      {showReplies && comment.replies?.length > 0 && (
         <div className="replies">
           {comment.replies.map((reply) => (
-            <CommentItem 
-              key={reply.commentId} 
-              comment={reply} 
+            <CommentItem
+              key={reply.commentId}
+              comment={reply}
               onReply={onReply}
               level={level + 1}
               postId={postId}
@@ -429,51 +446,59 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
         </div>
       )}
 
+      {/* DELETE POPUP */}
+      <DeleteConfirmPopup
+        show={showDeletePopup}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        onCancel={() => setShowDeletePopup(false)}
+        onConfirm={handleDelete}
+      />
 
-      {/* Report Modal */}
+      {/* REPORT MODAL */}
       {showReportModal && (
-        <div className="forum-comment-modal-overlay" onClick={() => setShowReportModal(false)}>
-          <div className="forum-comment-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="forum-comment-modal-overlay"
+          onClick={() => setShowReportModal(false)}
+        >
+          <div
+            className="forum-comment-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="forum-comment-modal-header">
               <h3>Report Comment</h3>
-              <button 
+              <button
                 className="forum-comment-modal-close"
-                onClick={() => {
-                  setShowReportModal(false);
-                  setReportReason("");
-                }}
+                onClick={() => setShowReportModal(false)}
               >
                 <X size={20} />
               </button>
             </div>
+
             <form onSubmit={handleSubmitReport}>
               <div className="forum-comment-modal-body">
-                <p>Please provide a reason for reporting this comment:</p>
+                <p>Please provide a reason for reporting:</p>
                 <textarea
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value)}
                   className="forum-comment-report-textarea"
-                  placeholder="Enter reason for reporting..."
-                  required
                   rows={4}
                 />
               </div>
+
               <div className="forum-comment-modal-footer">
                 <button
                   type="button"
                   className="forum-comment-btn forum-comment-btn-secondary"
-                  onClick={() => {
-                    setShowReportModal(false);
-                    setReportReason("");
-                  }}
-                  disabled={isSubmittingReport}
+                  onClick={() => setShowReportModal(false)}
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   className="forum-comment-btn forum-comment-btn-primary"
-                  disabled={isSubmittingReport || !reportReason.trim()}
+                  disabled={isSubmittingReport}
                 >
                   {isSubmittingReport ? "Submitting..." : "Submit Report"}
                 </button>
@@ -483,7 +508,7 @@ export default function CommentItem({ comment, onReply, level = 0, postId, postO
         </div>
       )}
 
-      {/* Notification Popup */}
+      {/* NOTIFICATION */}
       <NotificationPopup
         isOpen={notification.isOpen}
         onClose={closeNotification}
