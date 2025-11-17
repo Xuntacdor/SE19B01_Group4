@@ -67,7 +67,7 @@ function isDaySubmitted(day, month, year, submittedDays) {
 
   // ===== Pagination logic =====
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3;
+  const itemsPerPage = 4;
 
   const totalPages = Math.ceil(historyData.length / itemsPerPage);
 
