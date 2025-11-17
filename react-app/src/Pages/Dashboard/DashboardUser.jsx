@@ -67,7 +67,7 @@ function isDaySubmitted(day, month, year, submittedDays) {
 
   // ===== Pagination logic =====
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3;
+  const itemsPerPage = 4;
 
   const totalPages = Math.ceil(historyData.length / itemsPerPage);
 
@@ -107,44 +107,42 @@ useEffect(() => {
 
   useEffect(() => {
     if (!attempts || attempts.length === 0 || !userId) return;
-
+    function roundIELTS(score) {
+      if (score == null || isNaN(score)) return "-";
+      return Math.round(score * 2) / 2; // round to nearest 0.5
+    }
     const fetchScores = async () => {
       setLoadingScores(true);
       const rows = await Promise.all(
         attempts.map(async (a) => {
           let score = "-";
-          function roundIELTS(score) {
-            if (score == null || isNaN(score)) return "-";
-            return Math.round(score * 2) / 2; // round to nearest 0.5
-          }
-
           try {
             if (a.examType === "Speaking") {
               try {
-                // Feedback (chỉ những câu user đã làm)
-                const res = await SpeakingApi.getFeedback(a.examId, userId);
+                const fullFeedback = await SpeakingApi.getFeedback(
+                  a.examId,
+                  userId
+                );
 
-                // Danh sách toàn bộ câu Speaking trong đề
-                const speakingList = await SpeakingApi.getByExam(a.examId);
+                let finalOverall = "-";
 
-                const totalQuestions = speakingList.length;
-                const answeredQuestions = res.feedbacks?.length ?? 0;
-
-                // ❗ Nếu trả lời chưa đủ số câu => Không hiển thị điểm
-                if (answeredQuestions < totalQuestions) {
-                  score = "-";
-                } else {
-                  // Tính overall của tất cả feedback
-                  const overall =
-                    res.feedbacks.reduce(
+                if (fullFeedback?.averageOverall) {
+                  finalOverall = roundIELTS(
+                    Number(fullFeedback.averageOverall)
+                  );
+                } else if (fullFeedback?.feedbacks?.length > 0) {
+                  const avg =
+                    fullFeedback.feedbacks.reduce(
                       (sum, f) => sum + (f.overall ?? 0),
                       0
-                    ) / answeredQuestions;
+                    ) / fullFeedback.feedbacks.length;
 
-                  score = roundSpeaking(overall);
+                  finalOverall = roundIELTS(avg);
                 }
+
+                score = finalOverall;
               } catch (err) {
-                console.warn("Failed to load speaking score", err);
+                console.warn("Failed to fetch speaking score", err);
               }
             } else if (a.examType === "Writing") {
               const feedbackRes = await WritingApi.getFeedback(

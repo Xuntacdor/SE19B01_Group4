@@ -6,7 +6,7 @@ import * as WritingApi from "../../Services/WritingApi";
 import LoadingComponent from "../../Components/Exam/LoadingComponent";
 import styles from "./WritingTestPage.module.css";
 import FloatDictionrary from "../../Components/Dictionary/FloatingDictionaryChat";
-
+import ConfirmationPopup from "../../Components/Common/ConfirmationPopup";
 export default function WritingTest() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -16,6 +16,8 @@ export default function WritingTest() {
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [started, setStarted] = useState(false);
+  const [errorPopupOpen, setErrorPopupOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // state có thể undefined, nên destructure an toàn
   const { exam, tasks = [], task, mode, duration } = state || {};
@@ -100,9 +102,7 @@ export default function WritingTest() {
   // 3. CURRENT TASK
   // ===========================================
   const currentTask =
-    mode === "full"
-      ? tasks?.[currentIndex]
-      : task || tasks?.[0];
+    mode === "full" ? tasks?.[currentIndex] : task || tasks?.[0];
 
   const currentId =
     mode === "full"
@@ -117,7 +117,10 @@ export default function WritingTest() {
   const getWordCount = (text) =>
     text.trim().length === 0
       ? 0
-      : text.trim().split(/\s+/).filter((w) => w.length > 0).length;
+      : text
+          .trim()
+          .split(/\s+/)
+          .filter((w) => w.length > 0).length;
 
   const wordCount = getWordCount(currentAnswer);
   const wordLimit = currentTask?.displayOrder === 1 ? 150 : 250;
@@ -203,7 +206,11 @@ export default function WritingTest() {
       });
     } catch (err) {
       console.error("Submit failed:", err);
-      alert("Error while submitting the essay.");
+
+      setErrorMessage(
+        err?.response?.data?.error || "Error while submitting the essay."
+      );
+      setErrorPopupOpen(true);
     } finally {
       setSubmitting(false);
     }
@@ -318,6 +325,16 @@ export default function WritingTest() {
 
       <FloatDictionrary />
       {submitting && <LoadingComponent text="Submitting your essay..." />}
+      <ConfirmationPopup
+        isOpen={errorPopupOpen}
+        onClose={() => setErrorPopupOpen(false)}
+        onConfirm={() => setErrorPopupOpen(false)}
+        title="Submission Failed"
+        message={errorMessage}
+        confirmText="OK"
+        cancelText="Cancel"
+        type="danger"
+      />
     </AppLayout>
   );
 }
